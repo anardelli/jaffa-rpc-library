@@ -2,6 +2,7 @@ package com.transport.lib.zeromq;
 
 import java.util.Arrays;
 
+@SuppressWarnings("WeakerAccess, unused")
 public class Command {
     private String serviceClass;
     private String methodName;

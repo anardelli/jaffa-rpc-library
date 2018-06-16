@@ -8,13 +8,13 @@ import org.apache.zookeeper.data.Stat;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
+@SuppressWarnings("WeakerAccess, unused")
 public class ZKUtils {
 
     public static ZooKeeper zk;

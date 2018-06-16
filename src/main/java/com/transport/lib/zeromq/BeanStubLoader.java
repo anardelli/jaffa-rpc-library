@@ -14,6 +14,7 @@ import java.util.Set;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 @Configuration
+@SuppressWarnings("unused")
 public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
         ClassLoader cl = BeanStubLoader.class.getClassLoader();

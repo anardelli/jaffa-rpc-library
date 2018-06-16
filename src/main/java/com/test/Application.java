@@ -22,5 +22,4 @@ public class Application {
         ZKUtils.registerService(PersonService.class.getName());
         SpringApplication.run(Application.class, args);
     }
-
 }
