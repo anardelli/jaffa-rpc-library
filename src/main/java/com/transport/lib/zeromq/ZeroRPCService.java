@@ -18,7 +18,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Set;
 
-public class ZeroRPCService<T> implements Runnable {
+public class ZeroRPCService implements Runnable {
     private HashMap<Class, Object> wrappedServices = new HashMap<>();
     private Context context;
     private Socket socket;
