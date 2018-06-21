@@ -1,8 +1,6 @@
+package com.transport.test;
 
-import com.transport.test.ClientServiceTransport;
-import com.transport.test.MainConfig;
-import com.transport.test.Person;
-import com.transport.test.PersonServiceTransport;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
