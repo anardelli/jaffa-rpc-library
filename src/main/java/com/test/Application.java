@@ -1,7 +1,6 @@
 package com.test;
 
 import com.transport.lib.zeromq.ZeroRPCService;
-import com.transport.lib.zookeeper.ZKUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
@@ -14,12 +13,8 @@ import java.net.UnknownHostException;
 public class Application {
 
     public static void main(String[] args) throws UnknownHostException {
-        ZeroRPCService service = new ZeroRPCService<>(new PersonServiceImpl());
-        service.bind("tcp://" + ZKUtils.getServiceBindAddress());
-        new Thread(service).start();
-
-        ZKUtils.connect("localhost");
-        ZKUtils.registerService(PersonService.class.getName());
+        ZeroRPCService service = new ZeroRPCService();
+        service.bind();
         SpringApplication.run(Application.class, args);
     }
 }

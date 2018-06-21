@@ -1,9 +1,12 @@
 package com.test;
 
+import com.transport.lib.zeromq.ApiServer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@ApiServer
 public class PersonServiceImpl implements PersonService{
     private List<Person> people = new ArrayList<Person>();
     private AtomicInteger idProvider = new AtomicInteger(1);

@@ -25,7 +25,6 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             command.setServiceClass(invocation.getMethod().getDeclaringClass().getInterfaces()[0].getName());
             command.setMethodName(invocation.getMethod().getName());
             command.setArgs(invocation.getArguments());
-
             if(invocation.getMethod().getParameterCount() != 0){
                 String[] methodArgs = new String[invocation.getMethod().getParameterCount()];
                 Class[]  argClasses = invocation.getMethod().getParameterTypes();
@@ -34,6 +33,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
                 }
                 command.setMethodArgs(methodArgs);
             }
+            System.out.println(command);
             return new Request(command);
         };
     }

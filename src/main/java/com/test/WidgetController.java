@@ -17,6 +17,9 @@ public class WidgetController {
     @Autowired
     PersonServiceTransport personService;
 
+    @Autowired
+    ClientServiceTransport clientServiceTransport;
+
     @RequestMapping(method = RequestMethod.GET)
     public String index() {
         Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).execute();
@@ -27,6 +30,9 @@ public class WidgetController {
         personService.lol().execute();
         personService.lol2("kek").execute();
         System.out.println("Name: "  + personService.getName().execute());
+
+        clientServiceTransport.lol3("test3").execute();
+        clientServiceTransport.lol4("test4").execute();
         return "lol";
     }
 }
