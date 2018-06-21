@@ -33,7 +33,6 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
                 }
                 command.setMethodArgs(methodArgs);
             }
-            System.out.println(command);
             return new Request(command);
         };
     }

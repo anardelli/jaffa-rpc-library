@@ -5,11 +5,11 @@ public class ExceptionHolder {
     public ExceptionHolder(){
     }
 
-    public ExceptionHolder(String stackTrace) {
+    ExceptionHolder(String stackTrace) {
         this.stackTrace = stackTrace;
     }
 
-    public String getStackTrace() {
+    String getStackTrace() {
         return stackTrace;
     }
 

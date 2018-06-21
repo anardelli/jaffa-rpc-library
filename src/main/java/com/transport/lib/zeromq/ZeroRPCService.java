@@ -23,7 +23,7 @@ public class ZeroRPCService<T> implements Runnable {
     private Context context;
     private Socket socket;
 
-    public ZeroRPCService() {
+    ZeroRPCService() {
 
         String serviceRoot = System.getProperty("service.root");
         if(serviceRoot == null) throw new IllegalArgumentException("Property service.root was not set");
@@ -51,7 +51,7 @@ public class ZeroRPCService<T> implements Runnable {
         }
     }
 
-    public void bind() throws UnknownHostException {
+    void bind() throws UnknownHostException {
         this.context = ZMQ.context(1);
         this.socket = context.socket(ZMQ.REP);
         this.socket.bind("tcp://" + ZKUtils.getServiceBindAddress());
