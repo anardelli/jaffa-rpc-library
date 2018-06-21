@@ -1,19 +1,15 @@
-package com.test;
+package com.transport.test;
 
 import com.transport.lib.zeromq.TransportConfig;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@ComponentScan({"com.test"})
+@ComponentScan({"com.transport.test"})
 @EnableAutoConfiguration
 @Import(TransportConfig.class)
-public class Application {
+public class MainConfig {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
 }

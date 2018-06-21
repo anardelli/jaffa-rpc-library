@@ -16,8 +16,8 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <root-path>src/main/java/</root-path>
-        <root-package>com.test</root-package>
+        <root-path>src/test/java/</root-path>
+        <root-package>com.transport.test</root-package>
     </properties>
 
     <dependencies>
@@ -64,6 +64,12 @@
             <artifactId>org.json.simple</artifactId>
             <version>0.4</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>5.0.6.RELEASE</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -74,6 +80,22 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.9</version>
+                <executions>
+                    <execution>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <argLine>-Dzookeeper.connection=localhost:2181 -Dservice.root=com.transport.test</argLine>
                 </configuration>
             </plugin>
         </plugins>

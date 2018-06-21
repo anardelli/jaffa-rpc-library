@@ -1,13 +1,18 @@
-package com.test;
 
+import com.transport.test.ClientServiceTransport;
+import com.transport.test.MainConfig;
+import com.transport.test.Person;
+import com.transport.test.PersonServiceTransport;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
-@RequestMapping("/api/**")
-@RestController
-public class WidgetController {
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes={MainConfig.class}, loader=AnnotationConfigContextLoader.class)
+public class MainTest {
 
     @Autowired
     PersonServiceTransport personService;
@@ -15,8 +20,8 @@ public class WidgetController {
     @Autowired
     ClientServiceTransport clientServiceTransport;
 
-    @RequestMapping(method = RequestMethod.GET)
-    public String index() {
+    @Test
+    public void testMethods() {
         Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).execute();
         System.out.printf("Resulting id is %s", id);
         System.out.println();
@@ -28,6 +33,5 @@ public class WidgetController {
 
         clientServiceTransport.lol3("test3").execute();
         clientServiceTransport.lol4("test4").execute();
-        return "lol";
     }
 }

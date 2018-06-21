@@ -1,4 +1,4 @@
-package com.test;
+package com.transport.test;
 
 import com.transport.lib.zeromq.ApiClient;
 import com.transport.lib.zeromq.RequestInterface;

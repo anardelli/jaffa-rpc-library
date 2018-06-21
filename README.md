@@ -22,10 +22,10 @@ You create interface with ```@Api```annotation, for example:
 
 ```java
 @Api
-public interface PersonService {
+public interface com.transport.test.PersonService {
     public static final String TEST = "TEST";
-    public int add(String name,  String email, Address address);
-    public Person get(Integer id);
+    public int add(String name,  String email, com.transport.test.Address address);
+    public com.transport.test.Person get(Integer id);
     public void lol();
     public void lol2(String message);
     public static void shit(){
@@ -40,9 +40,9 @@ It ignores all static and default methods, all fields and makes all methods publ
 
 ```java
 @ApiClient
-public interface PersonServiceTransport {
-    public RequestInterface<Integer> add(String name, String email, Address address);
-    public RequestInterface<Person> get(Integer id);
+public interface com.transport.test.PersonServiceTransport {
+    public RequestInterface<Integer> add(String name, String email, com.transport.test.Address address);
+    public RequestInterface<com.transport.test.Person> get(Integer id);
     public RequestInterface<Void> lol();
     public RequestInterface<Void> lol2(String message);
     public RequestInterface<String> getName();
@@ -53,7 +53,7 @@ next, you inject this transport interface through autowiring:
 
 ```java
 @Autowired
-PersonServiceTransport personService;
+com.transport.test.PersonServiceTransport personService;
 ```
 
 and make method call like that (here call executed with 10s timeout):

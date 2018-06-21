@@ -1,5 +1,4 @@
-package com.test;
-
+package com.transport.test;
 
 public class Person {
     private int id;
@@ -49,7 +48,7 @@ public class Person {
 
     @Override
     public String toString() {
-        return "test.Person{" +
+        return "test.com.transport.test.Person{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +

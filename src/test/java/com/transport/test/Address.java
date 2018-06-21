@@ -1,4 +1,4 @@
-package com.test;
+package com.transport.test;
 
 import java.io.Serializable;
 
@@ -52,7 +52,7 @@ public class Address implements Serializable {
 
     @Override
     public String toString() {
-        return "test.Address{" +
+        return "test.com.transport.test.Address{" +
                 "zip='" + zip + '\'' +
                 ", street='" + street + '\'' +
                 ", flat='" + flat + '\'' +
