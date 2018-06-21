@@ -39,7 +39,6 @@ public class ZeroRPCService implements Runnable {
                 Set<Class<?>> apiImpls = reflections.getSubTypesOf(apiInterface);
                 for(Class<?> apiImpl : apiImpls){
                     if(AnnotationUtils.findAnnotation(apiImpl, ApiServer.class) != null){
-                        System.out.println(apiImpl.getName());
                         wrappedServices.put(apiInterface, apiImpl.newInstance());
                         ZKUtils.registerService(apiInterface.getName());
                         break;
