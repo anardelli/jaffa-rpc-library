@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 public class Request<T> implements RequestInterface<T>{
 
     private int timeout = -1;
+    private String moduleId;
 
     private Command command;
 
@@ -24,9 +25,14 @@ public class Request<T> implements RequestInterface<T>{
         return this;
     }
 
+    public Request<T> onModule(String moduleId){
+        this.moduleId = moduleId;
+        return this;
+    }
+
     @SuppressWarnings("unchecked")
     public T execute(){
-        String address = "tcp://" + ZKUtils.getHostForService(command.getServiceClass());
+        String address = "tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId);
         ZMQ.Context context =  ZMQ.context(1);
         ZMQ.Socket socket = context.socket(ZMQ.REQ);
         socket.connect(address);

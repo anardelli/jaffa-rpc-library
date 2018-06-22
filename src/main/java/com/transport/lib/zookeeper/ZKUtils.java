@@ -35,12 +35,12 @@ public class ZKUtils {
         }
     }
 
-    public static String getHostForService(String service){
+    public static String getHostForService(String service, String moduleId){
         service = service.replace("Transport", "");
         try{
             Stat stat = znode_exists("/" +service);
             if(stat != null) {
-                return getHostsForService("/" + service)[0];
+                return getHostsForService("/" + service, moduleId)[0];
             }else throw new RuntimeException("No route for service: " + service);
         }catch (Exception e){
             e.printStackTrace();
@@ -48,18 +48,28 @@ public class ZKUtils {
         return null;
     }
 
-    private static String[] getHostsForService(String service) throws KeeperException, InterruptedException, ParseException{
-        String[] hosts;
+    private static String[] getHostsForService(String service, String moduleId) throws KeeperException, InterruptedException, ParseException{
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray)new JSONParser().parse(new String(zkData));
         if(jArray.size() == 0)
             throw new RuntimeException("No route for service: " + service);
         else {
-            hosts = new String[jArray.size()];
-            for(int i = 0; i < jArray.size(); i++){
-                hosts[i] = (String)jArray.get(i);
+            ArrayList<String> hosts = new ArrayList<>();
+            if(moduleId != null){
+                for(int i = 0; i < jArray.size(); i++){
+                    String host = (String)jArray.get(i);
+                    if(host.endsWith("#" + moduleId))
+                        hosts.add(host.replace("#" + moduleId, ""));
+                }
+                if(hosts.isEmpty())
+                    throw new RuntimeException("No route for service: " + service + " and module.id " + moduleId);
+            }else{
+                for(int i = 0; i < jArray.size(); i++){
+                    String host = (String)jArray.get(i);
+                    hosts.add(host.substring(0, host.indexOf("#")));
+                }
             }
-            return hosts;
+            return hosts.toArray(new String[hosts.size()]);
         }
     }
 
@@ -116,6 +126,10 @@ public class ZKUtils {
     }
 
     public static String getServiceBindAddress() throws UnknownHostException{
+        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id");
+    }
+
+    public static String getZeroMQBindAddress() throws UnknownHostException{
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
     }
 

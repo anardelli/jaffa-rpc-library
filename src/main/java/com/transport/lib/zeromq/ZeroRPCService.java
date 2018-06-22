@@ -26,10 +26,13 @@ public class ZeroRPCService implements Runnable {
     ZeroRPCService() {
 
         String serviceRoot = System.getProperty("service.root");
-        if(serviceRoot == null) throw new IllegalArgumentException("Property service.root was not set");
+        if(serviceRoot == null || serviceRoot.trim().isEmpty()) throw new IllegalArgumentException("Property service.root was not set");
 
         String zooConnection = System.getProperty("zookeeper.connection");
-        if(zooConnection == null) throw new IllegalArgumentException("Property zookeeper.connection was not set");
+        if(zooConnection == null || zooConnection.trim().isEmpty()) throw new IllegalArgumentException("Property zookeeper.connection was not set");
+
+        String moduleId = System.getProperty("module.id");
+        if(moduleId == null || moduleId.trim().isEmpty()) throw new IllegalArgumentException("Property module.id was not set");
 
         ZKUtils.connect(zooConnection);
         try{
@@ -53,11 +56,12 @@ public class ZeroRPCService implements Runnable {
     void bind() throws UnknownHostException {
         this.context = ZMQ.context(1);
         this.socket = context.socket(ZMQ.REP);
-        this.socket.bind("tcp://" + ZKUtils.getServiceBindAddress());
+        this.socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
         new Thread(this).start();
 
     }
     private Object invoke(Command command) {
+        System.out.println(command + " invoked on module " + System.getProperty("module.id"));
         if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             try {
                 Class[] methodArgClasses = new Class[command.getMethodArgs().length];
