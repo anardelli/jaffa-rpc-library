@@ -31,7 +31,7 @@ public class Request<T> implements RequestInterface<T>{
     }
 
     @SuppressWarnings("unchecked")
-    public T execute(){
+    public T executeSync(){
         String address = "tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId);
         ZMQ.Context context =  ZMQ.context(1);
         ZMQ.Socket socket = context.socket(ZMQ.REQ);
@@ -46,11 +46,13 @@ public class Request<T> implements RequestInterface<T>{
             socket.setReceiveTimeOut(timeout);
         }
         byte[] response = socket.recv(0);
+        socket.close();
+        if(!context.isClosed()){
+            context.close();
+            if(!context.isTerminated())
+                context.term();
+        }
         if(response == null) {
-            socket.close();
-            if(!context.isClosed()){
-                context.close();
-            }
             throw new RuntimeException("Transport execution timeout");
         }
         Input input = new Input(new ByteArrayInputStream(response));
@@ -60,7 +62,30 @@ public class Request<T> implements RequestInterface<T>{
             if(result instanceof ExceptionHolder)
                 throw new RuntimeException(((ExceptionHolder) result).getStackTrace());
         }
-
         return (T)result;
+    }
+
+    public void executeAsync(String key, Class listener){
+
+        command.setCallbackClass(listener.getName());
+        command.setCallbackKey(key);
+
+        String address = "tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId);
+        ZMQ.Context context =  ZMQ.context(1);
+        ZMQ.Socket socket = context.socket(ZMQ.REQ);
+        socket.connect(address);
+        Kryo kryo = new Kryo();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+        kryo.writeObject(output, command);
+        output.close();
+        socket.send(out.toByteArray(), 0);
+        socket.recv(0);
+        socket.close();
+        if(!context.isClosed()){
+            context.close();
+            if(!context.isTerminated())
+                context.term();
+        }
     }
 }

@@ -16,12 +16,26 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class ZeroRPCService implements Runnable {
     private HashMap<Class, Object> wrappedServices = new HashMap<>();
     private Context context;
     private Socket socket;
+    private final static Map<Class<?>, Class<?>> map = new HashMap<>();
+
+    static {
+        map.put(boolean.class, Boolean.class);
+        map.put(byte.class, Byte.class);
+        map.put(short.class, Short.class);
+        map.put(char.class, Character.class);
+        map.put(int.class, Integer.class);
+        map.put(long.class, Long.class);
+        map.put(float.class, Float.class);
+        map.put(double.class, Double.class);
+        map.put(void.class, Void.class);
+    }
 
     ZeroRPCService() {
 
@@ -58,6 +72,7 @@ public class ZeroRPCService implements Runnable {
         this.socket = context.socket(ZMQ.REP);
         this.socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
         new Thread(this).start();
+        new Thread( new CallbackReceiver()).start();
 
     }
     private Object invoke(Command command) {
@@ -100,21 +115,61 @@ public class ZeroRPCService implements Runnable {
                 Input input = new Input(new ByteArrayInputStream(bytes));
                 final Command command = kryo.readObject(input, Command.class);
                 Object result = invoke(command);
-                ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                Output output = new Output(bOutput);
-                if(result instanceof Throwable){
-                    StringWriter sw = new StringWriter();
-                    ((Throwable)result).printStackTrace(new PrintWriter(sw));
-                    kryo.writeClassAndObject(output, new ExceptionHolder(sw.toString()));
-                }else {
-                    kryo.writeClassAndObject(output, result);
+                if(command.getCallbackKey() != null && command.getCallbackClass() != null){
+                    this.socket.send("OK");
+                    ZMQ.Context context1 = ZMQ.context(1);
+                    ZMQ.Socket socketResult = context1.socket(ZMQ.REQ);
+                    socketResult.connect("tcp://" + ZKUtils.getZeroMQCallbackBindAddress());
+                    ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                    Output output = new Output(bOutput);
+                    CallbackContainer callbackContainer = new CallbackContainer();
+                    callbackContainer.setKey(command.getCallbackKey());
+                    callbackContainer.setListener(command.getCallbackClass());
+                    Method targetMethod;
+                    Object wrappedService = wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
+                    if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
+                        Class[] methodArgClasses = new Class[command.getMethodArgs().length];
+                        for(int i = 0; i < command.getMethodArgs().length; i++){
+                            methodArgClasses[i] =  Class.forName(command.getMethodArgs()[i]);
+                        }
+                        targetMethod = wrappedService.getClass().getMethod(command.getMethodName(), methodArgClasses);
+                    } else {
+                        targetMethod = wrappedService.getClass().getMethod(command.getMethodName());
+                    }
+                    if(map.containsKey(targetMethod.getReturnType())){
+                        callbackContainer.setResultClass(map.get(targetMethod.getReturnType()).getName());
+                    }else{
+                        callbackContainer.setResultClass(targetMethod.getReturnType().getName());
+                    }
+                    if(result instanceof Throwable){
+                        StringWriter sw = new StringWriter();
+                        ((Throwable)result).printStackTrace(new PrintWriter(sw));
+                        callbackContainer.setResult(new ExceptionHolder(sw.toString()));
+                    }else {
+                        callbackContainer.setResult(result);
+                    }
+                    kryo.writeObject(output, callbackContainer);
+                    output.close();
+                    socketResult.send(bOutput.toByteArray());
+                    socketResult.close();
+                    context1.close();
+                    context1.term();
+                }else{
+                    ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                    Output output = new Output(bOutput);
+                    if(result instanceof Throwable){
+                        StringWriter sw = new StringWriter();
+                        ((Throwable)result).printStackTrace(new PrintWriter(sw));
+                        kryo.writeClassAndObject(output, new ExceptionHolder(sw.toString()));
+                    }else {
+                        kryo.writeClassAndObject(output, result);
+                    }
+                    output.close();
+                    this.socket.send(bOutput.toByteArray());
                 }
-                output.close();
-                this.socket.send(bOutput.toByteArray());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
         this.socket.close();
         this.context.term();

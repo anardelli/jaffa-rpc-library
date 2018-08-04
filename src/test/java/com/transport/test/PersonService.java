@@ -14,5 +14,6 @@ public interface PersonService {
         System.out.println("Shit");
     }
     public String getName();
+    public String testError();
 
 }

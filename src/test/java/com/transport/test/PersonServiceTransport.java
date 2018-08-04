@@ -15,5 +15,7 @@ public interface PersonServiceTransport {
     public RequestInterface<Void> lol2(String message);
 
     public RequestInterface<String> getName();
+
+    public RequestInterface<String> testError();
 }
 

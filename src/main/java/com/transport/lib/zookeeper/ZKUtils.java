@@ -96,6 +96,14 @@ public class ZKUtils {
         }
     }
 
+    private static int getCallbackPort(){
+        try {
+            return Integer.parseInt(System.getProperty("callback.port", "4343"));
+        }catch (NumberFormatException e){
+            return 4343;
+        }
+    }
+
     private static void create(String service) throws KeeperException,InterruptedException, UnknownHostException {
         JSONArray ja = new JSONArray();
         ja.add(getServiceBindAddress());
@@ -131,6 +139,10 @@ public class ZKUtils {
 
     public static String getZeroMQBindAddress() throws UnknownHostException{
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
+    }
+
+    public static String getZeroMQCallbackBindAddress() throws UnknownHostException{
+        return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
     private static InetAddress getLocalHostLANAddress() throws UnknownHostException {

@@ -41,4 +41,8 @@ public class PersonServiceImpl implements PersonService{
     public String getName(){
         return null;
     }
+
+    public String testError(){
+        throw new RuntimeException("very bad...");
+    }
 }

@@ -8,6 +8,8 @@ public class Command {
     private String methodName;
     private String[] methodArgs;
     private Object[] args;
+    private String callbackClass;
+    private String callbackKey;
 
     public Command() {}
 
@@ -50,6 +52,22 @@ public class Command {
         this.args = args;
     }
 
+    public String getCallbackClass() {
+        return callbackClass;
+    }
+
+    public void setCallbackClass(String callbackClass) {
+        this.callbackClass = callbackClass;
+    }
+
+    public String getCallbackKey() {
+        return callbackKey;
+    }
+
+    public void setCallbackKey(String callbackKey) {
+        this.callbackKey = callbackKey;
+    }
+
     @Override
     public String toString() {
         return "Command{" +
@@ -57,6 +75,8 @@ public class Command {
                 ", methodName='" + methodName + '\'' +
                 ", methodArgs=" + Arrays.toString(methodArgs) +
                 ", args=" + Arrays.toString(args) +
+                ", callbackClass='" + callbackClass + '\'' +
+                ", callbackKey='" + callbackKey + '\'' +
                 '}';
     }
 }
