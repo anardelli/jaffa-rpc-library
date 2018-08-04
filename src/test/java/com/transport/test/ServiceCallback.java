@@ -11,8 +11,8 @@ public class ServiceCallback implements Callback<Void> {
     }
 
     @Override
-    public void callBackError(String key, String stackTrace) {
-        System.out.println("Key: " + key);
-        System.out.println("StackTrace: " + stackTrace);
+    public void callBackError(String key, Throwable exception) {
+        System.out.println("Exception during async call");
+        exception.printStackTrace();
     }
 }

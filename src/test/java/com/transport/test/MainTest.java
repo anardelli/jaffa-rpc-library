@@ -42,11 +42,6 @@ public class MainTest {
             System.out.println("Exception during sync call");
             e.printStackTrace();
         }
-        try {
-            personService.testError().onModule("main.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
-        }catch (Exception e){
-            System.out.println("Exception during async call");
-            e.printStackTrace();
-        }
+        personService.testError().onModule("main.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
     }
 }

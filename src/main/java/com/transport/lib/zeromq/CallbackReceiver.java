@@ -24,8 +24,8 @@ public class CallbackReceiver implements Runnable {
                     final CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());
                     if(callbackContainer.getResult() instanceof ExceptionHolder) {
-                        Method method = callbackClass.getMethod("callBackError", String.class, String.class );
-                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), ((ExceptionHolder)callbackContainer.getResult()).getStackTrace());
+                        Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
+                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                     }else {
                         Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
                         if(Class.forName(callbackContainer.getResultClass()).equals(Void.class)){
