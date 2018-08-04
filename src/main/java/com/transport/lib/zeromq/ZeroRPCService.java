@@ -147,6 +147,7 @@ public class ZeroRPCService implements Runnable {
                 e.printStackTrace();
             }
         }
+        System.out.println("Stopping services...");
         ZKUtils.closeSocketAndContext(socket, context);
     }
 }

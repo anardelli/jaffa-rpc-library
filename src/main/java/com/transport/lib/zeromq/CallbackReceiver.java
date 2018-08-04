@@ -41,6 +41,7 @@ public class CallbackReceiver implements Runnable {
                     e.printStackTrace();
                 }
             }
+            System.out.println("Stopping callback receiver...");
             ZKUtils.closeSocketAndContext(socket, context);
         }catch (Exception e){
             System.out.println("Error during callback receiver startup:");
