@@ -1,5 +1,7 @@
 package com.transport.lib.zeromq;
 
+import com.transport.lib.zookeeper.ZKUtils;
+
 import java.util.Arrays;
 
 @SuppressWarnings("WeakerAccess, unused")
@@ -10,14 +12,26 @@ public class Command {
     private Object[] args;
     private String callbackClass;
     private String callbackKey;
+    private String callBackZMQ;
+    private String sourceModuleId;
 
-    public Command() {}
+    public Command() {setMetadata();}
 
     public Command(String serviceClass, String methodName, String[] methodArgs, Object... args) {
+        setMetadata();
         this.serviceClass = serviceClass;
         this.methodArgs = methodArgs;
         this.methodName = methodName;
         this.args = args;
+    }
+
+    private void setMetadata(){
+        try {
+            this.callBackZMQ = ZKUtils.getZeroMQCallbackBindAddress();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        this.sourceModuleId = ZeroRPCService.getOption("module.id");
     }
 
     public String getServiceClass() {
@@ -66,6 +80,14 @@ public class Command {
 
     public void setCallbackKey(String callbackKey) {
         this.callbackKey = callbackKey;
+    }
+
+    public String getCallBackZMQ() {
+        return callBackZMQ;
+    }
+
+    public String getSourceModuleId() {
+        return sourceModuleId;
     }
 
     @Override

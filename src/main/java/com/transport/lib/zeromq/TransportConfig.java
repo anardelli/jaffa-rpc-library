@@ -14,12 +14,6 @@ public class TransportConfig {
 
     @Bean
     public ZeroRPCService zeroRPCService(){
-        ZeroRPCService service = new ZeroRPCService();
-        try {
-            service.bind();
-        }catch (UnknownHostException e){
-            e.printStackTrace();
-        }
-        return service;
+        return new ZeroRPCService();
     }
 }

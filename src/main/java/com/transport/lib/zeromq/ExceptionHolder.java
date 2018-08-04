@@ -1,22 +1,13 @@
 package com.transport.lib.zeromq;
 
+@SuppressWarnings("unused")
 public class ExceptionHolder {
-
-    public ExceptionHolder(){
-    }
-
-    ExceptionHolder(String stackTrace) {
-        this.stackTrace = stackTrace;
-    }
-
-    String getStackTrace() {
-        return stackTrace;
-    }
-
-    public void setStackTrace(String stackTrace) {
-        this.stackTrace = stackTrace;
-    }
 
     private String stackTrace;
 
+    public ExceptionHolder(){ }
+
+    ExceptionHolder(String stackTrace) { this.stackTrace = stackTrace; }
+
+    String getStackTrace() { return stackTrace; }
 }

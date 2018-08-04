@@ -1,7 +1,6 @@
 package com.transport.test;
 
 import com.transport.lib.zeromq.ApiServer;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +42,6 @@ public class PersonServiceImpl implements PersonService{
     }
 
     public String testError(){
-        throw new RuntimeException("very bad...");
+        throw new RuntimeException("very bad in " + System.getProperty("module.id"));
     }
 }

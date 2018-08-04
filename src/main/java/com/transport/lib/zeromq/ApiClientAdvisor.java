@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 @Component
+@SuppressWarnings("unused")
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
     private static final long serialVersionUID = 1L;

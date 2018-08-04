@@ -14,17 +14,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class ZeroRPCService implements Runnable {
-    private HashMap<Class, Object> wrappedServices = new HashMap<>();
-    private Context context;
-    private Socket socket;
-    private final static Map<Class<?>, Class<?>> map = new HashMap<>();
-
+    private static HashMap<Class, Object> wrappedServices = new HashMap<>();
+    private static Context context;
+    private static Socket socket;
+    private static Map<Class<?>, Class<?>> map = new HashMap<>();
+    public static volatile boolean active = false;
     static {
         map.put(boolean.class, Boolean.class);
         map.put(byte.class, Byte.class);
@@ -37,20 +36,16 @@ public class ZeroRPCService implements Runnable {
         map.put(void.class, Void.class);
     }
 
+    static String getOption(String option){
+        String optionValue = System.getProperty(option);
+        if(optionValue == null || optionValue.trim().isEmpty()) throw new IllegalArgumentException("Property service.root was not set");
+        else return optionValue;
+    }
+
     ZeroRPCService() {
-
-        String serviceRoot = System.getProperty("service.root");
-        if(serviceRoot == null || serviceRoot.trim().isEmpty()) throw new IllegalArgumentException("Property service.root was not set");
-
-        String zooConnection = System.getProperty("zookeeper.connection");
-        if(zooConnection == null || zooConnection.trim().isEmpty()) throw new IllegalArgumentException("Property zookeeper.connection was not set");
-
-        String moduleId = System.getProperty("module.id");
-        if(moduleId == null || moduleId.trim().isEmpty()) throw new IllegalArgumentException("Property module.id was not set");
-
-        ZKUtils.connect(zooConnection);
+        ZKUtils.connect(getOption("zookeeper.connection"));
         try{
-            Reflections reflections = new Reflections(serviceRoot);
+            Reflections reflections = new Reflections(getOption("service.root"));
             Set<Class<?>> apiInterfaces = reflections.getTypesAnnotatedWith(Api.class);
             for(Class apiInterface : apiInterfaces){
                 Set<Class<?>> apiImpls = reflections.getSubTypesOf(apiInterface);
@@ -62,115 +57,96 @@ public class ZeroRPCService implements Runnable {
                     }
                 }
             }
+            context = ZMQ.context(1);
+            socket = context.socket(ZMQ.REP);
+            socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
+            active = true;
+            new Thread(this).start();
+            new Thread( new CallbackReceiver()).start();
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    void bind() throws UnknownHostException {
-        this.context = ZMQ.context(1);
-        this.socket = context.socket(ZMQ.REP);
-        this.socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
-        new Thread(this).start();
-        new Thread( new CallbackReceiver()).start();
-
+    private Object getTargetService(Command command) throws ClassNotFoundException{
+        return wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
     }
-    private Object invoke(Command command) {
+
+    private Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
+        Object wrappedService = getTargetService(command);
         if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
-            try {
-                Class[] methodArgClasses = new Class[command.getMethodArgs().length];
-                for(int i = 0; i < command.getMethodArgs().length; i++){
-                    methodArgClasses[i] =  Class.forName(command.getMethodArgs()[i]);
-                }
-                Object wrappedService = wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
-                Method m = wrappedService.getClass().getMethod(command.getMethodName(), methodArgClasses);
-                Object result = m.invoke(wrappedService, command.getArgs());
-                if(m.getReturnType().equals(Void.TYPE)){
-                    return Void.TYPE;
-                }else
-                    return result;
-            }catch (Exception e){
-                return e.getCause();
+            Class[] methodArgClasses = new Class[command.getMethodArgs().length];
+            for (int i = 0; i < command.getMethodArgs().length; i++) {
+                methodArgClasses[i] = Class.forName(command.getMethodArgs()[i]);
             }
+            return wrappedService.getClass().getMethod(command.getMethodName(), methodArgClasses);
         } else {
-            try {
-                Object wrappedService = wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
-                Method m = wrappedService.getClass().getMethod(command.getMethodName());
-                Object result = m.invoke(wrappedService);
-                if(m.getReturnType().equals(Void.TYPE)){
-                    return Void.TYPE;
-                }else
-                    return result;
-            }catch (Exception e){
-                return e.getCause();
-            }
+            return wrappedService.getClass().getMethod(command.getMethodName());
         }
     }
+
+    private Object invoke(Command command) {
+        try {
+            Object targetService = getTargetService(command);
+            Method targetMethod = getTargetMethod(command);
+            Object result;
+            if(command.getMethodArgs() != null && command.getMethodArgs().length > 0)
+                result = targetMethod.invoke(targetService, command.getArgs());
+            else
+                result = targetMethod.invoke(targetService);
+            if(targetMethod.getReturnType().equals(Void.TYPE)) return Void.TYPE;
+            else return result;
+        }catch (Exception e){
+            return e.getCause();
+        }
+    }
+
+    private Object getResult(Object result){
+        if(result instanceof Throwable){
+            StringWriter sw = new StringWriter();
+            ((Throwable)result).printStackTrace(new PrintWriter(sw));
+            return new ExceptionHolder(sw.toString());
+        }else return result;
+    }
+
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (active) {
             try {
-                byte[] bytes = this.socket.recv();
+                byte[] bytes = socket.recv();
                 Kryo kryo = new Kryo();
                 Input input = new Input(new ByteArrayInputStream(bytes));
                 final Command command = kryo.readObject(input, Command.class);
                 Object result = invoke(command);
+                ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                Output output = new Output(bOutput);
                 if(command.getCallbackKey() != null && command.getCallbackClass() != null){
-                    this.socket.send("OK");
-                    ZMQ.Context context1 = ZMQ.context(1);
-                    ZMQ.Socket socketResult = context1.socket(ZMQ.REQ);
-                    socketResult.connect("tcp://" + ZKUtils.getZeroMQCallbackBindAddress());
-                    ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                    Output output = new Output(bOutput);
+                    socket.send("OK");
+                    ZMQ.Context contextAsync = ZMQ.context(1);
+                    ZMQ.Socket socketAsync = contextAsync.socket(ZMQ.REQ);
+                    socketAsync.connect("tcp://" + command.getCallBackZMQ());
                     CallbackContainer callbackContainer = new CallbackContainer();
                     callbackContainer.setKey(command.getCallbackKey());
                     callbackContainer.setListener(command.getCallbackClass());
-                    Method targetMethod;
-                    Object wrappedService = wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
-                    if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
-                        Class[] methodArgClasses = new Class[command.getMethodArgs().length];
-                        for(int i = 0; i < command.getMethodArgs().length; i++){
-                            methodArgClasses[i] =  Class.forName(command.getMethodArgs()[i]);
-                        }
-                        targetMethod = wrappedService.getClass().getMethod(command.getMethodName(), methodArgClasses);
-                    } else {
-                        targetMethod = wrappedService.getClass().getMethod(command.getMethodName());
-                    }
+                    callbackContainer.setResult(getResult(result));
+                    Method targetMethod = getTargetMethod(command);
                     if(map.containsKey(targetMethod.getReturnType())){
                         callbackContainer.setResultClass(map.get(targetMethod.getReturnType()).getName());
                     }else{
                         callbackContainer.setResultClass(targetMethod.getReturnType().getName());
                     }
-                    if(result instanceof Throwable){
-                        StringWriter sw = new StringWriter();
-                        ((Throwable)result).printStackTrace(new PrintWriter(sw));
-                        callbackContainer.setResult(new ExceptionHolder(sw.toString()));
-                    }else {
-                        callbackContainer.setResult(result);
-                    }
                     kryo.writeObject(output, callbackContainer);
                     output.close();
-                    socketResult.send(bOutput.toByteArray());
-                    socketResult.close();
-                    context1.close();
-                    context1.term();
+                    socketAsync.send(bOutput.toByteArray());
+                    ZKUtils.closeSocketAndContext(socketAsync, contextAsync);
                 }else{
-                    ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                    Output output = new Output(bOutput);
-                    if(result instanceof Throwable){
-                        StringWriter sw = new StringWriter();
-                        ((Throwable)result).printStackTrace(new PrintWriter(sw));
-                        kryo.writeClassAndObject(output, new ExceptionHolder(sw.toString()));
-                    }else {
-                        kryo.writeClassAndObject(output, result);
-                    }
+                    kryo.writeClassAndObject(output, getResult(result));
                     output.close();
-                    this.socket.send(bOutput.toByteArray());
+                    socket.send(bOutput.toByteArray());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        this.socket.close();
-        this.context.term();
+        ZKUtils.closeSocketAndContext(socket, context);
     }
 }

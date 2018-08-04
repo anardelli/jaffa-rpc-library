@@ -10,13 +10,16 @@ import java.lang.reflect.Method;
 @SuppressWarnings("unchecked")
 public class CallbackReceiver implements Runnable {
 
+    public static volatile boolean active = false;
+
     @Override
     public void run() {
         try {
             ZMQ.Context context = ZMQ.context(1);
             ZMQ.Socket socket =  context.socket(ZMQ.REP);
             socket.bind("tcp://" + ZKUtils.getZeroMQCallbackBindAddress());
-            while (!Thread.currentThread().isInterrupted()) {
+            active = true;
+            while (active) {
                 try {
                     byte[] bytes = socket.recv();
                     Kryo kryo = new Kryo();
@@ -33,17 +36,12 @@ public class CallbackReceiver implements Runnable {
                         }else
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                     }
-
                 } catch (Exception e) {
+                    System.out.println("Error during receiving callback:");
                     e.printStackTrace();
                 }
             }
-            socket.close();
-            if(!context.isClosed()){
-                context.close();
-                if(!context.isTerminated())
-                    context.term();
-            }
+            ZKUtils.closeSocketAndContext(socket, context);
         }catch (Exception e){
             System.out.println("Error during callback receiver startup:");
             e.printStackTrace(System.out);

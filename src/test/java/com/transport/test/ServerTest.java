@@ -10,7 +10,7 @@ public class ServerTest {
 
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("service.root", "com.transport.test");
-        System.setProperty("service.port", "4243");
+        System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
 
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();

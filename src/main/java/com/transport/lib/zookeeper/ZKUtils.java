@@ -1,5 +1,7 @@
 package com.transport.lib.zookeeper;
 
+import com.transport.lib.zeromq.CallbackReceiver;
+import com.transport.lib.zeromq.ZeroRPCService;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -8,6 +10,8 @@ import org.apache.zookeeper.data.Stat;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.zeromq.ZMQ;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
@@ -22,7 +26,6 @@ public class ZKUtils {
     public static ZooKeeperConnection conn;
 
     public static final ArrayList<String> services = new ArrayList<>();
-
 
     public static void connect(String url){
         try {
@@ -98,9 +101,9 @@ public class ZKUtils {
 
     private static int getCallbackPort(){
         try {
-            return Integer.parseInt(System.getProperty("callback.port", "4343"));
+            return Integer.parseInt(System.getProperty("service.port", "4242")) + 100;
         }catch (NumberFormatException e){
-            return 4343;
+            return 4342;
         }
     }
 
@@ -178,6 +181,15 @@ public class ZKUtils {
             throw unknownHostException;
         }
     }
+
+    public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context){
+        socket.close();
+        if(!context.isClosed()){
+            context.close();
+            if(!context.isTerminated())
+                context.term();
+        }
+    }
 }
 
 class ShutdownHook extends Thread {
@@ -188,6 +200,8 @@ class ShutdownHook extends Thread {
                 ZKUtils.delete(service);
                 System.out.println("Unregistered service: " + service);
             }
+            ZeroRPCService.active = false;
+            CallbackReceiver.active = false;
             ZKUtils.conn.close();
         }catch (Exception e){
             e.printStackTrace();
