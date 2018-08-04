@@ -76,7 +76,6 @@ public class ZeroRPCService implements Runnable {
 
     }
     private Object invoke(Command command) {
-        System.out.println(command + " invoked on module " + System.getProperty("module.id"));
         if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             try {
                 Class[] methodArgClasses = new Class[command.getMethodArgs().length];
