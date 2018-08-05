@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.zookeeper.ZKUtils;
+import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
 import org.apache.kafka.common.utils.Time;
@@ -86,6 +87,18 @@ public class ZeroRPCService implements Runnable {
             socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
             active = true;
             new Thread(this).start();
+
+            if(ZKUtils.useKafkaForSync()){
+                HashSet<String> serverTopics = new HashSet<>();
+                new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server-sync");});
+                Properties topicConfig = new Properties();
+                serverTopics.forEach(topic -> {
+                    if(!zkClient.topicExists(topic)){
+                        adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
+                    }
+                });
+                new Thread( new KafkaSyncRequestReceiver()).start();
+            }
             if(ZKUtils.useKafkaForAsync()) {
                 new Thread( new KafkaAsyncRequestReceiver()).start();
                 new Thread(new KafkaAsyncResponseReceiver()).start();
