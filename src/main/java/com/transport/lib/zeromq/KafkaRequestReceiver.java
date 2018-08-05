@@ -53,7 +53,6 @@ public class KafkaRequestReceiver implements Runnable {
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
                     try {
-                        System.out.println(Thread.currentThread().getName());
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         final Command command = kryo.readObject(input, Command.class);

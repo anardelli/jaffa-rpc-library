@@ -45,7 +45,6 @@ public class KafkaResponseReceiver implements Runnable {
                 for(ConsumerRecord<String,byte[]> record: records){
 
                     try {
-                        System.out.println(Thread.currentThread().getName());
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         final CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
