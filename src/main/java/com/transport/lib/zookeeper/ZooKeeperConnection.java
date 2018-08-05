@@ -3,19 +3,16 @@ package com.transport.lib.zookeeper;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
-
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-public class ZooKeeperConnection {
+class ZooKeeperConnection {
 
     private ZooKeeper zoo;
-    final CountDownLatch connectedSignal = new CountDownLatch(1);
+    private final CountDownLatch connectedSignal = new CountDownLatch(1);
 
-    public ZooKeeper connect(String host) throws IOException,InterruptedException {
-
+    ZooKeeper connect(String host) throws IOException,InterruptedException {
         zoo = new ZooKeeper(host,5000,new Watcher() {
-
             public void process(WatchedEvent we) {
 
                 if (we.getState() == Event.KeeperState.SyncConnected) {
@@ -23,12 +20,11 @@ public class ZooKeeperConnection {
                 }
             }
         });
-
         connectedSignal.await();
         return zoo;
     }
 
-    public void close() throws InterruptedException {
+    void close() throws InterruptedException {
         zoo.close();
     }
 }
