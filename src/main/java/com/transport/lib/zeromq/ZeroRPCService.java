@@ -17,10 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class ZeroRPCService implements Runnable {
@@ -31,6 +28,22 @@ public class ZeroRPCService implements Runnable {
     public static volatile boolean active = false;
     public static KafkaZkClient zkClient;
     public static AdminZkClient adminZkClient;
+    public static final Properties consumerProps = new Properties();
+    static {
+        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        consumerProps.put("auto.commit.offset", "false");
+        consumerProps.put("group.id", UUID.randomUUID().toString());
+    }
+
+    public static final Properties producerProps = new Properties();
+    static {
+        producerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+    }
+
     static {
         map.put(boolean.class, Boolean.class);
         map.put(byte.class, Byte.class);

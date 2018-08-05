@@ -11,25 +11,17 @@ import scala.collection.Seq;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import static com.transport.lib.zeromq.ZeroRPCService.getOption;
+import static com.transport.lib.zeromq.ZeroRPCService.producerProps;
 import static com.transport.lib.zeromq.ZeroRPCService.zkClient;
 
 public class Request<T> implements RequestInterface<T>{
 
-    private static final Properties producerProps = new Properties();
-    static {
-        producerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
-        producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-    }
     private static final KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
 
     private int timeout = -1;
     private String moduleId;
-
     private Command command;
 
     public Request(Command command){

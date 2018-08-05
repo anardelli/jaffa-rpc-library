@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Properties;
-import java.util.UUID;
 import static com.transport.lib.zeromq.ZeroRPCService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
@@ -31,19 +30,12 @@ public class KafkaResponseReceiver implements Runnable {
                 adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             }
         });
-        Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
-        consumerProps.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put("value.deserializer","org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("auto.commit.offset","false");
-        consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             consumer.subscribe(clientTopics);
             while(active){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
-
                     try {
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));

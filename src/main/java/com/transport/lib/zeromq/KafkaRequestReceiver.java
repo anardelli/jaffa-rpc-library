@@ -33,17 +33,6 @@ public class KafkaRequestReceiver implements Runnable {
                 adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             }
         });
-        Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
-        consumerProps.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put("value.deserializer","org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("auto.commit.offset","false");
-        consumerProps.put("group.id", UUID.randomUUID().toString());
-
-        Properties producerProps = new Properties();
-        producerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
-        producerProps.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
-        producerProps.put("value.serializer","org.apache.kafka.common.serialization.ByteArraySerializer");
 
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
