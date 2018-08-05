@@ -33,7 +33,7 @@ public class ZeroRPCService implements Runnable {
         consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("auto.commit.offset", "false");
+        consumerProps.put("enable.auto.commit", "false");
         consumerProps.put("group.id", UUID.randomUUID().toString());
     }
 

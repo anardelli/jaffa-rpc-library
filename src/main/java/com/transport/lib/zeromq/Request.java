@@ -44,7 +44,7 @@ public class Request<T> implements RequestInterface<T>{
         ZMQ.Socket socket = context.socket(ZMQ.REQ);
         socket.connect("tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId));
         Kryo kryo = new Kryo();
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
@@ -87,7 +87,7 @@ public class Request<T> implements RequestInterface<T>{
         command.setCallbackClass(listener.getName());
         command.setCallbackKey(key);
         Kryo kryo = new Kryo();
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
