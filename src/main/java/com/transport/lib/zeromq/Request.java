@@ -4,23 +4,28 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.zookeeper.ZKUtils;
-import kafka.zk.KafkaZkClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.utils.Time;
 import org.zeromq.ZMQ;
 import scala.collection.Seq;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import static com.transport.lib.zeromq.ZeroRPCService.getOption;
+import static com.transport.lib.zeromq.ZeroRPCService.zkClient;
 
 public class Request<T> implements RequestInterface<T>{
+
+    private static final Properties producerProps = new Properties();
+    static {
+        producerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+    }
+    private static final KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
 
     private int timeout = -1;
     private String moduleId;
@@ -68,9 +73,8 @@ public class Request<T> implements RequestInterface<T>{
         return (T)result;
     }
 
-    public static String getTopicForService(String service, String moduleId){
+    private static String getTopicForService(String service, String moduleId){
         String serviceInterface = service.replace("Transport", "");
-        KafkaZkClient zkClient = KafkaZkClient.apply(getOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
         if(moduleId != null){
             String topicName = serviceInterface + "-" + moduleId + "-server";
             if(!zkClient.topicExists(topicName))
@@ -96,11 +100,6 @@ public class Request<T> implements RequestInterface<T>{
         kryo.writeObject(output, command);
         output.close();
         if(ZKUtils.useKafkaForAsync()){
-            Properties producerProps = new Properties();
-            producerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
-            producerProps.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
-            producerProps.put("value.serializer","org.apache.kafka.common.serialization.ByteArraySerializer");
-            KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
             try{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();

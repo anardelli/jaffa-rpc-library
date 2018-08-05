@@ -3,13 +3,10 @@ package com.transport.lib.zeromq;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import kafka.admin.RackAwareMode;
-import kafka.zk.AdminZkClient;
-import kafka.zk.KafkaZkClient;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.utils.Time;
 import org.reflections.Reflections;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
@@ -28,11 +25,7 @@ public class KafkaResponseReceiver implements Runnable {
     @Override
     public void run() {
         new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) clientTopics.add(x.getName() + "-" + getOption("module.id") + "-client");});
-        KafkaZkClient zkClient = KafkaZkClient.apply(getOption("zookeeper.connection"),false,200000,
-                15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
-        AdminZkClient adminZkClient = new AdminZkClient(zkClient);
         Properties topicConfig = new Properties();
-        System.out.println("CLIENT LISTENING TOPICS: " + clientTopics);
         clientTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
                 adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
@@ -53,7 +46,6 @@ public class KafkaResponseReceiver implements Runnable {
 
                     try {
                         System.out.println(Thread.currentThread().getName());
-                        System.out.printf("NEW RESPONSE topic = %s, partition = %s, offset = %d, key = %s, value size = %d\n", record.topic(), record.partition(), record.offset(), record.key(), record.value().length);
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         final CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);

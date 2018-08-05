@@ -4,6 +4,9 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.zookeeper.ZKUtils;
+import kafka.zk.AdminZkClient;
+import kafka.zk.KafkaZkClient;
+import org.apache.kafka.common.utils.Time;
 import org.reflections.Reflections;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.zeromq.ZMQ;
@@ -17,6 +20,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class ZeroRPCService implements Runnable {
@@ -25,6 +29,8 @@ public class ZeroRPCService implements Runnable {
     private static Socket socket;
     public static Map<Class<?>, Class<?>> map = new HashMap<>();
     public static volatile boolean active = false;
+    public static KafkaZkClient zkClient;
+    public static AdminZkClient adminZkClient;
     static {
         map.put(boolean.class, Boolean.class);
         map.put(byte.class, Byte.class);
@@ -45,6 +51,10 @@ public class ZeroRPCService implements Runnable {
 
     ZeroRPCService() {
         ZKUtils.connect(getOption("zookeeper.connection"));
+        zkClient = KafkaZkClient.apply(getOption("zookeeper.connection"),false,200000,
+                15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
+        adminZkClient = new AdminZkClient(zkClient);
+
         try{
             Reflections reflections = new Reflections(getOption("service.root"));
             Set<Class<?>> apiInterfaces = reflections.getTypesAnnotatedWith(Api.class);

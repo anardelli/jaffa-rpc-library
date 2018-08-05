@@ -4,15 +4,12 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import kafka.admin.RackAwareMode;
-import kafka.zk.AdminZkClient;
-import kafka.zk.KafkaZkClient;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.utils.Time;
 import org.reflections.Reflections;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,11 +27,7 @@ public class KafkaRequestReceiver implements Runnable {
     @Override
     public void run() {
         new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server");});
-        KafkaZkClient zkClient = KafkaZkClient.apply(getOption("zookeeper.connection"),false,200000,
-                15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
-        AdminZkClient adminZkClient = new AdminZkClient(zkClient);
         Properties topicConfig = new Properties();
-        System.out.println("SERVER LISTENING TOPICS: " + serverTopics);
         serverTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
                 adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
@@ -52,17 +45,15 @@ public class KafkaRequestReceiver implements Runnable {
         producerProps.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
         producerProps.put("value.serializer","org.apache.kafka.common.serialization.ByteArraySerializer");
 
-        KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
-
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+            KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
             consumer.subscribe(serverTopics);
             while(active){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
                     try {
                         System.out.println(Thread.currentThread().getName());
-                        System.out.printf("NEW REQUEST topic = %s, partition = %s, offset = %d, key = %s, value size = %d\n", record.topic(), record.partition(), record.offset(), record.key(), record.value().length);
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         final Command command = kryo.readObject(input, Command.class);
