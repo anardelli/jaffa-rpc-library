@@ -90,7 +90,7 @@ public class ZeroRPCService implements Runnable {
 
             if(ZKUtils.useKafkaForSync()){
                 HashSet<String> serverTopics = new HashSet<>();
-                new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server-sync");});
+                new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-client-sync");});
                 Properties topicConfig = new Properties();
                 serverTopics.forEach(topic -> {
                     if(!zkClient.topicExists(topic)){

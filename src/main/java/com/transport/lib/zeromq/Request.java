@@ -43,7 +43,7 @@ public class Request<T> implements RequestInterface<T>{
 
     private byte[] waitForSyncAnswer(String requestTopic){
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-        consumer.subscribe(Collections.singletonList(requestTopic));
+        consumer.subscribe(Collections.singletonList(requestTopic.replace("-server", "-client")));
         long elapsed = 0;
         long start = System.currentTimeMillis();
         while(timeout == -1 || elapsed < timeout){
@@ -74,7 +74,7 @@ public class Request<T> implements RequestInterface<T>{
         output.close();
         byte[] response;
         if(ZKUtils.useKafkaForSync()){
-            String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
+            String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true, false);
             try{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
@@ -104,11 +104,12 @@ public class Request<T> implements RequestInterface<T>{
         return (T)result;
     }
 
-    private static String getTopicForService(String service, String moduleId, boolean sync){
+    private static String getTopicForService(String service, String moduleId, boolean sync, boolean client){
         String serviceInterface = service.replace("Transport", "");
         String type = sync ? "-sync" : "-async";
+        String clientOrServer = client ? "-client" : "-server";
         if(moduleId != null){
-            String topicName = serviceInterface + "-" + moduleId + "-server" + type;
+            String topicName = serviceInterface + "-" + moduleId + clientOrServer + type;
             if(!zkClient.topicExists(topicName))
                 throw new RuntimeException("No route for service: " + serviceInterface);
             else
@@ -116,7 +117,7 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             Seq<String> allTopic = zkClient.getAllTopicsInCluster();
             List<String> topics = scala.collection.JavaConversions.seqAsJavaList(allTopic);
-            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith("-server" + type)).collect(Collectors.toList());
+            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith(clientOrServer + type)).collect(Collectors.toList());
             if(filtered.isEmpty()) throw new RuntimeException("No route for service: " + serviceInterface);
             else
                 return filtered.get(0);
@@ -133,7 +134,7 @@ public class Request<T> implements RequestInterface<T>{
         output.close();
         if(ZKUtils.useKafkaForAsync()){
             try{
-                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
+                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false, false), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
             }catch (Exception e){
                 e.printStackTrace();
