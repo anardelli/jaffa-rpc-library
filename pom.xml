@@ -77,6 +77,11 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>
+            <version>1.1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -102,7 +107,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <argLine>-Dzookeeper.connection=localhost:2181 -Dservice.root=com.transport.test -Dmodule.id=main.server</argLine>
+                    <argLine>-Dzookeeper.connection=localhost:2181 -Dservice.root=com.transport.test -Dmodule.id=main.server -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka.for.async=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

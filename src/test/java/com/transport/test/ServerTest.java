@@ -12,6 +12,8 @@ public class ServerTest {
         System.setProperty("service.root", "com.transport.test");
         System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
+        System.setProperty("use.kafka.for.async", "true");
+        System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.register(MainConfig.class);

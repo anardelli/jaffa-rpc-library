@@ -18,11 +18,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("WeakerAccess, unchecked")
 public class ZeroRPCService implements Runnable {
-    private static HashMap<Class, Object> wrappedServices = new HashMap<>();
+    public static HashMap<Class, Object> wrappedServices = new HashMap<>();
     private static Context context;
     private static Socket socket;
-    private static Map<Class<?>, Class<?>> map = new HashMap<>();
+    public static Map<Class<?>, Class<?>> map = new HashMap<>();
     public static volatile boolean active = false;
     static {
         map.put(boolean.class, Boolean.class);
@@ -62,17 +63,21 @@ public class ZeroRPCService implements Runnable {
             socket.bind("tcp://" + ZKUtils.getZeroMQBindAddress());
             active = true;
             new Thread(this).start();
-            new Thread( new CallbackReceiver()).start();
+            if(ZKUtils.useKafkaForAsync()) {
+                new Thread( new KafkaRequestReceiver()).start();
+                new Thread(new KafkaResponseReceiver()).start();
+            }else
+                new Thread( new CallbackReceiver()).start();
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    private Object getTargetService(Command command) throws ClassNotFoundException{
+    public static Object getTargetService(Command command) throws ClassNotFoundException{
         return wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
     }
 
-    private Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
+    public static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
         Object wrappedService = getTargetService(command);
         if(command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             Class[] methodArgClasses = new Class[command.getMethodArgs().length];
@@ -85,7 +90,7 @@ public class ZeroRPCService implements Runnable {
         }
     }
 
-    private Object invoke(Command command) {
+    public static Object invoke(Command command) {
         try {
             Object targetService = getTargetService(command);
             Method targetMethod = getTargetMethod(command);
@@ -101,7 +106,7 @@ public class ZeroRPCService implements Runnable {
         }
     }
 
-    private Object getResult(Object result){
+    public static Object getResult(Object result){
         if(result instanceof Throwable){
             StringWriter sw = new StringWriter();
             ((Throwable)result).printStackTrace(new PrintWriter(sw));
