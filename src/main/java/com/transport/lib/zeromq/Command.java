@@ -3,6 +3,7 @@ package com.transport.lib.zeromq;
 import com.transport.lib.zookeeper.ZKUtils;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 @SuppressWarnings("WeakerAccess, unused")
 public class Command {
@@ -14,6 +15,7 @@ public class Command {
     private String callbackKey;
     private String callBackZMQ;
     private String sourceModuleId;
+    private String rqUid;
 
     public Command() {setMetadata();}
 
@@ -32,6 +34,7 @@ public class Command {
             e.printStackTrace();
         }
         this.sourceModuleId = ZeroRPCService.getOption("module.id");
+        this.rqUid = UUID.randomUUID().toString();
     }
 
     public String getServiceClass() {
@@ -88,6 +91,10 @@ public class Command {
 
     public String getSourceModuleId() {
         return sourceModuleId;
+    }
+
+    public String getRqUid() {
+        return rqUid;
     }
 
     @Override

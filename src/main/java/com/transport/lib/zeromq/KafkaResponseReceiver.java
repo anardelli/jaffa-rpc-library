@@ -23,7 +23,7 @@ public class KafkaResponseReceiver implements Runnable {
 
     @Override
     public void run() {
-        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) clientTopics.add(x.getName() + "-" + getOption("module.id") + "-client");});
+        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) clientTopics.add(x.getName() + "-" + getOption("module.id") + "-client-async");});
         Properties topicConfig = new Properties();
         clientTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){

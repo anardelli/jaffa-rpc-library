@@ -4,15 +4,18 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.zookeeper.ZKUtils;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.zeromq.ZMQ;
 import scala.collection.Seq;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.transport.lib.zeromq.ZeroRPCService.consumerProps;
 import static com.transport.lib.zeromq.ZeroRPCService.producerProps;
 import static com.transport.lib.zeromq.ZeroRPCService.zkClient;
 
@@ -38,22 +41,58 @@ public class Request<T> implements RequestInterface<T>{
         return this;
     }
 
+    private byte[] waitForSyncAnswer(String requestTopic){
+        KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+        consumer.subscribe(Collections.singletonList(requestTopic));
+        long elapsed = 0;
+        long start = System.currentTimeMillis();
+        while(timeout == -1 || elapsed < timeout){
+            elapsed += (System.currentTimeMillis() - start);
+            ConsumerRecords<String, byte[]> records = consumer.poll(100);
+            for(ConsumerRecord<String,byte[]> record: records){
+                if(record.key().equals(command.getRqUid())){
+                    try {
+                        Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
+                        commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
+                        consumer.commitSync(commitData);
+                    }catch (CommitFailedException e){
+                        e.printStackTrace();
+                    }
+                    return record.value();
+                }
+            }
+        }
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     public T executeSync(){
-        ZMQ.Context context =  ZMQ.context(1);
-        ZMQ.Socket socket = context.socket(ZMQ.REQ);
-        socket.connect("tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId));
         Kryo kryo = new Kryo();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
-        socket.send(out.toByteArray(), 0);
-        if(timeout != -1) {
-            socket.setReceiveTimeOut(timeout);
+        byte[] response;
+        if(ZKUtils.useKafkaForSync()){
+            String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
+            try{
+                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
+                producer.send(resultPackage).get();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            response = waitForSyncAnswer(requestTopic);
+        }else {
+            ZMQ.Context context = ZMQ.context(1);
+            ZMQ.Socket socket = context.socket(ZMQ.REQ);
+            socket.connect("tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId));
+            socket.send(out.toByteArray(), 0);
+            if (timeout != -1) {
+                socket.setReceiveTimeOut(timeout);
+            }
+            response = socket.recv(0);
+            ZKUtils.closeSocketAndContext(socket, context);
         }
-        byte[] response = socket.recv(0);
-        ZKUtils.closeSocketAndContext(socket,context);
         if(response == null) {
             throw new RuntimeException("Transport execution timeout");
         }
@@ -65,10 +104,11 @@ public class Request<T> implements RequestInterface<T>{
         return (T)result;
     }
 
-    private static String getTopicForService(String service, String moduleId){
+    private static String getTopicForService(String service, String moduleId, boolean sync){
         String serviceInterface = service.replace("Transport", "");
+        String type = sync ? "-sync" : "-async";
         if(moduleId != null){
-            String topicName = serviceInterface + "-" + moduleId + "-server";
+            String topicName = serviceInterface + "-" + moduleId + "-server" + type;
             if(!zkClient.topicExists(topicName))
                 throw new RuntimeException("No route for service: " + serviceInterface);
             else
@@ -76,7 +116,7 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             Seq<String> allTopic = zkClient.getAllTopicsInCluster();
             List<String> topics = scala.collection.JavaConversions.seqAsJavaList(allTopic);
-            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith("-server")).collect(Collectors.toList());
+            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith("-server" + type)).collect(Collectors.toList());
             if(filtered.isEmpty()) throw new RuntimeException("No route for service: " + serviceInterface);
             else
                 return filtered.get(0);
@@ -93,7 +133,7 @@ public class Request<T> implements RequestInterface<T>{
         output.close();
         if(ZKUtils.useKafkaForAsync()){
             try{
-                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId), UUID.randomUUID().toString(), out.toByteArray());
+                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
             }catch (Exception e){
                 e.printStackTrace();

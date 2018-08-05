@@ -26,7 +26,7 @@ public class KafkaRequestReceiver implements Runnable {
 
     @Override
     public void run() {
-        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server");});
+        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server-async");});
         Properties topicConfig = new Properties();
         serverTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
@@ -60,7 +60,7 @@ public class KafkaRequestReceiver implements Runnable {
                         }
                         kryo.writeObject(output, callbackContainer);
                         output.close();
-                        ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client", UUID.randomUUID().toString(), bOutput.toByteArray());
+                        ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
                         producer.send(resultPackage).get();
                     }catch (Exception e){
                         e.printStackTrace();

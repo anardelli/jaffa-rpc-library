@@ -95,6 +95,10 @@ public class ZKUtils {
         return Boolean.valueOf(System.getProperty("use.kafka.for.async", "false"));
     }
 
+    public static boolean useKafkaForSync(){
+        return Boolean.valueOf(System.getProperty("use.kafka.for.sync", "false"));
+    }
+
     private static int getServicePort(){
         try {
             return Integer.parseInt(System.getProperty("service.port", "4242"));
