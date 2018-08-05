@@ -18,7 +18,7 @@ import java.util.*;
 import static com.transport.lib.zeromq.ZeroRPCService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
-public class KafkaRequestReceiver implements Runnable {
+public class KafkaAsyncRequestReceiver implements Runnable {
 
     public static volatile boolean active = true;
     private static final HashSet<String> serverTopics = new HashSet<>();

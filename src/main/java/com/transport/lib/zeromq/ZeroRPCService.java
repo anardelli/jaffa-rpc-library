@@ -87,8 +87,8 @@ public class ZeroRPCService implements Runnable {
             active = true;
             new Thread(this).start();
             if(ZKUtils.useKafkaForAsync()) {
-                new Thread( new KafkaRequestReceiver()).start();
-                new Thread(new KafkaResponseReceiver()).start();
+                new Thread( new KafkaAsyncRequestReceiver()).start();
+                new Thread(new KafkaAsyncResponseReceiver()).start();
             }else
                 new Thread( new CallbackReceiver()).start();
         }catch (Exception e){
