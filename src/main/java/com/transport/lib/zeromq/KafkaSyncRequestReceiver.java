@@ -17,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Properties;
+import java.util.UUID;
 
 import static com.transport.lib.zeromq.ZeroRPCService.*;
 
@@ -29,6 +30,13 @@ public class KafkaSyncRequestReceiver implements Runnable {
 
     @Override
     public void run() {
+         Properties consumerProps = new Properties();
+        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        consumerProps.put("enable.auto.commit", "false");
+        consumerProps.put("group.id", UUID.randomUUID().toString());
+
         new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server-sync");});
         Properties topicConfig = new Properties();
         serverTopics.forEach(topic -> {
@@ -42,7 +50,7 @@ public class KafkaSyncRequestReceiver implements Runnable {
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
             consumer.subscribe(serverTopics);
             while(active){
-                ConsumerRecords<String, byte[]> records = consumer.poll(100);
+                ConsumerRecords<String, byte[]> records = consumer.poll(10);
                 for(ConsumerRecord<String,byte[]> record: records){
                     try {
                         Kryo kryo = new Kryo();
@@ -53,7 +61,7 @@ public class KafkaSyncRequestReceiver implements Runnable {
                         Output output = new Output(bOutput);
                         kryo.writeClassAndObject(output, getResult(result));
                         output.close();
-                        ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-sync", command.getRqUid(), bOutput.toByteArray());
+                        ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
                         producer.send(resultPackage).get();
                     }catch (Exception e){
                         e.printStackTrace();

@@ -106,6 +106,9 @@ public class Command {
                 ", args=" + Arrays.toString(args) +
                 ", callbackClass='" + callbackClass + '\'' +
                 ", callbackKey='" + callbackKey + '\'' +
+                ", callBackZMQ='" + callBackZMQ + '\'' +
+                ", sourceModuleId='" + sourceModuleId + '\'' +
+                ", rqUid='" + rqUid + '\'' +
                 '}';
     }
 }

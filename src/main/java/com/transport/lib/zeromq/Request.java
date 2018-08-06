@@ -15,9 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.transport.lib.zeromq.ZeroRPCService.consumerProps;
-import static com.transport.lib.zeromq.ZeroRPCService.producerProps;
-import static com.transport.lib.zeromq.ZeroRPCService.zkClient;
+import static com.transport.lib.zeromq.ZeroRPCService.*;
 
 public class Request<T> implements RequestInterface<T>{
 
@@ -42,13 +40,19 @@ public class Request<T> implements RequestInterface<T>{
     }
 
     private byte[] waitForSyncAnswer(String requestTopic){
+        Properties consumerProps = new Properties();
+        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        consumerProps.put("enable.auto.commit", "false");
+        consumerProps.put("group.id", UUID.randomUUID().toString());
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
         consumer.subscribe(Collections.singletonList(requestTopic.replace("-server", "-client")));
         long elapsed = 0;
         long start = System.currentTimeMillis();
         while(timeout == -1 || elapsed < timeout){
             elapsed += (System.currentTimeMillis() - start);
-            ConsumerRecords<String, byte[]> records = consumer.poll(100);
+            ConsumerRecords<String, byte[]> records = consumer.poll(10);
             for(ConsumerRecord<String,byte[]> record: records){
                 if(record.key().equals(command.getRqUid())){
                     try {
