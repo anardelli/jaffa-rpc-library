@@ -75,7 +75,6 @@ public class TransportService {
         Utils.connect(getRequiredOption("zookeeper.connection"));
         zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
         adminZkClient = new AdminZkClient(zkClient);
-        int brokers = zkClient.getAllBrokersInCluster().size();
         context = ZMQ.context(1);
         socket = context.socket(ZMQ.REP);
         socket.bind("tcp://" + Utils.getZeroMQBindAddress());
