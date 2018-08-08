@@ -22,7 +22,7 @@ public class ZMQSyncRequestReceiver  implements Runnable {
                 byte[] bytes = socket.recv();
                 Kryo kryo = new Kryo();
                 Input input = new Input(new ByteArrayInputStream(bytes));
-                final Command command = kryo.readObject(input, Command.class);
+                Command command = kryo.readObject(input, Command.class);
                 Object result = invoke(command);
                 ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                 Output output = new Output(bOutput);

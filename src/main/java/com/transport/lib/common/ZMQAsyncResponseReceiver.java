@@ -22,7 +22,7 @@ public class ZMQAsyncResponseReceiver implements Runnable {
                     byte[] bytes = socket.recv();
                     Kryo kryo = new Kryo();
                     Input input = new Input(new ByteArrayInputStream(bytes));
-                    final CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                    CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());
                     if(callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );

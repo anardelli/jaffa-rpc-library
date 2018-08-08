@@ -43,7 +43,7 @@ public class KafkaAsyncRequestReceiver implements Runnable {
                     try {
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
-                        final Command command = kryo.readObject(input, Command.class);
+                        Command command = kryo.readObject(input, Command.class);
                         Object result = invoke(command);
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                         Output output = new Output(bOutput);

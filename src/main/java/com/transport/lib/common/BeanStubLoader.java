@@ -20,7 +20,6 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
         String serviceRoot = getRequiredOption("service.root");
-        if(serviceRoot == null) throw new IllegalArgumentException("Property service.root was not set");
         ClassLoader cl = BeanStubLoader.class.getClassLoader();
         Reflections reflections = new Reflections(serviceRoot);
         Set<Class<?>> annotated = reflections.getTypesAnnotatedWith(ApiClient.class);
