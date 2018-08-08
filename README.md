@@ -89,13 +89,13 @@ personService.get(id).onModule("main.server").executeAsync(UUID.randomUUID().toS
 
 ### JVM Options
 
-    **IMPORTANT: now all Kafka topics are created with 3 partitions and replication factor of 1, so I expect you to have Zoo/Kafka cluster of 3 brokers**
+**IMPORTANT: now all Kafka topics are created with 3 partitions and replication factor of 1, so I expect you to have Zoo/Kafka cluster of 3 brokers**
 
-    1.  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
-    2.  **-Dservice.root**          - root package for service implementations and interfaces scanning
-    3.  **-Dservice.port**          - port for receiving TCP connections for ZeroMQ
-    4.  **-Dmodule.id**             - unique name of server in ZooKeeper cluster
-    5.  **-Duse.kafka.for.async**   - if true - make all async calls through Kafka, otherwise it goes through ZeroMQ
-    6.  **-Duse.kafka.for.sync**    - same as previous option but for sync calls
-    7.  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
+1. **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
+2. **-Dservice.root**          - root package for service implementations and interfaces scanning
+3. **-Dservice.port**          - port for receiving TCP connections for ZeroMQ
+4. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
+5. **-Duse.kafka.for.async**   - if true - make all async calls through Kafka, otherwise it goes through ZeroMQ
+6. **-Duse.kafka.for.sync**    - same as previous option but for sync calls
+7. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
 
