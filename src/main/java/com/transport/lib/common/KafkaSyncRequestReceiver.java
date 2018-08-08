@@ -25,7 +25,7 @@ import static com.transport.lib.common.TransportService.*;
 public class KafkaSyncRequestReceiver implements Runnable {
 
     private static final HashSet<String> serverTopics = new HashSet<>();
-    private static final ArrayList<Thread> serverConsumers = new ArrayList<>(3);
+    private static final ArrayList<Thread> serverConsumers = new ArrayList<>(brokersCount);
 
     @Override
     public void run() {
@@ -40,7 +40,7 @@ public class KafkaSyncRequestReceiver implements Runnable {
         Properties topicConfig = new Properties();
         serverTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
-                adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
+                adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             }
         });
 
@@ -73,9 +73,9 @@ public class KafkaSyncRequestReceiver implements Runnable {
                 }
             }
         };
-        serverConsumers.add(new Thread(consumerThread));
-        serverConsumers.add(new Thread(consumerThread));
-        serverConsumers.add(new Thread(consumerThread));
+        for(int i = 0; i < brokersCount; i++){
+            serverConsumers.add(new Thread(consumerThread));
+        }
         serverConsumers.forEach(Thread::start);
         serverConsumers.forEach(x -> {try{x.join();} catch (Exception e){e.printStackTrace();}});
     }

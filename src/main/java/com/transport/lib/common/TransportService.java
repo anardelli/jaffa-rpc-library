@@ -22,6 +22,7 @@ public class TransportService {
     public static Context context;
     public static Socket socket;
     public static KafkaZkClient zkClient;
+    public static int brokersCount = 0;
     public static AdminZkClient adminZkClient;
     public static Map<Class<?>, Class<?>> map = new HashMap<>();
     public static final Properties producerProps = new Properties();
@@ -74,14 +75,16 @@ public class TransportService {
         Utils.connect(getRequiredOption("zookeeper.connection"));
         zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
         adminZkClient = new AdminZkClient(zkClient);
+        int brokers = zkClient.getAllBrokersInCluster().size();
         context = ZMQ.context(1);
         socket = context.socket(ZMQ.REP);
         socket.bind("tcp://" + Utils.getZeroMQBindAddress());
+        brokersCount = zkClient.getAllBrokersInCluster().size();
         HashSet<String> serverTopics = new HashSet<>();
         new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-client-sync");});
         Properties topicConfig = new Properties();
         serverTopics.forEach(topic -> {
-            if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,3,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
+            if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
         });
     }
 
