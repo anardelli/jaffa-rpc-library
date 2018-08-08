@@ -1,6 +1,6 @@
 package com.transport.lib.zeromq;
 
-import com.transport.lib.zookeeper.ZKUtils;
+import com.transport.lib.zookeeper.Utils;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -29,11 +29,11 @@ public class Command {
 
     private void setMetadata(){
         try {
-            this.callBackZMQ = ZKUtils.getZeroMQCallbackBindAddress();
+            this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
         }catch (Exception e){
             e.printStackTrace();
         }
-        this.sourceModuleId = ZeroRPCService.getOption("module.id");
+        this.sourceModuleId = TransportService.getRequiredOption("module.id");
         this.rqUid = UUID.randomUUID().toString();
     }
 

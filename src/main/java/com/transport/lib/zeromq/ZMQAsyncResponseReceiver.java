@@ -2,24 +2,22 @@ package com.transport.lib.zeromq;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.transport.lib.zookeeper.ZKUtils;
+import com.transport.lib.zookeeper.Utils;
 import org.zeromq.ZMQ;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
 
 @SuppressWarnings("unchecked")
-public class CallbackReceiver implements Runnable {
-
-    public static volatile boolean active = false;
+public class ZMQAsyncResponseReceiver implements Runnable {
 
     @Override
     public void run() {
         try {
             ZMQ.Context context = ZMQ.context(1);
             ZMQ.Socket socket =  context.socket(ZMQ.REP);
-            socket.bind("tcp://" + ZKUtils.getZeroMQCallbackBindAddress());
-            active = true;
-            while (active) {
+            socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
+
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] bytes = socket.recv();
                     Kryo kryo = new Kryo();
@@ -41,8 +39,7 @@ public class CallbackReceiver implements Runnable {
                     e.printStackTrace();
                 }
             }
-            System.out.println("Stopping callback receiver...");
-            ZKUtils.closeSocketAndContext(socket, context);
+            Utils.closeSocketAndContext(socket, context);
         }catch (Exception e){
             System.out.println("Error during callback receiver startup:");
             e.printStackTrace(System.out);

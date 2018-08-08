@@ -15,18 +15,17 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
 import java.util.*;
-import static com.transport.lib.zeromq.ZeroRPCService.*;
+import static com.transport.lib.zeromq.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncRequestReceiver implements Runnable {
 
-    public static volatile boolean active = true;
     private static final HashSet<String> serverTopics = new HashSet<>();
     private static final ArrayList<Thread> serverConsumers = new ArrayList<>(3);
 
     @Override
     public void run() {
-        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getOption("module.id") + "-server-async");});
+        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-server-async");});
         Properties topicConfig = new Properties();
         serverTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
@@ -38,7 +37,7 @@ public class KafkaAsyncRequestReceiver implements Runnable {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
             consumer.subscribe(serverTopics);
-            while(active){
+            while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
                     try {

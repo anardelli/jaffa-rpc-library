@@ -13,17 +13,17 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Properties;
-import static com.transport.lib.zeromq.ZeroRPCService.*;
+import static com.transport.lib.zeromq.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncResponseReceiver implements Runnable {
-    public static volatile boolean active = true;
+
     private static final HashSet<String> clientTopics = new HashSet<>();
     private static final ArrayList<Thread> clientConsumers = new ArrayList<>(3);
 
     @Override
     public void run() {
-        new Reflections(getOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) clientTopics.add(x.getName() + "-" + getOption("module.id") + "-client-async");});
+        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) clientTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-client-async");});
         Properties topicConfig = new Properties();
         clientTopics.forEach(topic -> {
             if(!zkClient.topicExists(topic)){
@@ -33,7 +33,7 @@ public class KafkaAsyncResponseReceiver implements Runnable {
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             consumer.subscribe(clientTopics);
-            while(active){
+            while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
                     try {

@@ -3,7 +3,7 @@ package com.transport.lib.zeromq;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.transport.lib.zookeeper.ZKUtils;
+import com.transport.lib.zookeeper.Utils;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.transport.lib.zeromq.ZeroRPCService.*;
+import static com.transport.lib.zeromq.TransportService.*;
 
 public class Request<T> implements RequestInterface<T>{
 
@@ -41,7 +41,7 @@ public class Request<T> implements RequestInterface<T>{
 
     private byte[] waitForSyncAnswer(String requestTopic){
         Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getOption("bootstrap.servers"));
+        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
@@ -77,8 +77,8 @@ public class Request<T> implements RequestInterface<T>{
         kryo.writeObject(output, command);
         output.close();
         byte[] response;
-        if(ZKUtils.useKafkaForSync()){
-            String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true, false);
+        if(Utils.useKafkaForSync()){
+            String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
             try{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
@@ -89,13 +89,13 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             ZMQ.Context context = ZMQ.context(1);
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
-            socket.connect("tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId));
+            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId));
             socket.send(out.toByteArray(), 0);
             if (timeout != -1) {
                 socket.setReceiveTimeOut(timeout);
             }
             response = socket.recv(0);
-            ZKUtils.closeSocketAndContext(socket, context);
+            Utils.closeSocketAndContext(socket, context);
         }
         if(response == null) {
             throw new RuntimeException("Transport execution timeout");
@@ -108,12 +108,11 @@ public class Request<T> implements RequestInterface<T>{
         return (T)result;
     }
 
-    private static String getTopicForService(String service, String moduleId, boolean sync, boolean client){
+    private static String getTopicForService(String service, String moduleId, boolean sync){
         String serviceInterface = service.replace("Transport", "");
         String type = sync ? "-sync" : "-async";
-        String clientOrServer = client ? "-client" : "-server";
         if(moduleId != null){
-            String topicName = serviceInterface + "-" + moduleId + clientOrServer + type;
+            String topicName = serviceInterface + "-" + moduleId + "-server" + type;
             if(!zkClient.topicExists(topicName))
                 throw new RuntimeException("No route for service: " + serviceInterface);
             else
@@ -121,7 +120,7 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             Seq<String> allTopic = zkClient.getAllTopicsInCluster();
             List<String> topics = scala.collection.JavaConversions.seqAsJavaList(allTopic);
-            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith(clientOrServer + type)).collect(Collectors.toList());
+            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith("-server" + type)).collect(Collectors.toList());
             if(filtered.isEmpty()) throw new RuntimeException("No route for service: " + serviceInterface);
             else
                 return filtered.get(0);
@@ -136,9 +135,9 @@ public class Request<T> implements RequestInterface<T>{
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
-        if(ZKUtils.useKafkaForAsync()){
+        if(Utils.useKafkaForAsync()){
             try{
-                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false, false), UUID.randomUUID().toString(), out.toByteArray());
+                ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
             }catch (Exception e){
                 e.printStackTrace();
@@ -146,10 +145,10 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             ZMQ.Context context =  ZMQ.context(1);
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
-            socket.connect("tcp://" + ZKUtils.getHostForService(command.getServiceClass(), moduleId));
+            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId));
             socket.send(out.toByteArray(), 0);
             socket.recv(0);
-            ZKUtils.closeSocketAndContext(socket,context);
+            Utils.closeSocketAndContext(socket,context);
         }
     }
 }

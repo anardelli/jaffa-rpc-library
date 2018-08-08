@@ -1,7 +1,7 @@
 package com.transport.lib.zookeeper;
 
-import com.transport.lib.zeromq.CallbackReceiver;
-import com.transport.lib.zeromq.ZeroRPCService;
+import com.transport.lib.zeromq.ZMQAsyncResponseReceiver;
+import com.transport.lib.zeromq.TransportService;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 
 @SuppressWarnings("WeakerAccess, unused")
-public class ZKUtils {
+public class Utils {
 
     public static ZooKeeper zk;
 
@@ -204,13 +204,11 @@ class ShutdownHook extends Thread {
 
     public void run() {
         try{
-            for(String service : ZKUtils.services){
-                ZKUtils.delete(service);
+            for(String service : Utils.services){
+                Utils.delete(service);
                 System.out.println("Unregistered service: " + service);
             }
-            ZeroRPCService.active = false;
-            CallbackReceiver.active = false;
-            ZKUtils.conn.close();
+            Utils.conn.close();
         }catch (Exception e){
             e.printStackTrace();
         }

@@ -11,13 +11,15 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.context.annotation.Configuration;
 import java.util.Set;
+
+import static com.transport.lib.zeromq.TransportService.getRequiredOption;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 @Configuration
 @SuppressWarnings("unused")
 public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
-        String serviceRoot = System.getProperty("service.root");
+        String serviceRoot = getRequiredOption("service.root");
         if(serviceRoot == null) throw new IllegalArgumentException("Property service.root was not set");
         ClassLoader cl = BeanStubLoader.class.getClassLoader();
         Reflections reflections = new Reflections(serviceRoot);
