@@ -20,23 +20,14 @@ import static com.transport.lib.common.TransportService.*;
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncRequestReceiver implements Runnable {
 
-    private static final HashSet<String> serverTopics = new HashSet<>();
     private static final ArrayList<Thread> serverConsumers = new ArrayList<>(brokersCount);
 
     @Override
     public void run() {
-        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-server-async");});
-        Properties topicConfig = new Properties();
-        serverTopics.forEach(topic -> {
-            if(!zkClient.topicExists(topic)){
-                adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
-            }
-        });
-
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
-            consumer.subscribe(serverTopics);
+            consumer.subscribe(serverAsyncTopics);
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){

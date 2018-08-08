@@ -28,6 +28,13 @@ public class TransportService {
     public static final Properties producerProps = new Properties();
     public static final Properties consumerProps = new Properties();
 
+    public static HashSet<String> serverAsyncTopics;
+    public static HashSet<String> clientAsyncTopics;
+    public static HashSet<String> serverSyncTopics;
+    public static HashSet<String> clientSyncTopics;
+
+
+
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -79,23 +86,33 @@ public class TransportService {
         socket = context.socket(ZMQ.REP);
         socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         brokersCount = zkClient.getAllBrokersInCluster().size();
-        HashSet<String> serverTopics = new HashSet<>();
-        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-client-sync");});
+
+        serverAsyncTopics = createTopics("server-async");
+        clientAsyncTopics = createTopics("client-async");
+        serverSyncTopics = createTopics( "server-sync");
+        clientSyncTopics = createTopics( "client-sync");
+    }
+
+    private static HashSet<String> createTopics(String type){
         Properties topicConfig = new Properties();
-        serverTopics.forEach(topic -> {
+        HashSet<String> topicsCreated = new HashSet<>();
+        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
+        topicsCreated.forEach(topic -> {
             if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
+            else if(!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get()+"").equals(brokersCount)) throw new IllegalStateException("Topic " + topic + " has wrong config");
         });
+        return topicsCreated;
     }
 
     TransportService() {
         try{
             prepareServiceRegistration();
-            registerServices();
             new Thread( new ZMQSyncRequestReceiver()).start();
             new Thread( new KafkaSyncRequestReceiver()).start();
             new Thread( new KafkaAsyncRequestReceiver()).start();
             new Thread( new KafkaAsyncResponseReceiver()).start();
             new Thread( new ZMQAsyncResponseReceiver()).start();
+            registerServices();
         }catch (Exception e){
             System.out.println("Exception during transport library startup:");
             e.printStackTrace();

@@ -24,30 +24,21 @@ import static com.transport.lib.common.TransportService.*;
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaSyncRequestReceiver implements Runnable {
 
-    private static final HashSet<String> serverTopics = new HashSet<>();
     private static final ArrayList<Thread> serverConsumers = new ArrayList<>(brokersCount);
 
     @Override
     public void run() {
-         Properties consumerProps = new Properties();
+        Properties consumerProps = new Properties();
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
         consumerProps.put("group.id", UUID.randomUUID().toString());
 
-        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) serverTopics.add(x.getName() + "-" + getRequiredOption("module.id") + "-server-sync");});
-        Properties topicConfig = new Properties();
-        serverTopics.forEach(topic -> {
-            if(!zkClient.topicExists(topic)){
-                adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
-            }
-        });
-
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
-            consumer.subscribe(serverTopics);
+            consumer.subscribe(serverSyncTopics);
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(10);
                 for(ConsumerRecord<String,byte[]> record: records){

@@ -21,7 +21,7 @@ public class MainTest {
     @Test
     public void testMethods() {
         Runnable runnable = () -> {
-            Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).onModule("main.server").executeSync();
+            Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(15_000).onModule("main.server").executeSync();
             System.out.printf("Resulting id is %s", id);
             System.out.println();
             Person person = personService.get(id).onModule("main.server").executeSync();
