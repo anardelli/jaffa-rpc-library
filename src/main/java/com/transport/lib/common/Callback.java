@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 public interface Callback<T> {
     public void callBack(String key, T result);

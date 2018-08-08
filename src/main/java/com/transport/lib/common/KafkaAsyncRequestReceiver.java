@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -15,7 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
 import java.util.*;
-import static com.transport.lib.zeromq.TransportService.*;
+import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncRequestReceiver implements Runnable {

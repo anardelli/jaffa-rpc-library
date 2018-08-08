@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 @SuppressWarnings("WeakerAccess, unused")
 public class CallbackContainer {

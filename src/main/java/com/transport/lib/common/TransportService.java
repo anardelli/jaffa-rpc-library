@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 import com.transport.lib.zookeeper.Utils;
 import kafka.admin.RackAwareMode;

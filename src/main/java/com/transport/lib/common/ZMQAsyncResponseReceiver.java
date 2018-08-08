@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;

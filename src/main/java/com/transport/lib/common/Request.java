@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.transport.lib.zeromq.TransportService.*;
+import static com.transport.lib.common.TransportService.*;
 
 public class Request<T> implements RequestInterface<T>{
 

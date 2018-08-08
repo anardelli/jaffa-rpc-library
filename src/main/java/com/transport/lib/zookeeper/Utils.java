@@ -1,7 +1,5 @@
 package com.transport.lib.zookeeper;
 
-import com.transport.lib.zeromq.ZMQAsyncResponseReceiver;
-import com.transport.lib.zeromq.TransportService;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;

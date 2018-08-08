@@ -1,6 +1,6 @@
 package com.transport.test;
 
-import com.transport.lib.zeromq.Api;
+import com.transport.lib.common.Api;
 
 @Api
 public interface PersonService {

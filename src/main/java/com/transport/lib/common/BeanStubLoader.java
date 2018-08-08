@@ -1,4 +1,4 @@
-package com.transport.lib.zeromq;
+package com.transport.lib.common;
 
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
@@ -12,7 +12,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProce
 import org.springframework.context.annotation.Configuration;
 import java.util.Set;
 
-import static com.transport.lib.zeromq.TransportService.getRequiredOption;
+import static com.transport.lib.common.TransportService.getRequiredOption;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 @Configuration
