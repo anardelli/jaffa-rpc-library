@@ -102,8 +102,6 @@ public class TransportService {
         topicsCreated.forEach(topic -> {
             if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             else if(!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get()+"").equals(brokersCount)) throw new IllegalStateException("Topic " + topic + " has wrong config");
-
-            System.out.println(topic + " exists = " + zkClient.topicExists(topic));
         });
         return topicsCreated;
     }

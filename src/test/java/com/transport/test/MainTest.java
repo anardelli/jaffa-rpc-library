@@ -42,26 +42,26 @@ public class MainTest {
             }
             personService.testError().onModule("main.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
-//            id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).onModule("test.server").executeSync();
-//            System.out.printf("Resulting id is %s", id);
-//            System.out.println();
-//            person = personService.get(id).onModule("test.server").executeSync();
-//            System.out.println(person);
-//            personService.lol().executeSync();
-//            personService.lol2("kek").executeSync();
-//            System.out.println("Name: " + personService.getName().executeSync());
-//            clientService.lol3("test3").onModule("test.server").executeSync();
-//            clientService.lol4("test4").onModule("test.server").executeSync();
-//            clientService.lol4("test4").onModule("test.server").executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
-//            personService.get(id).onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
-//            personService.lol2("kek").executeSync();
-//            try {
-//                personService.testError().onModule("test.server").executeSync();
-//            } catch (Exception e) {
-//                System.out.println("Exception during sync call");
-//                e.printStackTrace();
-//            }
-//            personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+            id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).onModule("test.server").executeSync();
+            System.out.printf("Resulting id is %s", id);
+            System.out.println();
+            person = personService.get(id).onModule("test.server").executeSync();
+            System.out.println(person);
+            personService.lol().executeSync();
+            personService.lol2("kek").executeSync();
+            System.out.println("Name: " + personService.getName().executeSync());
+            clientService.lol3("test3").onModule("test.server").executeSync();
+            clientService.lol4("test4").onModule("test.server").executeSync();
+            clientService.lol4("test4").onModule("test.server").executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
+            personService.get(id).onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+            personService.lol2("kek").executeSync();
+            try {
+                personService.testError().onModule("test.server").executeSync();
+            } catch (Exception e) {
+                System.out.println("Exception during sync call");
+                e.printStackTrace();
+            }
+            personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
         };
 
         Thread thread1 = new Thread(runnable);
