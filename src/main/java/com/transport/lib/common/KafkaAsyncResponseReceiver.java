@@ -3,16 +3,14 @@ package com.transport.lib.common;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import kafka.admin.RackAwareMode;
-import org.apache.kafka.clients.consumer.CommitFailedException;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
 import org.reflections.Reflections;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+
 import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
@@ -20,11 +18,19 @@ public class KafkaAsyncResponseReceiver implements Runnable {
 
     private static final ArrayList<Thread> clientConsumers = new ArrayList<>(brokersCount);
 
+    private CountDownLatch countDownLatch;
+
+    public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch){
+        this.countDownLatch = countDownLatch;
+    }
+
     @Override
     public void run() {
+        consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             consumer.subscribe(clientAsyncTopics);
+            countDownLatch.countDown();
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
@@ -43,15 +49,13 @@ public class KafkaAsyncResponseReceiver implements Runnable {
                             }else
                                 method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                         }
+                        Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
+                        commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
+                        consumer.commitSync(commitData);
                     } catch (Exception e) {
                         System.out.println("Error during receiving callback:");
                         e.printStackTrace();
                     }
-                }
-                try {
-                    consumer.commitSync();
-                }catch (CommitFailedException e){
-                    e.printStackTrace();
                 }
             }
         };

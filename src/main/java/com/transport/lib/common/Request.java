@@ -45,13 +45,13 @@ public class Request<T> implements RequestInterface<T>{
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         consumerProps.put("group.id", UUID.randomUUID().toString());
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
         consumer.subscribe(Collections.singletonList(requestTopic.replace("-server", "-client")));
-        long elapsed = 0;
         long start = System.currentTimeMillis();
-        while(timeout == -1 || elapsed < timeout){
-            elapsed += (System.currentTimeMillis() - start);
+        while(true){
+            if(timeout != -1 && System.currentTimeMillis() - start > timeout) break;
             ConsumerRecords<String, byte[]> records = consumer.poll(10);
             for(ConsumerRecord<String,byte[]> record: records){
                 if(record.key().equals(command.getRqUid())){
@@ -59,6 +59,7 @@ public class Request<T> implements RequestInterface<T>{
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
+                        consumer.close();
                     }catch (CommitFailedException e){
                         e.printStackTrace();
                     }

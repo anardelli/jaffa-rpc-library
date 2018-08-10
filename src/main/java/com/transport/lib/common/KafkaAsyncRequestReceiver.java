@@ -4,30 +4,38 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import kafka.admin.RackAwareMode;
-import org.apache.kafka.clients.consumer.CommitFailedException;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.reflections.Reflections;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+
 import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncRequestReceiver implements Runnable {
 
+    private CountDownLatch countDownLatch;
+
     private static final ArrayList<Thread> serverConsumers = new ArrayList<>(brokersCount);
+
+    public KafkaAsyncRequestReceiver(CountDownLatch countDownLatch){
+        this.countDownLatch = countDownLatch;
+    }
 
     @Override
     public void run() {
+        consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
             consumer.subscribe(serverAsyncTopics);
+            countDownLatch.countDown();
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
                 for(ConsumerRecord<String,byte[]> record: records){
@@ -52,14 +60,12 @@ public class KafkaAsyncRequestReceiver implements Runnable {
                         output.close();
                         ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
                         producer.send(resultPackage).get();
+                        Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
+                        commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
+                        consumer.commitSync(commitData);
                     }catch (Exception e){
                         e.printStackTrace();
                     }
-                }
-                try {
-                    consumer.commitSync();
-                }catch (CommitFailedException e){
-                    e.printStackTrace();
                 }
             }
         };
