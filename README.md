@@ -1,6 +1,6 @@
 ### Transport library
 
-This library was created to manage communication betweem multiple JVM application
+This library was created to manage communication between multiple JVM applications
 through interface method calls. It supports sync/async invocations through Kafka or ZeroMQ.
 Synchronized method calls also support timeouts.
 
@@ -9,11 +9,10 @@ Synchronized method calls also support timeouts.
 1. During Spring context initialization, library generates stub implementations for all transport interfaces using **ByteBuddy**.
 2. All method calls from transport interfaces are intercepted using **Spring AOP**.
 3. Interceptor creates **Request** containing all necessary information about method call.
-4. Then, user could add timeout to this call using **withTimeout(int timeout)** method.
-5. In **execute methods**:
+4. In **execute methods**:
     1. Transport library serializes **Request** using **Kryo**.
-    2. Checks avaiable routes in **Zookeeper** cluster.
-    3. Connects to server or throws **TransportNoRouteException**.
+    2. Checks available routes in **Zookeeper** cluster and throws **TransportNoRouteException** if none were found.
+    3. Connects to server if ZeroMQ enabled or creates Kafka producer otherwise.
     4. Makes method call with **ZeroMQ** or **Kafka** depending of JVM options:
         **-Duse.kafka.for.async=false/true** or **-Duse.kafka.for.sync=false/true**
     5. Waits for answer indefinitely or **timeout** milliseconds and then throws **TransportTimeoutException** in **executeSync** method.
@@ -89,7 +88,8 @@ personService.get(id).onModule("main.server").executeAsync(UUID.randomUUID().toS
 
 ### JVM Options
 
-**IMPORTANT: now all Kafka topics are created with 3 partitions and replication factor of 1, so I expect you to have Zoo/Kafka cluster of 3 brokers**
+NOTE: Number of partitions for library's topics is equal to broker's count.
+      If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
 1. **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
 2. **-Dservice.root**          - root package for service implementations and interfaces scanning
