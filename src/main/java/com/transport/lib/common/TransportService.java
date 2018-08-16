@@ -134,7 +134,7 @@ public class TransportService {
             if (RebalanceListener.lastRebalance == lastRebalance){
                 if(start == 0L){
                     start = System.currentTimeMillis();
-                }else if(System.currentTimeMillis() - start > 500) break;
+                }else if(System.currentTimeMillis() - start > 2000) break;
             } else {
                 start = 0L;
                 lastRebalance =  RebalanceListener.lastRebalance;
