@@ -1,13 +1,20 @@
 package com.transport.test;
 
 import com.transport.lib.common.ApiServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @ApiServer
 public class PersonServiceImpl implements PersonService{
+
+    private static Logger logger = LoggerFactory.getLogger(PersonServiceImpl.class);
+
     private List<Person> people = new ArrayList<Person>();
+
     private AtomicInteger idProvider = new AtomicInteger(1);
 
     public int add(String name, String email, Address address) {
@@ -30,11 +37,11 @@ public class PersonServiceImpl implements PersonService{
     }
 
     public void lol(){
-        System.out.println("Lol");
+        logger.info("Lol");
     }
 
     public void lol2(String message){
-        System.out.println(message);
+        logger.info(message);
     }
 
     public String getName(){

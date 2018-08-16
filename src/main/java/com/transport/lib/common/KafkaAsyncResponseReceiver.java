@@ -2,10 +2,11 @@ package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import kafka.admin.RackAwareMode;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
-import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -15,6 +16,8 @@ import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncResponseReceiver implements Runnable {
+
+    private static Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
 
     private static final ArrayList<Thread> clientConsumers = new ArrayList<>(brokersCount);
 
@@ -53,8 +56,7 @@ public class KafkaAsyncResponseReceiver implements Runnable {
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
                     } catch (Exception e) {
-                        System.out.println("Error during receiving callback:");
-                        e.printStackTrace();
+                        logger.error("Error during receiving callback:", e);
                     }
                 }
             }

@@ -6,7 +6,6 @@ import com.esotericsoftware.kryo.io.Output;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 import java.io.ByteArrayInputStream;
@@ -53,7 +52,7 @@ public class KafkaSyncRequestReceiver implements Runnable {
                         kryo.writeClassAndObject(output, getResult(result));
                         output.close();
                         ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
-                        RecordMetadata recordMetadata = producer.send(resultPackage).get();
+                        producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);

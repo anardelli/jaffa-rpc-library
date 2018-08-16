@@ -3,12 +3,16 @@ package com.transport.lib.common;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.transport.lib.zookeeper.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
 
 @SuppressWarnings("unchecked")
 public class ZMQAsyncResponseReceiver implements Runnable {
+
+    private static Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
 
     @Override
     public void run() {
@@ -35,14 +39,12 @@ public class ZMQAsyncResponseReceiver implements Runnable {
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                     }
                 } catch (Exception e) {
-                    System.out.println("Error during receiving callback:");
-                    e.printStackTrace();
+                    logger.error("Error during receiving callback:", e);
                 }
             }
             Utils.closeSocketAndContext(socket, context);
         }catch (Exception e){
-            System.out.println("Error during callback receiver startup:");
-            e.printStackTrace(System.out);
+            logger.error("Error during callback receiver startup:", e);
         }
     }
 

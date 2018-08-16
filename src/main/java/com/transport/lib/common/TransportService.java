@@ -6,6 +6,8 @@ import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
 import org.apache.kafka.common.utils.Time;
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
@@ -18,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class TransportService {
+
+    private static Logger logger = LoggerFactory.getLogger(TransportService.class);
 
     public static HashMap<Class, Object> wrappedServices = new HashMap<>();
     public static Context context;
@@ -87,8 +91,7 @@ public class TransportService {
         socket = context.socket(ZMQ.REP);
         socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         brokersCount = zkClient.getAllBrokersInCluster().size();
-        System.out.println("BROKER COUNT: " + brokersCount);
-
+        logger.info("BROKER COUNT: " + brokersCount);
         serverAsyncTopics = createTopics("server-async");
         clientAsyncTopics = createTopics("client-async");
         serverSyncTopics = createTopics( "server-sync");
@@ -119,11 +122,10 @@ public class TransportService {
             started.await();
             registerServices();
             waitForRebalance();
-            System.out.println("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
-            System.out.println("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
+            logger.info("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
+            logger.info("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
         }catch (Exception e){
-            System.out.println("Exception during transport library startup:");
-            e.printStackTrace();
+            logger.error("Exception during transport library startup:", e);
         }
     }
 

@@ -1,12 +1,16 @@
 package com.transport.test;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class ServerTest {
 
+    private static Logger logger = LoggerFactory.getLogger(ServerTest.class);
+
     public static void main(String[] args){
 
-        System.out.println("================ TEST SERVER STARTING ================");
+        logger.info("================ TEST SERVER STARTING ================");
 
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("service.root", "com.transport.test");
@@ -20,6 +24,6 @@ public class ServerTest {
         ctx.register(MainConfig.class);
         ctx.refresh();
 
-        System.out.println("================ TEST SERVER STARTED ================");
+        logger.info("================ TEST SERVER STARTED ================");
     }
 }

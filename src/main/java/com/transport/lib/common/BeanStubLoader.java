@@ -19,9 +19,8 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 @SuppressWarnings("unused")
 public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
-        String serviceRoot = getRequiredOption("service.root");
         ClassLoader cl = BeanStubLoader.class.getClassLoader();
-        Reflections reflections = new Reflections(serviceRoot);
+        Reflections reflections = new Reflections(getRequiredOption("service.root"));
         Set<Class<?>> annotated = reflections.getTypesAnnotatedWith(ApiClient.class);
         for(Class<?> client : annotated){
             if(client.isInterface()){

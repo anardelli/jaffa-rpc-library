@@ -4,6 +4,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.zookeeper.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 
 import java.io.ByteArrayInputStream;
@@ -13,7 +15,9 @@ import java.lang.reflect.Method;
 import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess, unchecked")
-public class ZMQSyncRequestReceiver  implements Runnable {
+public class ZMQSyncRequestReceiver implements Runnable {
+
+    private static Logger logger = LoggerFactory.getLogger(ZMQSyncRequestReceiver.class);
 
     @Override
     public void run() {
@@ -51,7 +55,7 @@ public class ZMQSyncRequestReceiver  implements Runnable {
                     socket.send(bOutput.toByteArray());
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Error during ZMQ method invocation:", e);
             }
         }
         Utils.closeSocketAndContext(socket, context);

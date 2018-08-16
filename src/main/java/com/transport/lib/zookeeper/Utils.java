@@ -8,6 +8,8 @@ import org.apache.zookeeper.data.Stat;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 
 import java.net.InetAddress;
@@ -18,6 +20,9 @@ import java.util.Enumeration;
 
 @SuppressWarnings("WeakerAccess, unused")
 public class Utils {
+
+    private static Logger logger = LoggerFactory.getLogger(Utils.class);
+
 
     public static ZooKeeper zk;
 
@@ -83,7 +88,7 @@ public class Utils {
                 create("/" + service);
             }
             services.add("/" + service);
-            System.out.println("Registered service: " + service);
+            logger.info("Registered service: " + service);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -204,7 +209,6 @@ class ShutdownHook extends Thread {
         try{
             for(String service : Utils.services){
                 Utils.delete(service);
-                System.out.println("Unregistered service: " + service);
             }
             Utils.conn.close();
         }catch (Exception e){
