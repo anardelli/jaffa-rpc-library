@@ -34,7 +34,7 @@ public class KafkaAsyncRequestReceiver implements Runnable {
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
-            consumer.subscribe(serverAsyncTopics);
+            consumer.subscribe(serverAsyncTopics, new RebalanceListener());
             countDownLatch.countDown();
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);

@@ -118,11 +118,27 @@ public class TransportService {
             new Thread( new KafkaAsyncResponseReceiver(started)).start();
             started.await();
             registerServices();
-            Thread.sleep(10_000);
+            waitForRebalance();
             System.out.println("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
+            System.out.println("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
         }catch (Exception e){
             System.out.println("Exception during transport library startup:");
             e.printStackTrace();
+        }
+    }
+
+    public static void waitForRebalance(){
+        long start = 0L;
+        long lastRebalance = RebalanceListener.lastRebalance;
+        while(true) {
+            if (RebalanceListener.lastRebalance == lastRebalance){
+                if(start == 0L){
+                    start = System.currentTimeMillis();
+                }else if(System.currentTimeMillis() - start > 500) break;
+            } else {
+                start = 0L;
+                lastRebalance =  RebalanceListener.lastRebalance;
+            }
         }
     }
 

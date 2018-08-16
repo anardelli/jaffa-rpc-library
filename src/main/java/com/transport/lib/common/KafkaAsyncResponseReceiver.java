@@ -29,7 +29,7 @@ public class KafkaAsyncResponseReceiver implements Runnable {
         consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () ->  {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-            consumer.subscribe(clientAsyncTopics);
+            consumer.subscribe(clientAsyncTopics, new RebalanceListener());
             countDownLatch.countDown();
             while(!Thread.currentThread().isInterrupted()){
                 ConsumerRecords<String, byte[]> records = consumer.poll(100);
