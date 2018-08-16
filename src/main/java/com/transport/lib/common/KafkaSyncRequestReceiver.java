@@ -46,6 +46,7 @@ public class KafkaSyncRequestReceiver implements Runnable {
                         Kryo kryo = new Kryo();
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         Command command = kryo.readObject(input, Command.class);
+                        TransportContext.setSourceModuleId(command.getSourceModuleId());
                         Object result = invoke(command);
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                         Output output = new Output(bOutput);

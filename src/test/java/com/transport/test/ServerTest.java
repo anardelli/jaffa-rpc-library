@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.util.UUID;
+
 public class ServerTest {
 
     private static Logger logger = LoggerFactory.getLogger(ServerTest.class);
@@ -23,6 +25,33 @@ public class ServerTest {
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.register(MainConfig.class);
         ctx.refresh();
+
+        PersonServiceTransport personService = ctx.getBean(PersonServiceTransport.class);
+        ClientServiceTransport clientService = ctx.getBean(ClientServiceTransport.class);
+
+        try {
+            Thread.sleep(5_000);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(15_000).onModule("test.server").executeSync();
+        logger.info("Resulting id is " + id);
+        Person person = personService.get(id).onModule("test.server").executeSync();
+        logger.info(person.toString());
+        personService.lol().executeSync();
+        personService.lol2("kek").executeSync();
+        logger.info("Name: " + personService.getName().executeSync());
+        clientService.lol3("test3").onModule("test.server").executeSync();
+        clientService.lol4("test4").onModule("test.server").executeSync();
+        clientService.lol4("test4").onModule("test.server").executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
+        personService.get(id).onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+        personService.lol2("kek").executeSync();
+        try {
+            personService.testError().onModule("test.server").executeSync();
+        } catch (Exception e) {
+            logger.error("Exception during sync call:", e);
+        }
+        personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
         logger.info("================ TEST SERVER STARTED ================");
     }
