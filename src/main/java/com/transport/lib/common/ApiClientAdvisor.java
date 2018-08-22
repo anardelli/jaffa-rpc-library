@@ -23,6 +23,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
         super();
         this.interceptor = (MethodInvocation invocation) -> {
             Command command = new Command();
+            command.setMetadata();
             command.setServiceClass(invocation.getMethod().getDeclaringClass().getInterfaces()[0].getName());
             command.setMethodName(invocation.getMethod().getName());
             command.setArgs(invocation.getArguments());

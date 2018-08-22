@@ -17,17 +17,7 @@ public class Command {
     private String sourceModuleId;
     private String rqUid;
 
-    public Command() {setMetadata();}
-
-    public Command(String serviceClass, String methodName, String[] methodArgs, Object... args) {
-        setMetadata();
-        this.serviceClass = serviceClass;
-        this.methodArgs = methodArgs;
-        this.methodName = methodName;
-        this.args = args;
-    }
-
-    private void setMetadata(){
+    public void setMetadata(){
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
         }catch (Exception e){
