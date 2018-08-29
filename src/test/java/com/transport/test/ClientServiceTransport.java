@@ -3,7 +3,7 @@ package com.transport.test;
 import com.transport.lib.common.ApiClient;
 import com.transport.lib.common.RequestInterface;
 
-@ApiClient
+@ApiClient(TicketProviderImpl.class)
 public interface ClientServiceTransport {
 
     public RequestInterface<Void> lol3(String message);

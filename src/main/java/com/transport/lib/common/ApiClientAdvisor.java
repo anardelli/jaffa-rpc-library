@@ -6,6 +6,8 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.support.AbstractPointcutAdvisor;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
@@ -13,6 +15,9 @@ import java.lang.reflect.Method;
 @Component
 @SuppressWarnings("unused")
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
+
+    @Autowired
+    ApplicationContext context;
 
     private static final long serialVersionUID = 1L;
 
@@ -25,6 +30,12 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             Command command = new Command();
             command.setMetadata();
             command.setServiceClass(invocation.getMethod().getDeclaringClass().getInterfaces()[0].getName());
+
+            ApiClient apiClient = invocation.getMethod().getDeclaringClass().getInterfaces()[0].getAnnotation(ApiClient.class);
+            if(!apiClient.value().equals(void.class)){
+                TicketProvider ticketProvider = (TicketProvider)context.getBean(apiClient.value());
+                command.setTicket(ticketProvider.getTicket());
+            }
             command.setMethodName(invocation.getMethod().getName());
             command.setArgs(invocation.getArguments());
             if(invocation.getMethod().getParameterCount() != 0){

@@ -20,6 +20,7 @@ public class PersonServiceImpl implements PersonService{
 
     public int add(String name, String email, Address address) {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + TransportContext.getTicket());
         Person p = new Person();
         p.setEmail(email);
         p.setName(name);
@@ -31,6 +32,7 @@ public class PersonServiceImpl implements PersonService{
 
     public Person get(final Integer id) {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + TransportContext.getTicket());
         for (Person p : this.people) {
             if (p.getId() == id) {
                 return p;
@@ -41,6 +43,7 @@ public class PersonServiceImpl implements PersonService{
 
     public void lol(){
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + TransportContext.getTicket());
         logger.info("Lol");
     }
 

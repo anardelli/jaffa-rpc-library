@@ -16,6 +16,7 @@ public class Command {
     private String callBackZMQ;
     private String sourceModuleId;
     private String rqUid;
+    private SecurityTicket ticket;
 
     public void setMetadata(){
         try {
@@ -87,6 +88,14 @@ public class Command {
         return rqUid;
     }
 
+    public SecurityTicket getTicket() {
+        return ticket;
+    }
+
+    public void setTicket(SecurityTicket ticket) {
+        this.ticket = ticket;
+    }
+
     @Override
     public String toString() {
         return "Command{" +
@@ -99,6 +108,7 @@ public class Command {
                 ", callBackZMQ='" + callBackZMQ + '\'' +
                 ", sourceModuleId='" + sourceModuleId + '\'' +
                 ", rqUid='" + rqUid + '\'' +
+                ", ticket=" + ticket +
                 '}';
     }
 }

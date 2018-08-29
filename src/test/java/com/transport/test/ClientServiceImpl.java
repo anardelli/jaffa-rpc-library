@@ -13,12 +13,14 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public void lol3(String message) {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + TransportContext.getTicket());
         logger.info("lol3 " + message);
     }
 
     @Override
     public void lol4(String message) {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + TransportContext.getTicket());
         logger.info("lol4 " + message);
     }
 }
