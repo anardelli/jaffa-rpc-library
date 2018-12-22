@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import static com.transport.lib.common.TransportService.*;
 import static java.time.temporal.ChronoUnit.MINUTES;
 
+@SuppressWarnings("all")
 public class Request<T> implements RequestInterface<T>{
 
     private static Logger logger = LoggerFactory.getLogger(Request.class);

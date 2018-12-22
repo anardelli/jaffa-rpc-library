@@ -3,7 +3,7 @@ package com.transport.test;
 import com.transport.lib.common.ApiClient;
 import com.transport.lib.common.RequestInterface;
 
-@ApiClient(TicketProviderImpl.class)
+@ApiClient(ticketProvider = TicketProviderImpl.class)
 public interface PersonServiceTransport {
 
     public RequestInterface<Integer> add(String name, String email, Address address);
