@@ -1,12 +1,17 @@
 package com.transport.lib.common;
 
 import com.transport.lib.zookeeper.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.UUID;
 
 @SuppressWarnings("WeakerAccess, unused")
 public class Command {
+
+    private static Logger logger = LoggerFactory.getLogger(Command.class);
+
     private String serviceClass;
     private String methodName;
     private String[] methodArgs;
@@ -22,7 +27,7 @@ public class Command {
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("Error during metadata setting", e);
         }
         this.sourceModuleId = TransportService.getRequiredOption("module.id");
         this.rqUid = UUID.randomUUID().toString();

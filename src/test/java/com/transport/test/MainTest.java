@@ -76,8 +76,6 @@ public class MainTest {
             thread1.join();
             thread2.join();
             thread3.join();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        }catch (Exception ignore){ }
     }
 }

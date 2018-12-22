@@ -6,7 +6,7 @@ import org.apache.zookeeper.ZooKeeper;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-class ZooKeeperConnection {
+public class ZooKeeperConnection {
 
     private ZooKeeper zoo;
     private final CountDownLatch connectedSignal = new CountDownLatch(1);
@@ -24,7 +24,7 @@ class ZooKeeperConnection {
         return zoo;
     }
 
-    void close() throws InterruptedException {
+    public void close() throws InterruptedException {
         zoo.close();
     }
 }

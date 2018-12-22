@@ -6,19 +6,26 @@ import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
+import org.zeromq.ZMQException;
+import zmq.ZError;
+
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.lang.reflect.Method;
 
-@SuppressWarnings("unchecked")
-public class ZMQAsyncResponseReceiver implements Runnable {
+@SuppressWarnings("all")
+public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
+
+    private ZMQ.Context context;
+    private ZMQ.Socket socket;
 
     @Override
     public void run() {
         try {
-            ZMQ.Context context = ZMQ.context(1);
-            ZMQ.Socket socket =  context.socket(ZMQ.REP);
+            context = ZMQ.context(1);
+            socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
 
             while (!Thread.currentThread().isInterrupted()) {
@@ -28,24 +35,29 @@ public class ZMQAsyncResponseReceiver implements Runnable {
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());
-                    if(callbackContainer.getResult() instanceof ExceptionHolder) {
-                        Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
+                    if (callbackContainer.getResult() instanceof ExceptionHolder) {
+                        Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
                         method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
-                    }else {
+                    } else {
                         Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
-                        if(Class.forName(callbackContainer.getResultClass()).equals(Void.class)){
+                        if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
-                        }else
+                        } else
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                     }
-                } catch (Exception e) {
-                    logger.error("Error during receiving callback:", e);
+                } catch (ZMQException | ZError.IOException recvTerminationException) {
+                } catch (Exception generalExecutionException) {
+                    logger.error("ZMQ response method execution exception", generalExecutionException);
                 }
             }
-            Utils.closeSocketAndContext(socket, context);
-        }catch (Exception e){
-            logger.error("Error during callback receiver startup:", e);
+        } catch (Exception generalZmqException){
+            logger.error("Error during callback receiver startup:", generalZmqException);
         }
+        logger.info(this.getClass().getSimpleName() + " terminated");
     }
 
+    @Override
+    public void close(){
+        Utils.closeSocketAndContext(socket, context);
+    }
 }

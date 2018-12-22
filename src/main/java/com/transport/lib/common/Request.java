@@ -7,19 +7,46 @@ import com.transport.lib.zookeeper.Utils;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import scala.collection.Seq;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 import static com.transport.lib.common.TransportService.*;
+import static java.time.temporal.ChronoUnit.MINUTES;
 
 public class Request<T> implements RequestInterface<T>{
 
+    private static Logger logger = LoggerFactory.getLogger(Request.class);
+
     private static final KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
+
+    private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
+
+    public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
+        Properties consumerProps = new Properties();
+        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        consumerProps.put("enable.auto.commit", "false");
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        for(int i = 0; i < brokersCount; i++){
+            consumerProps.put("group.id", UUID.randomUUID().toString());
+            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+            consumers.add(consumer);
+            started.countDown();
+        }
+    }
 
     private int timeout = -1;
     private String moduleId;
@@ -40,15 +67,34 @@ public class Request<T> implements RequestInterface<T>{
     }
 
     private byte[] waitForSyncAnswer(String requestTopic){
-        Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
-        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("enable.auto.commit", "false");
-        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        consumerProps.put("group.id", UUID.randomUUID().toString());
-        KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-        consumer.subscribe(Collections.singletonList(requestTopic.replace("-server", "-client")));
+        KafkaConsumer<String, byte[]> consumer;
+
+        do{
+            consumer = consumers.poll();
+        }while (consumer == null);
+
+        String clientTopicName = requestTopic.replace("-server", "-client");
+        long tenMinAgo = Instant.now().minus(10, MINUTES).toEpochMilli();
+        consumer.subscribe(Collections.singletonList(clientTopicName));
+        consumer.poll(0);
+        List<PartitionInfo> partitionInfos = consumer.listTopics().get(clientTopicName);
+        List<TopicPartition> partitions = new ArrayList<>();
+        if (partitionInfos == null) {
+            logger.warn("Partition information was not found for topic ", clientTopicName);
+        } else {
+            for (PartitionInfo partitionInfo : partitionInfos) {
+                TopicPartition partition = new TopicPartition(clientTopicName, partitionInfo.partition());
+                partitions.add(partition);
+            }
+        }
+        Map<TopicPartition, Long> query = new HashMap<>();
+        partitions.forEach(x -> query.put(x, tenMinAgo));
+        Map<TopicPartition, OffsetAndTimestamp> result = consumer.offsetsForTimes(query);
+        for(Map.Entry<TopicPartition, OffsetAndTimestamp> entry: result.entrySet()){
+            if(entry.getValue() == null) continue;
+            consumer.seek(entry.getKey(), entry.getValue().offset());
+        }
+
         long start = System.currentTimeMillis();
         while(true){
             if(timeout != -1 && System.currentTimeMillis() - start > timeout) break;
@@ -59,14 +105,15 @@ public class Request<T> implements RequestInterface<T>{
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
-                        consumer.close();
                     }catch (CommitFailedException e){
-                        e.printStackTrace();
+                        logger.error("Error during commit received answer", e);
                     }
+                    consumers.add(consumer);
                     return record.value();
                 }
             }
         }
+        consumers.add(consumer);
         return null;
     }
 
@@ -84,7 +131,7 @@ public class Request<T> implements RequestInterface<T>{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
             }catch (Exception e){
-                e.printStackTrace();
+                logger.error("Error in sending sync request", e);
             }
             response = waitForSyncAnswer(requestTopic);
         }else {
@@ -141,7 +188,7 @@ public class Request<T> implements RequestInterface<T>{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
             }catch (Exception e){
-                e.printStackTrace();
+                logger.error("Error in sending async request", e);
             }
         }else {
             ZMQ.Context context =  ZMQ.context(1);

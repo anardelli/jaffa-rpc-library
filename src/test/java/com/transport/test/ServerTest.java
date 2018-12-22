@@ -1,5 +1,6 @@
 package com.transport.test;
 
+import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -22,18 +23,18 @@ public class ServerTest {
         System.setProperty("use.kafka.for.sync", "true");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
-        AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.register(MainConfig.class);
         ctx.refresh();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(ctx::close));
 
         PersonServiceTransport personService = ctx.getBean(PersonServiceTransport.class);
         ClientServiceTransport clientService = ctx.getBean(ClientServiceTransport.class);
 
         try {
             Thread.sleep(5_000);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        }catch (Exception ignore){ }
         Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(15_000).onModule("test.server").executeSync();
         logger.info("Resulting id is " + id);
         Person person = personService.get(id).onModule("test.server").executeSync();

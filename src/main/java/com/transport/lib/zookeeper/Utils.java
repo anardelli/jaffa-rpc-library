@@ -18,7 +18,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
-@SuppressWarnings("WeakerAccess, unused")
+@SuppressWarnings("all")
 public class Utils {
 
     private static Logger logger = LoggerFactory.getLogger(Utils.class);
@@ -37,7 +37,7 @@ public class Utils {
             ShutdownHook shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("Can not connect to ZooKeeper cluster", e);
         }
     }
 
@@ -47,9 +47,10 @@ public class Utils {
             Stat stat = znode_exists("/" +service);
             if(stat != null) {
                 return getHostsForService("/" + service, moduleId)[0];
-            }else throw new RuntimeException("No route for service: " + service);
+            }else
+                throw new RuntimeException("No route for service: " + service);
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("Can not connect to ZooKeeper cluster", e);
         }
         return null;
     }
@@ -90,7 +91,7 @@ public class Utils {
             services.add("/" + service);
             logger.info("Registered service: " + service);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Can not register services in ZooKeeper", e);
         }
     }
 
@@ -211,8 +212,6 @@ class ShutdownHook extends Thread {
                 Utils.delete(service);
             }
             Utils.conn.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        }catch (Exception ignore){ }
     }
 }

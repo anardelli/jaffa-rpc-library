@@ -17,7 +17,7 @@ import java.lang.reflect.Method;
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
     @Autowired
-    ApplicationContext context;
+    private ApplicationContext context;
 
     private static final long serialVersionUID = 1L;
 

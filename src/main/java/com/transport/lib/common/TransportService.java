@@ -9,23 +9,20 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Context;
-import org.zeromq.ZMQ.Socket;
+
+import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
-@SuppressWarnings("WeakerAccess, unchecked")
+@SuppressWarnings("all")
 public class TransportService {
 
     private static Logger logger = LoggerFactory.getLogger(TransportService.class);
 
     public static HashMap<Class, Object> wrappedServices = new HashMap<>();
-    public static Context context;
-    public static Socket socket;
     public static KafkaZkClient zkClient;
     public static int brokersCount = 0;
     public static AdminZkClient adminZkClient;
@@ -38,7 +35,9 @@ public class TransportService {
     public static HashSet<String> serverSyncTopics;
     public static HashSet<String> clientSyncTopics;
 
-
+    private List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
+    private List<Closeable> zmqReceivers = new ArrayList<>();
+    private List<Thread> receiverThreads = new ArrayList<>();
 
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
@@ -68,7 +67,7 @@ public class TransportService {
         else return optionValue;
     }
 
-    public static void registerServices() throws Exception{
+    public void registerServices() throws Exception{
         Reflections reflections = new Reflections(getRequiredOption("service.root"));
         Set<Class<?>> apiInterfaces = reflections.getTypesAnnotatedWith(Api.class);
         for(Class apiInterface : apiInterfaces){
@@ -83,13 +82,10 @@ public class TransportService {
         }
     }
 
-    private static void prepareServiceRegistration() throws Exception{
+    private void prepareServiceRegistration() throws Exception{
         Utils.connect(getRequiredOption("zookeeper.connection"));
         zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
         adminZkClient = new AdminZkClient(zkClient);
-        context = ZMQ.context(1);
-        socket = context.socket(ZMQ.REP);
-        socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         brokersCount = zkClient.getAllBrokersInCluster().size();
         logger.info("BROKER COUNT: " + brokersCount);
         serverAsyncTopics = createTopics("server-async");
@@ -98,7 +94,7 @@ public class TransportService {
         clientSyncTopics = createTopics( "client-sync");
     }
 
-    private static HashSet<String> createTopics(String type){
+    private HashSet<String> createTopics(String type){
         Properties topicConfig = new Properties();
         HashSet<String> topicsCreated = new HashSet<>();
         new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
@@ -113,12 +109,31 @@ public class TransportService {
         try{
             long startedTime = System.currentTimeMillis();
             prepareServiceRegistration();
-            CountDownLatch started = new CountDownLatch(brokersCount * 3);
-            new Thread( new ZMQSyncRequestReceiver()).start();
-            new Thread( new ZMQAsyncResponseReceiver()).start();
-            new Thread( new KafkaSyncRequestReceiver(started)).start();
-            new Thread( new KafkaAsyncRequestReceiver(started)).start();
-            new Thread( new KafkaAsyncResponseReceiver(started)).start();
+            CountDownLatch started = new CountDownLatch(brokersCount * 4);
+
+            ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
+            ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
+            KafkaSyncRequestReceiver kafkaSyncRequestReceiver = new KafkaSyncRequestReceiver(started);
+            KafkaAsyncRequestReceiver kafkaAsyncRequestReceiver = new KafkaAsyncRequestReceiver(started);
+            KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
+
+            Request.initSyncKafkaConsumers(brokersCount, started);
+
+            this.kafkaReceivers.add(kafkaAsyncRequestReceiver);
+            this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
+            this.kafkaReceivers.add(kafkaSyncRequestReceiver);
+
+            this.zmqReceivers.add(zmqAsyncResponseReceiver);
+            this.zmqReceivers.add(zmqSyncRequestReceiver);
+
+            this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
+            this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
+            this.receiverThreads.add(new Thread(kafkaSyncRequestReceiver));
+            this.receiverThreads.add(new Thread(kafkaAsyncRequestReceiver));
+            this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
+
+            this.receiverThreads.forEach(Thread::start);
+
             started.await();
             registerServices();
             waitForRebalance();
@@ -185,5 +200,26 @@ public class TransportService {
         }else return result;
     }
 
+    public void close(){
+        logger.info("Close started");
 
+        this.kafkaReceivers.forEach(KafkaReceiver::close);
+
+        this.zmqReceivers.forEach(a -> { try { a.close(); } catch(Exception e) { } });
+
+        for(Thread thread: this.receiverThreads){
+            do {
+                thread.interrupt();
+            }while(thread.getState() != Thread.State.TERMINATED);
+        }
+
+        try{
+            for(String service : Utils.services){
+                Utils.delete(service);
+            }
+            Utils.conn.close();
+        }catch (Exception e){ }
+
+        logger.info("Close finished");
+    }
 }

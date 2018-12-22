@@ -10,7 +10,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class TransportConfig {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public TransportService transportService(){
         return new TransportService();
     }
