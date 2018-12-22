@@ -11,7 +11,6 @@
     <properties>
         <java.version>1.8</java.version>
         <root-path>src/test/java/</root-path>
-        <root-package>com.transport.test</root-package>
     </properties>
 
     <dependencies>
@@ -127,7 +126,6 @@
                         <version>1.0-SNAPSHOT</version>
                         <configuration>
                             <root-path>${root-path}</root-path>
-                            <root-package>${root-package}</root-package>
                         </configuration>
                         <executions>
                             <execution>
