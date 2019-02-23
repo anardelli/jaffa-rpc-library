@@ -104,7 +104,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <argLine>-Dzookeeper.connection=localhost:2181 -Dservice.root=com.transport.test -Dmodule.id=main.server -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka.for.async=true -Duse.kafka.for.sync=true</argLine>
+                    <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

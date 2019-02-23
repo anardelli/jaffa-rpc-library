@@ -12,14 +12,12 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
-import scala.collection.Seq;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 
 import static com.transport.lib.common.TransportService.*;
 import static java.time.temporal.ChronoUnit.MINUTES;
@@ -126,7 +124,7 @@ public class Request<T> implements RequestInterface<T>{
         kryo.writeObject(output, command);
         output.close();
         byte[] response;
-        if(Utils.useKafkaForSync()){
+        if(Utils.useKafka()){
             String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
             try{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
@@ -138,7 +136,7 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             ZMQ.Context context = ZMQ.context(1);
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
-            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId));
+            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
             socket.send(out.toByteArray(), 0);
             if (timeout != -1) {
                 socket.setReceiveTimeOut(timeout);
@@ -159,21 +157,17 @@ public class Request<T> implements RequestInterface<T>{
 
     private static String getTopicForService(String service, String moduleId, boolean sync){
         String serviceInterface = service.replace("Transport", "");
-        String type = sync ? "-sync" : "-async";
+        String avaiableModuleId = moduleId;
         if(moduleId != null){
-            String topicName = serviceInterface + "-" + moduleId + "-server" + type;
-            if(!zkClient.topicExists(topicName))
-                throw new RuntimeException("No route for service: " + serviceInterface);
-            else
-                return topicName;
+            Utils.getHostForService(serviceInterface, moduleId, Protocol.KAFKA);
         }else {
-            Seq<String> allTopic = zkClient.getAllTopicsInCluster();
-            List<String> topics = scala.collection.JavaConversions.seqAsJavaList(allTopic);
-            List<String> filtered = topics.stream().filter(x -> x.startsWith(serviceInterface+"-")).filter(x -> x.endsWith("-server" + type)).collect(Collectors.toList());
-            if(filtered.isEmpty()) throw new RuntimeException("No route for service: " + serviceInterface);
-            else
-                return filtered.get(0);
+            avaiableModuleId = Utils.getModuleForService(serviceInterface, Protocol.KAFKA);
         }
+        String topicName = serviceInterface + "-" + avaiableModuleId + "-server" + (sync ? "-sync" : "-async");
+        if(!zkClient.topicExists(topicName))
+            throw new RuntimeException("No route for service: " + serviceInterface + " and module.id " + avaiableModuleId);
+        else
+            return topicName;
     }
 
     public void executeAsync(String key, Class listener){
@@ -184,7 +178,7 @@ public class Request<T> implements RequestInterface<T>{
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
-        if(Utils.useKafkaForAsync()){
+        if(Utils.useKafka()){
             try{
                 ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
                 producer.send(resultPackage).get();
@@ -194,7 +188,7 @@ public class Request<T> implements RequestInterface<T>{
         }else {
             ZMQ.Context context =  ZMQ.context(1);
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
-            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId));
+            socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
             socket.send(out.toByteArray(), 0);
             socket.recv(0);
             Utils.closeSocketAndContext(socket,context);

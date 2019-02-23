@@ -17,8 +17,7 @@ public class ServerTest {
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
-        System.setProperty("use.kafka.for.async", "true");
-        System.setProperty("use.kafka.for.sync", "true");
+        System.setProperty("use.kafka", "false");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
