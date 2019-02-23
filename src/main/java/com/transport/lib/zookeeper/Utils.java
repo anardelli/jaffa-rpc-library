@@ -220,7 +220,6 @@ public class Utils {
 }
 
 class ShutdownHook extends Thread {
-
     public void run() {
         try{
             for(String service : Utils.services){

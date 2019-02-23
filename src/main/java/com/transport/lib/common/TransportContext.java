@@ -1,5 +1,6 @@
 package com.transport.lib.common;
 
+@SuppressWarnings("all")
 public class TransportContext {
 
     private static ThreadLocal<String> sourceModuleId = new ThreadLocal<>();
