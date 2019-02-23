@@ -15,7 +15,6 @@ public class ServerTest {
         logger.info("================ TEST SERVER STARTING ================");
 
         System.setProperty("zookeeper.connection", "localhost:2181");
-        System.setProperty("service.root", "com.transport.test");
         System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
         System.setProperty("use.kafka.for.async", "true");

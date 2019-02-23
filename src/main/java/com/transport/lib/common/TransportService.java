@@ -5,11 +5,10 @@ import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
 import org.apache.kafka.common.utils.Time;
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.AnnotationUtils;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -19,6 +18,12 @@ import java.util.concurrent.CountDownLatch;
 
 @SuppressWarnings("all")
 public class TransportService {
+
+    @Autowired
+    private ServerEndpoints serverEndpoints;
+
+    @Autowired
+    private ClientEndpoints clientEndpoints;
 
     private static Logger logger = LoggerFactory.getLogger(TransportService.class);
 
@@ -68,17 +73,21 @@ public class TransportService {
     }
 
     public void registerServices() throws Exception{
-        Reflections reflections = new Reflections(getRequiredOption("service.root"));
-        Set<Class<?>> apiInterfaces = reflections.getTypesAnnotatedWith(Api.class);
-        for(Class apiInterface : apiInterfaces){
-            Set<Class<?>> apiImpls = reflections.getSubTypesOf(apiInterface);
-            for(Class<?> apiImpl : apiImpls){
-                if(AnnotationUtils.findAnnotation(apiImpl, ApiServer.class) != null){
-                    wrappedServices.put(apiInterface, apiImpl.newInstance());
-                    Utils.registerService(apiInterface.getName());
-                    break;
-                }
-            }
+        Map<Class<?>,Class<?>> apiImpls = new HashMap<>();
+        for(Class server: serverEndpoints.getServerEndpoints()){
+            logger.info("Server endpoint: " + server.getName());
+            if(!server.isAnnotationPresent(ApiServer.class))
+                throw new IllegalArgumentException("Class " + server.getName() + " is not annotated as ApiServer!");
+            if(server.getInterfaces().length == 0)
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            Class serverInterface = server.getInterfaces()[0];
+            if(!serverInterface.isAnnotationPresent(Api.class))
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            apiImpls.put(server, serverInterface);
+        }
+        for(Map.Entry<Class<?>, Class<?>> apiImpl : apiImpls.entrySet()){
+            wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().newInstance());
+            Utils.registerService(apiImpl.getValue().getName());
         }
     }
 
@@ -97,7 +106,16 @@ public class TransportService {
     private HashSet<String> createTopics(String type){
         Properties topicConfig = new Properties();
         HashSet<String> topicsCreated = new HashSet<>();
-        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
+        Set<Class<?>> apiImpls = new HashSet<>();
+        for(Class server: serverEndpoints.getServerEndpoints()){
+            if(server.getInterfaces().length == 0)
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            Class serverInterface = server.getInterfaces()[0];
+            if(!serverInterface.isAnnotationPresent(Api.class))
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            apiImpls.add(serverInterface);
+        }
+        apiImpls.forEach(x -> {topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
         topicsCreated.forEach(topic -> {
             if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             else if(!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get()+"").equals(brokersCount)) throw new IllegalStateException("Topic " + topic + " has wrong config");
@@ -105,7 +123,8 @@ public class TransportService {
         return topicsCreated;
     }
 
-    TransportService() {
+    @PostConstruct
+    private void init() throws Exception {
         try{
             long startedTime = System.currentTimeMillis();
             prepareServiceRegistration();
@@ -141,6 +160,7 @@ public class TransportService {
             logger.info("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
         }catch (Exception e){
             logger.error("Exception during transport library startup:", e);
+            throw e;
         }
     }
 

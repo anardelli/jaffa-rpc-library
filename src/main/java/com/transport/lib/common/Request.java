@@ -67,7 +67,7 @@ public class Request<T> implements RequestInterface<T>{
         return this;
     }
 
-    private byte[] waitForSyncAnswer(String requestTopic){
+    private byte[] waitForSyncAnswer(String requestTopic, long requestTime){
         KafkaConsumer<String, byte[]> consumer;
 
         do{
@@ -75,7 +75,7 @@ public class Request<T> implements RequestInterface<T>{
         }while (consumer == null);
 
         String clientTopicName = requestTopic.replace("-server", "-client");
-        long tenMinAgo = Instant.now().minus(10, MINUTES).toEpochMilli();
+        long tenMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
         consumer.subscribe(Collections.singletonList(clientTopicName));
         consumer.poll(0);
         List<PartitionInfo> partitionInfos = consumer.listTopics().get(clientTopicName);
@@ -134,7 +134,7 @@ public class Request<T> implements RequestInterface<T>{
             }catch (Exception e){
                 logger.error("Error in sending sync request", e);
             }
-            response = waitForSyncAnswer(requestTopic);
+            response = waitForSyncAnswer(requestTopic, System.currentTimeMillis());
         }else {
             ZMQ.Context context = ZMQ.context(1);
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
