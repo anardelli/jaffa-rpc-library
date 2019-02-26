@@ -5,11 +5,10 @@ import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
 import org.apache.kafka.common.utils.Time;
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.AnnotationUtils;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -19,6 +18,12 @@ import java.util.concurrent.CountDownLatch;
 
 @SuppressWarnings("all")
 public class TransportService {
+
+    @Autowired
+    private ServerEndpoints serverEndpoints;
+
+    @Autowired
+    private ClientEndpoints clientEndpoints;
 
     private static Logger logger = LoggerFactory.getLogger(TransportService.class);
 
@@ -68,36 +73,59 @@ public class TransportService {
     }
 
     public void registerServices() throws Exception{
-        Reflections reflections = new Reflections(getRequiredOption("service.root"));
-        Set<Class<?>> apiInterfaces = reflections.getTypesAnnotatedWith(Api.class);
-        for(Class apiInterface : apiInterfaces){
-            Set<Class<?>> apiImpls = reflections.getSubTypesOf(apiInterface);
-            for(Class<?> apiImpl : apiImpls){
-                if(AnnotationUtils.findAnnotation(apiImpl, ApiServer.class) != null){
-                    wrappedServices.put(apiInterface, apiImpl.newInstance());
-                    Utils.registerService(apiInterface.getName());
-                    break;
-                }
-            }
+        Map<Class<?>,Class<?>> apiImpls = new HashMap<>();
+        for(Class server: serverEndpoints.getServerEndpoints()){
+            logger.info("Server endpoint: " + server.getName());
+            if(!server.isAnnotationPresent(ApiServer.class))
+                throw new IllegalArgumentException("Class " + server.getName() + " is not annotated as ApiServer!");
+            if(server.getInterfaces().length == 0)
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            Class serverInterface = server.getInterfaces()[0];
+            if(!serverInterface.isAnnotationPresent(Api.class))
+                throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+            apiImpls.put(server, serverInterface);
+        }
+        for(Map.Entry<Class<?>, Class<?>> apiImpl : apiImpls.entrySet()){
+            wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().newInstance());
+            Utils.registerService(apiImpl.getValue().getName(), Utils.useKafka() ? Protocol.KAFKA : Protocol.ZMQ);
         }
     }
 
     private void prepareServiceRegistration() throws Exception{
         Utils.connect(getRequiredOption("zookeeper.connection"));
-        zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
-        adminZkClient = new AdminZkClient(zkClient);
-        brokersCount = zkClient.getAllBrokersInCluster().size();
-        logger.info("BROKER COUNT: " + brokersCount);
-        serverAsyncTopics = createTopics("server-async");
-        clientAsyncTopics = createTopics("client-async");
-        serverSyncTopics = createTopics( "server-sync");
-        clientSyncTopics = createTopics( "client-sync");
+        if(Utils.useKafka()){
+            zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"),false,200000, 15000,10,Time.SYSTEM,UUID.randomUUID().toString(),UUID.randomUUID().toString());
+            adminZkClient = new AdminZkClient(zkClient);
+            brokersCount = zkClient.getAllBrokersInCluster().size();
+            logger.info("BROKER COUNT: " + brokersCount);
+            serverAsyncTopics = createTopics("server-async");
+            clientAsyncTopics = createTopics("client-async");
+            serverSyncTopics = createTopics( "server-sync");
+            clientSyncTopics = createTopics( "client-sync");
+        }
     }
 
-    private HashSet<String> createTopics(String type){
+    private HashSet<String> createTopics(String type) throws Exception{
         Properties topicConfig = new Properties();
         HashSet<String> topicsCreated = new HashSet<>();
-        new Reflections(getRequiredOption("service.root")).getTypesAnnotatedWith(Api.class).forEach(x -> {if(x.isInterface()) topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
+        Set<Class<?>> apiImpls = new HashSet<>();
+        if(type.contains("server")){
+            for(Class server: serverEndpoints.getServerEndpoints()){
+                if(server.getInterfaces().length == 0)
+                    throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+                Class serverInterface = server.getInterfaces()[0];
+                if(!serverInterface.isAnnotationPresent(Api.class))
+                    throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+                apiImpls.add(serverInterface);
+            }
+        }else{
+            for(Class client: clientEndpoints.getClientEndpoints()){
+                if(!client.isAnnotationPresent(ApiClient.class))
+                    throw new IllegalArgumentException("Class " + client.getName() + " does has ApiClient annotation!");
+                apiImpls.add(Class.forName(client.getName().replace("Transport","")));
+            }
+        }
+        apiImpls.forEach(x -> {topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);});
         topicsCreated.forEach(topic -> {
             if(!zkClient.topicExists(topic)) adminZkClient.createTopic(topic,brokersCount,1,topicConfig,RackAwareMode.Disabled$.MODULE$);
             else if(!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get()+"").equals(brokersCount)) throw new IllegalStateException("Topic " + topic + " has wrong config");
@@ -105,42 +133,52 @@ public class TransportService {
         return topicsCreated;
     }
 
-    TransportService() {
+    @PostConstruct
+    private void init() throws Exception {
         try{
             long startedTime = System.currentTimeMillis();
             prepareServiceRegistration();
-            CountDownLatch started = new CountDownLatch(brokersCount * 4);
-
-            ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
-            ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
-            KafkaSyncRequestReceiver kafkaSyncRequestReceiver = new KafkaSyncRequestReceiver(started);
-            KafkaAsyncRequestReceiver kafkaAsyncRequestReceiver = new KafkaAsyncRequestReceiver(started);
-            KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
-
-            Request.initSyncKafkaConsumers(brokersCount, started);
-
-            this.kafkaReceivers.add(kafkaAsyncRequestReceiver);
-            this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
-            this.kafkaReceivers.add(kafkaSyncRequestReceiver);
-
-            this.zmqReceivers.add(zmqAsyncResponseReceiver);
-            this.zmqReceivers.add(zmqSyncRequestReceiver);
-
-            this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
-            this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
-            this.receiverThreads.add(new Thread(kafkaSyncRequestReceiver));
-            this.receiverThreads.add(new Thread(kafkaAsyncRequestReceiver));
-            this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
-
+            CountDownLatch started = null;
+            int expectedThreadCount = 0;
+            if(Utils.useKafka()){
+                if(!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) expectedThreadCount += 2;
+                if(!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) expectedThreadCount += 2;
+                if(expectedThreadCount != 0) started = new CountDownLatch(brokersCount * expectedThreadCount);
+                if(!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()){
+                    KafkaSyncRequestReceiver kafkaSyncRequestReceiver = new KafkaSyncRequestReceiver(started);
+                    KafkaAsyncRequestReceiver kafkaAsyncRequestReceiver = new KafkaAsyncRequestReceiver(started);
+                    this.kafkaReceivers.add(kafkaAsyncRequestReceiver);
+                    this.kafkaReceivers.add(kafkaSyncRequestReceiver);
+                    this.receiverThreads.add(new Thread(kafkaSyncRequestReceiver));
+                    this.receiverThreads.add(new Thread(kafkaAsyncRequestReceiver));
+                }
+                if(!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()){
+                    KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
+                    this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
+                    Request.initSyncKafkaConsumers(brokersCount, started);
+                    this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
+                }
+            }else {
+                if(serverEndpoints.getServerEndpoints().length != 0){
+                    ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
+                    this.zmqReceivers.add(zmqSyncRequestReceiver);
+                    this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
+                }
+                if(clientEndpoints.getClientEndpoints().length != 0){
+                    ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
+                    this.zmqReceivers.add(zmqAsyncResponseReceiver);
+                    this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
+                }
+            }
             this.receiverThreads.forEach(Thread::start);
-
-            started.await();
+            if(expectedThreadCount != 0) started.await();
             registerServices();
             waitForRebalance();
             logger.info("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
             logger.info("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
         }catch (Exception e){
             logger.error("Exception during transport library startup:", e);
+            throw e;
         }
     }
 
@@ -215,7 +253,8 @@ public class TransportService {
 
         try{
             for(String service : Utils.services){
-                Utils.delete(service);
+                Utils.delete(service, Protocol.ZMQ);
+                Utils.delete(service, Protocol.KAFKA);
             }
             Utils.conn.close();
         }catch (Exception e){ }

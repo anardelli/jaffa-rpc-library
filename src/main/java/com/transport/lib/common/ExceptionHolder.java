@@ -1,13 +1,13 @@
 package com.transport.lib.common;
 
-@SuppressWarnings("unused")
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@SuppressWarnings("all")
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 public class ExceptionHolder {
-
     private String stackTrace;
-
-    public ExceptionHolder(){ }
-
-    ExceptionHolder(String stackTrace) { this.stackTrace = stackTrace; }
-
-    String getStackTrace() { return stackTrace; }
 }
