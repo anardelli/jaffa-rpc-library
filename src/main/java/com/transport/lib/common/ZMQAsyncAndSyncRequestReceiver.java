@@ -37,6 +37,9 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     Kryo kryo = new Kryo();
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     Command command = kryo.readObject(input, Command.class);
+                    if(command.getCallbackKey() != null && command.getCallbackClass() != null) {
+                        socket.send("OK");
+                    }
                     TransportContext.setSourceModuleId(command.getSourceModuleId());
                     TransportContext.setSecurityTicketThreadLocal(command.getTicket());
                     Object result = null;
@@ -48,7 +51,6 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                     Output output = new Output(bOutput);
                     if(command.getCallbackKey() != null && command.getCallbackClass() != null){
-                        socket.send("OK");
                         ZMQ.Context contextAsync = ZMQ.context(1);
                         ZMQ.Socket socketAsync = contextAsync.socket(ZMQ.REQ);
                         socketAsync.connect("tcp://" + command.getCallBackZMQ());

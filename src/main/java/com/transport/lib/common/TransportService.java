@@ -174,6 +174,7 @@ public class TransportService {
             if(expectedThreadCount != 0) started.await();
             registerServices();
             waitForRebalance();
+            FinalizationWorker.startFinalizer();
             logger.info("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
             logger.info("Initial rebalance took:" + (RebalanceListener.lastRebalance -  RebalanceListener.firstRebalance));
         }catch (Exception e){
@@ -241,6 +242,14 @@ public class TransportService {
     public void close(){
         logger.info("Close started");
 
+        try{
+            for(String service : Utils.services){
+                Utils.delete(service, Protocol.ZMQ);
+                Utils.delete(service, Protocol.KAFKA);
+            }
+            Utils.conn.close();
+        }catch (Exception e){ }
+
         this.kafkaReceivers.forEach(KafkaReceiver::close);
 
         this.zmqReceivers.forEach(a -> { try { a.close(); } catch(Exception e) { } });
@@ -251,13 +260,7 @@ public class TransportService {
             }while(thread.getState() != Thread.State.TERMINATED);
         }
 
-        try{
-            for(String service : Utils.services){
-                Utils.delete(service, Protocol.ZMQ);
-                Utils.delete(service, Protocol.KAFKA);
-            }
-            Utils.conn.close();
-        }catch (Exception e){ }
+        FinalizationWorker.stopFinalizer();
 
         logger.info("Close finished");
     }

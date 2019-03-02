@@ -193,5 +193,10 @@ public class Request<T> implements RequestInterface<T>{
             socket.recv(0);
             Utils.closeSocketAndContext(socket,context);
         }
+        // Add command to background finalization thread
+        // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
+        command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
+        logger.debug("Async command " + command  + " added to finalization queue");
+        FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
     }
 }

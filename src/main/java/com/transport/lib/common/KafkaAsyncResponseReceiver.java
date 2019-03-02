@@ -41,15 +41,19 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             Input input = new Input(new ByteArrayInputStream(record.value()));
                             CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                             Class callbackClass = Class.forName(callbackContainer.getListener());
-                            if(callbackContainer.getResult() instanceof ExceptionHolder) {
-                                Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
-                                method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
-                            }else {
-                                Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
-                                if(Class.forName(callbackContainer.getResultClass()).equals(Void.class)){
-                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
-                                }else
-                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                            if(FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null){
+                                if(callbackContainer.getResult() instanceof ExceptionHolder) {
+                                    Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
+                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                                }else {
+                                    Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
+                                    if(Class.forName(callbackContainer.getResultClass()).equals(Void.class)){
+                                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
+                                    }else
+                                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                                }
+                            }else{
+                                logger.warn("Response " + callbackContainer.getKey() + " already expired");
                             }
                             Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                             commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
