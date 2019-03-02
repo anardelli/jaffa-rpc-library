@@ -37,17 +37,13 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     Kryo kryo = new Kryo();
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     Command command = kryo.readObject(input, Command.class);
+                    // It was async request, so answer with "OK" message before target message invocation
                     if(command.getCallbackKey() != null && command.getCallbackClass() != null) {
                         socket.send("OK");
                     }
                     TransportContext.setSourceModuleId(command.getSourceModuleId());
                     TransportContext.setSecurityTicketThreadLocal(command.getTicket());
-                    Object result = null;
-                    try{
-                        result = invoke(command);
-                    }catch (Exception executionException){
-                        logger.error("Target method execution exception", executionException);
-                    }
+                    Object result = invoke(command);
                     ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                     Output output = new Output(bOutput);
                     if(command.getCallbackKey() != null && command.getCallbackClass() != null){

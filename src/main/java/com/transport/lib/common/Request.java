@@ -179,11 +179,16 @@ public class Request<T> implements RequestInterface<T>{
         String serviceInterface = service.replace("Transport", "");
         String avaiableModuleId = moduleId;
         if(moduleId != null){
+            // Checks for active server for a given service with specific module id
+            // or throws "transport no route" exception if there are none
             Utils.getHostForService(serviceInterface, moduleId, Protocol.KAFKA);
         }else {
+            // if moduleId  was not specified - get module id of any active server for a given service
+            // or throws "transport no route" exception if there are none
             avaiableModuleId = Utils.getModuleForService(serviceInterface, Protocol.KAFKA);
         }
         String topicName = serviceInterface + "-" + avaiableModuleId + "-server" + (sync ? "-sync" : "-async");
+        // if necessary topic does not exist for some reason - throw "transport no route" exception
         if(!zkClient.topicExists(topicName))
             throw new RuntimeException("No route for service: " + serviceInterface + " and module.id " + avaiableModuleId);
         else
@@ -210,6 +215,7 @@ public class Request<T> implements RequestInterface<T>{
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
             socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
             socket.send(out.toByteArray(), 0);
+            // Wait for "OK" message from server that means request was received and correctly deserialized
             socket.recv(0);
             Utils.closeSocketAndContext(socket,context);
         }
