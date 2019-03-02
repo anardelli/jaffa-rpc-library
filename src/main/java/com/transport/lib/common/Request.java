@@ -27,8 +27,10 @@ public class Request<T> implements RequestInterface<T>{
 
     private static Logger logger = LoggerFactory.getLogger(Request.class);
 
-    private static final KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
+    private final KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
 
+    // "object pool" of consumers that used for receiving sync response from server
+    // each Request removes one of objects from consumers queue and puts back after timeout occurred of response was received
     private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
 
     public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
@@ -65,17 +67,24 @@ public class Request<T> implements RequestInterface<T>{
         return this;
     }
 
+    // Only used when transport works through Kafka
     private byte[] waitForSyncAnswer(String requestTopic, long requestTime){
+        // Waiting for available consumer
         KafkaConsumer<String, byte[]> consumer;
-
         do{
             consumer = consumers.poll();
         }while (consumer == null);
 
+        // we will wait for response message in "client" topic
         String clientTopicName = requestTopic.replace("-server", "-client");
-        long tenMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
+
+        // 3 minute time offset to mitigate time desynchronization between client - kafka broker - server
+        long threeMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
+        // resubscribe Kafka consumer to client target topic
         consumer.subscribe(Collections.singletonList(clientTopicName));
+        // trigger consumer resubscription
         consumer.poll(0);
+        // check metadata information for required client topic
         List<PartitionInfo> partitionInfos = consumer.listTopics().get(clientTopicName);
         List<TopicPartition> partitions = new ArrayList<>();
         if (partitionInfos == null) {
@@ -86,43 +95,54 @@ public class Request<T> implements RequestInterface<T>{
                 partitions.add(partition);
             }
         }
+        // Seek consumer offset to call time minus 3 minutes
+        // and start waiting for response from server
         Map<TopicPartition, Long> query = new HashMap<>();
-        partitions.forEach(x -> query.put(x, tenMinAgo));
+        partitions.forEach(x -> query.put(x, threeMinAgo));
         Map<TopicPartition, OffsetAndTimestamp> result = consumer.offsetsForTimes(query);
         for(Map.Entry<TopicPartition, OffsetAndTimestamp> entry: result.entrySet()){
             if(entry.getValue() == null) continue;
             consumer.seek(entry.getKey(), entry.getValue().offset());
         }
 
+        // Start timer for timeout.
+        // Timeout could be set by used or default == 60 minutes
         long start = System.currentTimeMillis();
         while(true){
-            if(timeout != -1 && System.currentTimeMillis() - start > timeout) break;
+            // Timeout occurred, stop waiting and return null
+            if((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60))) break;
             ConsumerRecords<String, byte[]> records = consumer.poll(10);
             for(ConsumerRecord<String,byte[]> record: records){
+                // Response must has same key as request
                 if(record.key().equals(command.getRqUid())){
                     try {
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
+                        // Manually commit that message
                         consumer.commitSync(commitData);
                     }catch (CommitFailedException e){
                         logger.error("Error during commit received answer", e);
                     }
+                    // Return consumer to object pool
                     consumers.add(consumer);
                     return record.value();
                 }
             }
         }
+        // Return consumer to object pool
         consumers.add(consumer);
         return null;
     }
 
     @SuppressWarnings("unchecked")
     public T executeSync(){
+        // Serialize command-request
         Kryo kryo = new Kryo();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
+        // Response from server, if null - transport timeout occurred
         byte[] response;
         if(Utils.useKafka()){
             String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);

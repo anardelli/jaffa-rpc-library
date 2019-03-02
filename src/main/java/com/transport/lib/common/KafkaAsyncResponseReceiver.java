@@ -19,6 +19,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
 
     private static Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
 
+    // Used for waiting receiver thread startup
     private CountDownLatch countDownLatch;
 
     public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch){
@@ -27,6 +28,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
 
     @Override
     public void run() {
+        // New group.id per "thread pool"
         consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () ->  {
             try{
@@ -37,11 +39,15 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                     ConsumerRecords<String, byte[]> records = consumer.poll(100);
                     for(ConsumerRecord<String,byte[]> record: records){
                         try {
+                            // Deserialize response
                             Kryo kryo = new Kryo();
                             Input input = new Input(new ByteArrayInputStream(record.value()));
                             CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                            // Take target callback class
                             Class callbackClass = Class.forName(callbackContainer.getListener());
+                            // If timeout not occurred yet - process response and invoke target method
                             if(FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null){
+                                // Exception occurred on server side
                                 if(callbackContainer.getResult() instanceof ExceptionHolder) {
                                     Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
                                     method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
@@ -55,6 +61,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             }else{
                                 logger.warn("Response " + callbackContainer.getKey() + " already expired");
                             }
+                            // Manually commit offsets for processed responses
                             Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                             commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                             consumer.commitSync(commitData);
