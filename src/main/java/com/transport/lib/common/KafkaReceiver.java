@@ -12,8 +12,13 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
 
+    // "thread pool" for Kafka message receivers of the following types:
+    // - async requests
+    // - async responses
+    // - sync requests
     protected final ArrayList<Thread> threads = new ArrayList<>(brokersCount);
 
+    // method starts one thread (consumer) per Kafka broker (partition)
     protected void startThreadsAndWait(Runnable runnable){
         for(int i = 0; i < brokersCount; i++){ threads.add(new Thread(runnable)); }
         threads.forEach(Thread::start);

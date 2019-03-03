@@ -35,15 +35,19 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());
-                    if (callbackContainer.getResult() instanceof ExceptionHolder) {
-                        Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
-                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
-                    } else {
-                        Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
-                        if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
-                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
-                        } else
-                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                    if(FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null){
+                        if (callbackContainer.getResult() instanceof ExceptionHolder) {
+                            Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
+                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                        } else {
+                            Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
+                            if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
+                                method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
+                            } else
+                                method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                        }
+                    }else{
+                        logger.warn("Response " + callbackContainer.getKey() + " already expired");
                     }
                 } catch (ZMQException | ZError.IOException recvTerminationException) {
                 } catch (Exception generalExecutionException) {

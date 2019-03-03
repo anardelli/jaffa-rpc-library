@@ -28,6 +28,7 @@ public class Command {
     private String sourceModuleId;
     private String rqUid;
     private SecurityTicket ticket;
+    private long asyncExpireTime;
 
     public void setMetadata(){
         try {

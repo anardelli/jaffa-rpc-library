@@ -17,7 +17,7 @@ public class ServerTest {
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
-        System.setProperty("use.kafka", "true");
+        System.setProperty("use.kafka", "false");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
@@ -32,7 +32,7 @@ public class ServerTest {
         try {
             Thread.sleep(5_000);
         }catch (Exception ignore){ }
-        Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(15_000).onModule("test.server").executeSync();
+        Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(15_000).onModule("test.server").executeSync();
         logger.info("Resulting id is " + id);
         Person person = personService.get(id).onModule("test.server").executeSync();
         logger.info(person.toString());
@@ -41,7 +41,7 @@ public class ServerTest {
         logger.info("Name: " + personService.getName().executeSync());
         clientService.lol3("test3").onModule("test.server").executeSync();
         clientService.lol4("test4").onModule("test.server").executeSync();
-        clientService.lol4("test4").onModule("test.server").executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
+        clientService.lol4("test4").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
         personService.get(id).onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
         personService.lol2("kek").executeSync();
         try {
