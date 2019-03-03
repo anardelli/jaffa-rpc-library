@@ -79,11 +79,16 @@ Next, you inject this transport interface through autowiring:
 com.transport.test.PersonServiceTransport personService;
 
 // Sync call on any implementation with 10s timeout:
-Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(10_000).executeSync();
+Integer id = personService.add("Test name", "test@mail.com", null)
+                          .withTimeout(10_000)
+                          .executeSync();
 
 // Async call on module with moduleId = main.server and timeout = 10s
 
-personService.get(id).onModule("main.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+personService.get(id)
+             .onModule("main.server")
+             .withTimeout(10_000)
+             .executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
 // Async callback implementation example
 public class PersonCallback implements Callback<Person> {
@@ -118,11 +123,15 @@ public class MainConfig {
 
     // Specify server implementation endpoints (must be empty if none exists)
     @Bean
-    ServerEndpoints serverEndpoints(){ return new ServerEndpoints(PersonServiceImpl.class, ClientServiceImpl.class); }
+    ServerEndpoints serverEndpoints(){ 
+        return new ServerEndpoints(PersonServiceImpl.class, ClientServiceImpl.class); 
+    }
 
     // Specify required client endpoints (must be empty if none exists)
     @Bean
-    ClientEndpoints clientEndpoints(){ return new ClientEndpoints(ClientServiceTransport.class, PersonServiceTransport.class); }
+    ClientEndpoints clientEndpoints(){ 
+        return new ClientEndpoints(ClientServiceTransport.class, PersonServiceTransport.class); 
+    }
 }
 ```
 
