@@ -1,81 +1,104 @@
 ### Transport library
 
-This library was created to manage communication between multiple JVM applications
-through interface method calls. It supports sync/async invocations through Kafka or ZeroMQ.
-Synchronized method calls also support timeouts.
-
-### How it works internally
-
-1. During Spring context initialization, library generates stub implementations for all transport interfaces using **ByteBuddy**.
-2. All method calls from transport interfaces are intercepted using **Spring AOP**.
-3. Interceptor creates **Request** containing all necessary information about method call.
-4. In **execute methods**:
-    1. Transport library serializes **Request** using **Kryo**.
-    2. Checks available routes in **Zookeeper** cluster and throws **TransportNoRouteException** if none were found.
-    3. Connects to server if ZeroMQ enabled or creates Kafka producer otherwise.
-    4. Makes method call with **ZeroMQ** or **Kafka** depending of JVM options:
-        **-Duse.kafka.for.async=false/true** or **-Duse.kafka.for.sync=false/true**
-    5. Waits for answer indefinitely or **timeout** milliseconds and then throws **TransportTimeoutException** in **executeSync** method.
-    6. **executeAsync()** method returns immediately after sending request, then invokes methods in class used as callback listener during invocation.
-
-### How it works for user
+This library was created to provide communication between applications running on different JVMs
+through interface method calls. 
+Key features:
+- Very easy to use
+- Sync & async method calls - type determined by client, not server
+- One interface could have multiple server implementations - 
+  client choose the right one by specifying target module.id
+- User-provided timeout for both sync/async calls
+- High throughput with Kafka and low latency with ZMQ
+- User could specify custom security provider (see example below)
+ 
+### How it works for end user
 
 You create interface with ```@Api```annotation, for example:
 
 ```java
 @Api
-public interface com.transport.test.PersonService {
-    public static final String TEST = "TEST";
-    public int add(String name,  String email, com.transport.test.Address address);
-    public com.transport.test.Person get(Integer id);
+public interface PersonService {
+    public static final String TEST = "TEST"; // will be ignored
+    public int add(String name,  String email, Address address);
+    public Person get(Integer id);
     public void lol();
     public void lol2(String message);
-    public static void shit(){
-        System.out.println("Shit");
-    }
+    public static void lol3(){ System.out.println("lol3"); } // will be ignored
     public String getName();
+    public String testError();
 }
 ```
 
-then ```transport-maven-plugin``` generates transport interface.
+Server-side implementation:
+```java
+
+@ApiServer
+public class PersonServiceImpl implements PersonService{
+    // Methods
+    // ...
+    public void lol(){
+        TransportContext.getSourceModuleId(); // client module.id available on server side
+        TransportContext.getTicket(); // and security ticket too
+    }
+}
+```
+
+Then ```transport-maven-plugin``` generates client transport interface.
 It ignores all static and default methods, all fields and makes all methods public:
 
 ```java
-@ApiClient
-public interface com.transport.test.PersonServiceTransport {
-    public RequestInterface<Integer> add(String name, String email, com.transport.test.Address address);
-    public RequestInterface<com.transport.test.Person> get(Integer id);
+@ApiClient(ticketProvider = TicketProviderImpl.class)
+public interface PersonServiceTransport {
+    public RequestInterface<Integer> add(String name, String email, Address address);
+    public RequestInterface<Person> get(Integer id);
     public RequestInterface<Void> lol();
     public RequestInterface<Void> lol2(String message);
     public RequestInterface<String> getName();
+    public RequestInterface<String> testError();
 }
 ```
 
-next, you inject this transport interface through autowiring:
+Security ticket provider could be specified by user:
+
+```java
+@Component
+public class TicketProviderImpl implements TicketProvider {
+
+    @Override
+    public SecurityTicket getTicket() {
+        // Specify user and security token
+        return new SecurityTicket("user1", UUID.randomUUID().toString());
+    }
+}
+```
+
+Next, you inject this transport interface through autowiring:
 
 ```java
 @Autowired
 com.transport.test.PersonServiceTransport personService;
 
-//Sync call with 10s timeout:
-Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).executeSync();
+// Sync call on any implementation with 10s timeout:
+Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(10_000).executeSync();
 
-//Async call on module with moduleId = main.server
+// Async call on module with moduleId = main.server and timeout = 10s
+
+personService.get(id).onModule("main.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+
+// Async callback implementation example
 public class PersonCallback implements Callback<Person> {
 
     // **key** - used as RqUID, same value that was used during invocation
     // **result** - result of method invocation
     // This method will be called if method executed without throwing exception
     // if T is Void then result will always be **null**
-
     @Override
     public void callBack(String key, Person result) {
         System.out.println("Key: " + key);
         System.out.println("Result: " + result);
     }
 
-    // This method will be called if method thrown exception
-
+    // This method will be called if method thrown exception OR execution timeout occurs
     @Override
     public void callBackError(String key, Throwable exception) {
         System.out.println("Exception during async call");
@@ -83,19 +106,33 @@ public class PersonCallback implements Callback<Person> {
     }
 }
 
-personService.get(id).onModule("main.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 ```
 
-### JVM Options
+### Configuration
+
+```java
+@Configuration
+@ComponentScan
+@Import(TransportConfig.class) // Import transport configuration
+public class MainConfig {
+
+    // Specify server implementation endpoints (must be empty if none exists)
+    @Bean
+    ServerEndpoints serverEndpoints(){ return new ServerEndpoints(PersonServiceImpl.class, ClientServiceImpl.class); }
+
+    // Specify required client endpoints (must be empty if none exists)
+    @Bean
+    ClientEndpoints clientEndpoints(){ return new ClientEndpoints(ClientServiceTransport.class, PersonServiceTransport.class); }
+}
+```
 
 NOTE: Number of partitions for library's topics is equal to broker's count.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
+#### Required JVM options
 1. **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
-2. **-Dservice.root**          - root package for service implementations and interfaces scanning
-3. **-Dservice.port**          - port for receiving TCP connections for ZeroMQ
-4. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
-5. **-Duse.kafka.for.async**   - if true - make all async calls through Kafka, otherwise it goes through ZeroMQ
-6. **-Duse.kafka.for.sync**    - same as previous option but for sync calls
-7. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
+2. **-Dservice.port**          - port for receiving TCP connections for ZeroMQ
+3. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
+4. **-Duse.kafka**             - if true - make all sync & async calls through Kafka, otherwise it goes through ZeroMQ
+5. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
 

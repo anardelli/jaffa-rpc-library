@@ -25,7 +25,7 @@ public class MainTest {
     @Test
     public void testMethods() {
         Runnable runnable = () -> {
-            Integer id = personService.add("James Carr", "james@zapier.com", null).withTimeout(15_000).onModule("main.server").executeSync();
+            Integer id = personService.add("Test name 2", "test2@mail.com", null).withTimeout(15_000).onModule("main.server").executeSync();
             logger.info("Resulting id is " + id);
             Person person = personService.get(id).onModule("main.server").executeSync();
             logger.info(person.toString());
@@ -44,7 +44,7 @@ public class MainTest {
             }
             personService.testError().onModule("main.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
-            id = personService.add("James Carr", "james@zapier.com", null).withTimeout(10_000).onModule("test.server").executeSync();
+            id = personService.add("Test name 2", "test2@mail.com", null).withTimeout(10_000).onModule("test.server").executeSync();
             logger.info("Resulting id is " + id);
             person = personService.get(id).onModule("test.server").executeSync();
             logger.info(person.toString());
