@@ -14,9 +14,11 @@ public class TransportContext {
         TransportContext.sourceModuleId.set(sourceModuleId);
     }
 
-    public static SecurityTicket getTicket() { return securityTicketThreadLocal.get();}
+    public static SecurityTicket getTicket() {
+        return securityTicketThreadLocal.get();
+    }
 
-    public static void setSecurityTicketThreadLocal(SecurityTicket securityTicket){
+    public static void setSecurityTicketThreadLocal(SecurityTicket securityTicket) {
         TransportContext.securityTicketThreadLocal.set(securityTicket);
     }
 }

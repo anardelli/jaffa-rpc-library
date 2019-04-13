@@ -22,46 +22,48 @@ import java.util.Enumeration;
 @SuppressWarnings("all")
 public class Utils {
 
-    private static Logger logger = LoggerFactory.getLogger(Utils.class);
-
-
+    public static final ArrayList<String> services = new ArrayList<>();
     public static ZooKeeper zk;
 
     public static ZooKeeperConnection conn;
+    private static Logger logger = LoggerFactory.getLogger(Utils.class);
 
-    public static final ArrayList<String> services = new ArrayList<>();
-
-    public static void connect(String url){
+    public static void connect(String url) {
         try {
             conn = new ZooKeeperConnection();
             zk = conn.connect(url);
             ShutdownHook shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownHook);
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
         }
     }
 
-    public static String getHostForService(String service, String moduleId, Protocol protocol){
+    public static String getHostForService(String service, String moduleId, Protocol protocol) {
         service = service.replace("Transport", "");
         Stat stat = null;
         try {
             stat = znode_exists("/" + service);
-        }catch (Exception e) { logger.error("Can not connect to ZooKeeper cluster", e); }
-        if(stat != null) {
-            try{ return getHostsForService("/" + service, moduleId, protocol)[0];
-            }catch (Exception e){ throw new RuntimeException("No route for service: " + service); }
-        }else throw new RuntimeException("No route for service: " + service);
+        } catch (Exception e) {
+            logger.error("Can not connect to ZooKeeper cluster", e);
+        }
+        if (stat != null) {
+            try {
+                return getHostsForService("/" + service, moduleId, protocol)[0];
+            } catch (Exception e) {
+                throw new RuntimeException("No route for service: " + service);
+            }
+        } else throw new RuntimeException("No route for service: " + service);
     }
 
-    private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws Exception{
+    private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws Exception {
         byte[] zkData = zk.getData(service, false, null);
-        JSONArray jArray = (JSONArray)new JSONParser().parse(new String(zkData));
-        if(jArray.size() == 0)
+        JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
+        if (jArray.size() == 0)
             throw new RuntimeException("No route for service: " + service);
         else {
             ArrayList<String> hosts = new ArrayList<>();
-            for(int i = 0; i < jArray.size(); i++) {
+            for (int i = 0; i < jArray.size(); i++) {
                 String registry = (String) jArray.get(i);
                 String[] params = registry.split("#");
                 if (moduleId != null) {
@@ -70,39 +72,39 @@ public class Utils {
                     if (protocol.getRegName().equals(params[2])) hosts.add(params[0]);
                 }
             }
-            if(hosts.isEmpty())
+            if (hosts.isEmpty())
                 throw new RuntimeException("No route for service: " + service + " and module.id " + moduleId);
             return hosts.toArray(new String[hosts.size()]);
         }
     }
 
     public static String getModuleForService(String service, Protocol protocol) {
-        try{
-            byte[] zkData = zk.getData("/" +service, false, null);
-            JSONArray jArray = (JSONArray)new JSONParser().parse(new String(zkData));
-            if(jArray.size() == 0)
+        try {
+            byte[] zkData = zk.getData("/" + service, false, null);
+            JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
+            if (jArray.size() == 0)
                 throw new RuntimeException("No route for service: " + service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
-                for(int i = 0; i < jArray.size(); i++) {
+                for (int i = 0; i < jArray.size(); i++) {
                     String registry = (String) jArray.get(i);
                     String[] params = registry.split("#");
                     if (protocol.getRegName().equals(params[2])) hosts.add(params[1]);
                 }
-                if(hosts.isEmpty())
+                if (hosts.isEmpty())
                     throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getRegName());
                 return hosts.get(0);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error while getting avaiable module.id:", e);
             throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getRegName());
         }
     }
 
-    public static void registerService(String service, Protocol protocol){
+    public static void registerService(String service, Protocol protocol) {
         try {
             Stat stat = znode_exists("/" + service);
-            if(stat != null) {
+            if (stat != null) {
                 update("/" + service, protocol);
             } else {
                 create("/" + service, protocol);
@@ -114,80 +116,80 @@ public class Utils {
         }
     }
 
-    public static boolean useKafka(){
+    public static boolean useKafka() {
         return Boolean.valueOf(System.getProperty("use.kafka", "false"));
     }
 
-    private static int getServicePort(){
+    private static int getServicePort() {
         try {
             return Integer.parseInt(System.getProperty("service.port", "4242"));
-        }catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             return 4242;
         }
     }
 
-    private static int getCallbackPort(){
+    private static int getCallbackPort() {
         try {
             return Integer.parseInt(System.getProperty("service.port", "4242")) + 100;
-        }catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             return 4342;
         }
     }
 
-    private static void create(String service, Protocol protocol) throws KeeperException,InterruptedException, UnknownHostException {
+    private static void create(String service, Protocol protocol) throws KeeperException, InterruptedException, UnknownHostException {
         JSONArray ja = new JSONArray();
         ja.add(getServiceBindAddress(protocol));
         zk.create(service, ja.toJSONString().getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    private static Stat znode_exists(String service) throws KeeperException,InterruptedException {
+
+    private static Stat znode_exists(String service) throws KeeperException, InterruptedException {
         return zk.exists(service, true);
     }
 
-    private static void update(String service, Protocol protocol) throws  KeeperException,InterruptedException,ParseException, UnknownHostException {
+    private static void update(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
-        JSONArray jArray = (JSONArray)new JSONParser().parse(new String(zkData));
+        JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         String local = getServiceBindAddress(protocol);
-        if(!jArray.contains(local)){
+        if (!jArray.contains(local)) {
             jArray.add(local);
-            zk.setData(service, jArray.toJSONString().getBytes(), zk.exists(service,true).getVersion());
+            zk.setData(service, jArray.toJSONString().getBytes(), zk.exists(service, true).getVersion());
         }
     }
 
-    public static void delete(String service, Protocol protocol) throws  KeeperException,InterruptedException,ParseException, UnknownHostException {
+    public static void delete(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
-        JSONArray jArray = (JSONArray)new JSONParser().parse(new String(zkData));
+        JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         String local = getServiceBindAddress(protocol);
-        if(jArray.contains(local)){
+        if (jArray.contains(local)) {
             jArray.remove(local);
-            zk.setData(service, jArray.toJSONString().getBytes(), zk.exists(service,true).getVersion());
+            zk.setData(service, jArray.toJSONString().getBytes(), zk.exists(service, true).getVersion());
         }
     }
 
-    public static String getServiceBindAddress(Protocol protocol) throws UnknownHostException{
+    public static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getRegName();
     }
 
-    public static String getZeroMQBindAddress() throws UnknownHostException{
+    public static String getZeroMQBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
     }
 
-    public static String getZeroMQCallbackBindAddress() throws UnknownHostException{
+    public static String getZeroMQCallbackBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
     private static InetAddress getLocalHostLANAddress() throws UnknownHostException {
         try {
             InetAddress candidateAddress = null;
-            for (Enumeration ifaces = NetworkInterface.getNetworkInterfaces(); ifaces.hasMoreElements();) {
+            for (Enumeration ifaces = NetworkInterface.getNetworkInterfaces(); ifaces.hasMoreElements(); ) {
                 NetworkInterface iface = (NetworkInterface) ifaces.nextElement();
-                for (Enumeration inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements();) {
+                for (Enumeration inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
                     InetAddress inetAddr = (InetAddress) inetAddrs.nextElement();
                     if (!inetAddr.isLoopbackAddress()) {
 
                         if (inetAddr.isSiteLocalAddress()) {
                             return inetAddr;
-                        }
-                        else if (candidateAddress == null) {
+                        } else if (candidateAddress == null) {
                             candidateAddress = inetAddr;
                         }
                     }
@@ -201,19 +203,18 @@ public class Utils {
                 throw new UnknownHostException("The JDK InetAddress.getLocalHost() method unexpectedly returned null.");
             }
             return jdkSuppliedAddress;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             UnknownHostException unknownHostException = new UnknownHostException("Failed to determine LAN address: " + e);
             unknownHostException.initCause(e);
             throw unknownHostException;
         }
     }
 
-    public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context){
+    public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context) {
         socket.close();
-        if(!context.isClosed()){
+        if (!context.isClosed()) {
             context.close();
-            if(!context.isTerminated())
+            if (!context.isTerminated())
                 context.term();
         }
     }
@@ -221,12 +222,13 @@ public class Utils {
 
 class ShutdownHook extends Thread {
     public void run() {
-        try{
-            for(String service : Utils.services){
+        try {
+            for (String service : Utils.services) {
                 Utils.delete(service, Protocol.KAFKA);
                 Utils.delete(service, Protocol.ZMQ);
             }
             Utils.conn.close();
-        }catch (Exception ignore){ }
+        } catch (Exception ignore) {
+        }
     }
 }

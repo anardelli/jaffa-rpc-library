@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @ApiServer
-public class PersonServiceImpl implements PersonService{
+public class PersonServiceImpl implements PersonService {
 
     private static Logger logger = LoggerFactory.getLogger(PersonServiceImpl.class);
 
@@ -41,21 +41,21 @@ public class PersonServiceImpl implements PersonService{
         return null;
     }
 
-    public void lol(){
+    public void lol() {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         logger.info("TICKET: " + TransportContext.getTicket());
         logger.info("Lol");
     }
 
-    public void lol2(String message){
+    public void lol2(String message) {
         logger.info(message);
     }
 
-    public String getName(){
+    public String getName() {
         return null;
     }
 
-    public String testError(){
+    public String testError() {
         throw new RuntimeException("very bad in " + System.getProperty("module.id"));
     }
 }

@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.UUID;
 
 @SuppressWarnings("all")
@@ -30,10 +31,10 @@ public class Command {
     private SecurityTicket ticket;
     private long asyncExpireTime;
 
-    public void setMetadata(){
+    public void setMetadata() {
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error during metadata setting", e);
         }
         this.sourceModuleId = TransportService.getRequiredOption("module.id");

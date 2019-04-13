@@ -2,17 +2,24 @@ package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InterruptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import static com.transport.lib.common.TransportService.*;
+import static com.transport.lib.common.TransportService.clientAsyncTopics;
+import static com.transport.lib.common.TransportService.consumerProps;
 
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnable {
@@ -22,7 +29,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
     // Used for waiting receiver thread startup
     private CountDownLatch countDownLatch;
 
-    public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch){
+    public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 
@@ -30,14 +37,14 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
     public void run() {
         // New group.id per "thread pool"
         consumerProps.put("group.id", UUID.randomUUID().toString());
-        Runnable consumerThread = () ->  {
-            try{
+        Runnable consumerThread = () -> {
+            try {
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
                 consumer.subscribe(clientAsyncTopics, new RebalanceListener());
                 countDownLatch.countDown();
-                while(!Thread.currentThread().isInterrupted()){
+                while (!Thread.currentThread().isInterrupted()) {
                     ConsumerRecords<String, byte[]> records = consumer.poll(100);
-                    for(ConsumerRecord<String,byte[]> record: records){
+                    for (ConsumerRecord<String, byte[]> record : records) {
                         try {
                             // Deserialize response
                             Kryo kryo = new Kryo();
@@ -46,19 +53,19 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             // Take target callback class
                             Class callbackClass = Class.forName(callbackContainer.getListener());
                             // If timeout not occurred yet - process response and invoke target method
-                            if(FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null){
+                            if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                                 // Exception occurred on server side
-                                if(callbackContainer.getResult() instanceof ExceptionHolder) {
-                                    Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class );
+                                if (callbackContainer.getResult() instanceof ExceptionHolder) {
+                                    Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
                                     method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
-                                }else {
+                                } else {
                                     Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
-                                    if(Class.forName(callbackContainer.getResultClass()).equals(Void.class)){
+                                    if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
                                         method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
-                                    }else
+                                    } else
                                         method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                                 }
-                            }else{
+                            } else {
                                 logger.warn("Response " + callbackContainer.getKey() + " already expired");
                             }
                             // Manually commit offsets for processed responses
@@ -70,8 +77,8 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                         }
                     }
                 }
-            }catch (InterruptException ignore){
-            }catch (Exception generalKafkaException){
+            } catch (InterruptException ignore) {
+            } catch (Exception generalKafkaException) {
                 logger.error("General Kafka exception", generalKafkaException);
             }
         };

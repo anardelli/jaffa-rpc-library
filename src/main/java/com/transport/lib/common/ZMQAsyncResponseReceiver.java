@@ -35,7 +35,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());
-                    if(FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null){
+                    if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
                             Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
@@ -46,7 +46,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                             } else
                                 method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                         }
-                    }else{
+                    } else {
                         logger.warn("Response " + callbackContainer.getKey() + " already expired");
                     }
                 } catch (ZMQException | ZError.IOException recvTerminationException) {
@@ -54,14 +54,14 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     logger.error("ZMQ response method execution exception", generalExecutionException);
                 }
             }
-        } catch (Exception generalZmqException){
+        } catch (Exception generalZmqException) {
             logger.error("Error during callback receiver startup:", generalZmqException);
         }
         logger.info(this.getClass().getSimpleName() + " terminated");
     }
 
     @Override
-    public void close(){
+    public void close() {
         Utils.closeSocketAndContext(socket, context);
     }
 }

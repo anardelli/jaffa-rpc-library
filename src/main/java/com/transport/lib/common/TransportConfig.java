@@ -1,10 +1,6 @@
 package com.transport.lib.common;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.*;
 
 @Configuration
 @ComponentScan({"com.transport"})
@@ -13,7 +9,7 @@ public class TransportConfig {
 
     @Bean(destroyMethod = "close")
     @DependsOn({"serverEndpoints", "clientEndpoints"})
-    public TransportService transportService(){
+    public TransportService transportService() {
         return new TransportService();
     }
 }

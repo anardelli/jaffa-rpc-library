@@ -16,7 +16,8 @@ public class Address implements Serializable {
         this.city = city;
     }
 
-    public Address(){}
+    public Address() {
+    }
 
     public String getZip() {
         return zip;

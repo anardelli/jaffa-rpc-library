@@ -10,7 +10,7 @@ public class ServerTest {
 
     private static Logger logger = LoggerFactory.getLogger(ServerTest.class);
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
         logger.info("================ TEST SERVER STARTING ================");
 
@@ -31,7 +31,8 @@ public class ServerTest {
 
         try {
             Thread.sleep(5_000);
-        }catch (Exception ignore){ }
+        } catch (Exception ignore) {
+        }
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(15_000).onModule("test.server").executeSync();
         logger.info("Resulting id is " + id);
         Person person = personService.get(id).onModule("test.server").executeSync();

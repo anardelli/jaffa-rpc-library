@@ -8,10 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
+
 import java.util.UUID;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes={MainConfig.class}, loader=AnnotationConfigContextLoader.class)
+@ContextConfiguration(classes = {MainConfig.class}, loader = AnnotationConfigContextLoader.class)
 public class MainTest {
 
     private static Logger logger = LoggerFactory.getLogger(MainTest.class);
@@ -72,10 +73,11 @@ public class MainTest {
         thread2.start();
         thread3.start();
 
-        try{
+        try {
             thread1.join();
             thread2.join();
             thread3.join();
-        }catch (Exception ignore){ }
+        } catch (Exception ignore) {
+        }
     }
 }

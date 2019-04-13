@@ -14,6 +14,7 @@ public class Person {
     public void setId(int id) {
         this.id = id;
     }
+
     public String getEmail() {
         return email;
     }
@@ -38,12 +39,12 @@ public class Person {
         this.name = name;
     }
 
-    public void setAddress(Address address){
-        this.address = address;
+    public Address getAddress() {
+        return address;
     }
 
-    public Address getAddress(){
-        return address;
+    public void setAddress(Address address) {
+        this.address = address;
     }
 
     @Override

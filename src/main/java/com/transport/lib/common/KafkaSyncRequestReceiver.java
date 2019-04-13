@@ -3,7 +3,10 @@ package com.transport.lib.common;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -13,19 +16,22 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("WeakerAccess")
-public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable{
+public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaSyncRequestReceiver.class);
 
     private CountDownLatch countDownLatch;
 
-    public KafkaSyncRequestReceiver(CountDownLatch countDownLatch){
+    public KafkaSyncRequestReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 
@@ -37,7 +43,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable{
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
         consumerProps.put("group.id", UUID.randomUUID().toString());
-        Runnable consumerThread = () ->  {
+        Runnable consumerThread = () -> {
             try {
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
                 KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
@@ -67,8 +73,8 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable{
                         }
                     }
                 }
-            }catch (InterruptException ignore){
-            }catch (Exception generalKafkaException){
+            } catch (InterruptException ignore) {
+            } catch (Exception generalKafkaException) {
                 logger.error("General Kafka exception", generalKafkaException);
             }
         };

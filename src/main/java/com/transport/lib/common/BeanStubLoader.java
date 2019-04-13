@@ -13,8 +13,10 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProce
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+
 import java.util.HashSet;
 import java.util.Set;
+
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 @Configuration
@@ -30,15 +32,16 @@ public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
         ClassLoader cl = BeanStubLoader.class.getClassLoader();
 
         Set<Class<?>> annotated = new HashSet<>();
-        for(Class client: clientEndpoints.getClientEndpoints()){
+        for (Class client : clientEndpoints.getClientEndpoints()) {
             boolean isClient = client.isAnnotationPresent(ApiClient.class);
             logger.info("Client endpoint: " + client.getName() + " isClient: " + isClient);
-            if(!isClient) throw new IllegalArgumentException("Class " + client.getName() + " is not annotated as ApiClient!");
+            if (!isClient)
+                throw new IllegalArgumentException("Class " + client.getName() + " is not annotated as ApiClient!");
             annotated.add(client);
         }
 
-        for(Class<?> client : annotated){
-            if(client.isInterface()){
+        for (Class<?> client : annotated) {
+            if (client.isInterface()) {
                 Class stubClass = new ByteBuddy()
                         .subclass(client)
                         .method(any())
@@ -46,9 +49,11 @@ public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
                         .make().load(cl, ClassLoadingStrategy.Default.INJECTION)
                         .getLoaded();
                 BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(stubClass);
-                registry.registerBeanDefinition(client.getSimpleName()+"Stub", builder.getBeanDefinition());
+                registry.registerBeanDefinition(client.getSimpleName() + "Stub", builder.getBeanDefinition());
             }
         }
     }
-    public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory) throws BeansException { }
+
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory) throws BeansException {
+    }
 }

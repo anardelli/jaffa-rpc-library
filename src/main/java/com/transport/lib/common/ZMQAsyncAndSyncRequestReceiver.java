@@ -31,7 +31,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     @Override
     public void run() {
-        try{
+        try {
             context = ZMQ.context(1);
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
@@ -42,14 +42,14 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     final Command command = kryo.readObject(input, Command.class);
                     // It was async request, so answer with "OK" message before target message invocation
-                    if(command.getCallbackKey() != null && command.getCallbackClass() != null) {
+                    if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                         socket.send("OK");
                     }
-                    if(command.getCallbackKey() != null && command.getCallbackClass() != null){
+                    if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                         Runnable runnable = new Runnable() {
                             @Override
                             public void run() {
-                                try{
+                                try {
                                     TransportContext.setSourceModuleId(command.getSourceModuleId());
                                     TransportContext.setSecurityTicketThreadLocal(command.getTicket());
                                     Object result = invoke(command);
@@ -63,22 +63,22 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                                     callbackContainer.setListener(command.getCallbackClass());
                                     callbackContainer.setResult(getResult(result));
                                     Method targetMethod = getTargetMethod(command);
-                                    if(map.containsKey(targetMethod.getReturnType())){
+                                    if (map.containsKey(targetMethod.getReturnType())) {
                                         callbackContainer.setResultClass(map.get(targetMethod.getReturnType()).getName());
-                                    }else{
+                                    } else {
                                         callbackContainer.setResultClass(targetMethod.getReturnType().getName());
                                     }
                                     kryo.writeObject(output, callbackContainer);
                                     output.close();
                                     socketAsync.send(bOutput.toByteArray());
                                     Utils.closeSocketAndContext(socketAsync, contextAsync);
-                                }catch (Exception e){
+                                } catch (Exception e) {
                                     logger.error("Error while receiving async request");
                                 }
                             }
                         };
                         service.execute(runnable);
-                    }else{
+                    } else {
                         TransportContext.setSourceModuleId(command.getSourceModuleId());
                         TransportContext.setSecurityTicketThreadLocal(command.getTicket());
                         Object result = invoke(command);
@@ -93,14 +93,14 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     logger.error("ZMQ request method execution exception", generalExecutionException);
                 }
             }
-        }catch (Exception generalZmqException){
+        } catch (Exception generalZmqException) {
             logger.error("Error during request receiver startup:", generalZmqException);
         }
         logger.info(this.getClass().getSimpleName() + " terminated");
     }
 
     @Override
-    public void close(){
+    public void close() {
         Utils.closeSocketAndContext(socket, context);
         service.shutdownNow();
     }

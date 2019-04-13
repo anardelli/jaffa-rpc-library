@@ -3,7 +3,10 @@ package com.transport.lib.common;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -14,7 +17,9 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import static com.transport.lib.common.TransportService.*;
@@ -26,22 +31,22 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
 
     private CountDownLatch countDownLatch;
 
-    public KafkaAsyncRequestReceiver(CountDownLatch countDownLatch){
+    public KafkaAsyncRequestReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 
     @Override
     public void run() {
         consumerProps.put("group.id", UUID.randomUUID().toString());
-        Runnable consumerThread = () ->  {
-            try{
+        Runnable consumerThread = () -> {
+            try {
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-                KafkaProducer<String,byte[]> producer = new KafkaProducer<>(producerProps);
+                KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
                 consumer.subscribe(serverAsyncTopics, new RebalanceListener());
                 countDownLatch.countDown();
-                while(!Thread.currentThread().isInterrupted()){
+                while (!Thread.currentThread().isInterrupted()) {
                     ConsumerRecords<String, byte[]> records = consumer.poll(100);
-                    for(ConsumerRecord<String,byte[]> record: records){
+                    for (ConsumerRecord<String, byte[]> record : records) {
                         try {
                             Kryo kryo = new Kryo();
                             Input input = new Input(new ByteArrayInputStream(record.value()));
@@ -63,18 +68,18 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                             }
                             kryo.writeObject(output, callbackContainer);
                             output.close();
-                            ProducerRecord<String,byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
+                            ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
                             producer.send(resultPackage).get();
                             Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                             commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                             consumer.commitSync(commitData);
-                        }catch (Exception executionException){
+                        } catch (Exception executionException) {
                             logger.error("Target method execution exception", executionException);
                         }
                     }
                 }
-            }catch (InterruptException ignore){
-            }catch (Exception generalKafkaException){
+            } catch (InterruptException ignore) {
+            } catch (Exception generalKafkaException) {
                 logger.error("General Kafka exception", generalKafkaException);
             }
         };

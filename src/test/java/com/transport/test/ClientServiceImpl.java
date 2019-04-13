@@ -22,9 +22,9 @@ public class ClientServiceImpl implements ClientService {
         logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         logger.info("TICKET: " + TransportContext.getTicket());
         logger.info("lol4 " + message);
-        try{
+        try {
             Thread.sleep(11_000);
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
