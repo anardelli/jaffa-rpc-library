@@ -67,9 +67,9 @@ public class Utils {
                 String registry = (String) jArray.get(i);
                 String[] params = registry.split("#");
                 if (moduleId != null) {
-                    if (moduleId.equals(params[1]) && protocol.getRegName().equals(params[2])) hosts.add(params[0]);
+                    if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2])) hosts.add(params[0]);
                 } else {
-                    if (protocol.getRegName().equals(params[2])) hosts.add(params[0]);
+                    if (protocol.getShortName().equals(params[2])) hosts.add(params[0]);
                 }
             }
             if (hosts.isEmpty())
@@ -89,15 +89,15 @@ public class Utils {
                 for (int i = 0; i < jArray.size(); i++) {
                     String registry = (String) jArray.get(i);
                     String[] params = registry.split("#");
-                    if (protocol.getRegName().equals(params[2])) hosts.add(params[1]);
+                    if (protocol.getShortName().equals(params[2])) hosts.add(params[1]);
                 }
                 if (hosts.isEmpty())
-                    throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getRegName());
+                    throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getShortName());
                 return hosts.get(0);
             }
         } catch (Exception e) {
             logger.error("Error while getting avaiable module.id:", e);
-            throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getRegName());
+            throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getShortName());
         }
     }
 
@@ -167,7 +167,7 @@ public class Utils {
     }
 
     public static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
-        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getRegName();
+        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getShortName();
     }
 
     public static String getZeroMQBindAddress() throws UnknownHostException {

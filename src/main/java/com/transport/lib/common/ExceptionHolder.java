@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Getter
 public class ExceptionHolder {
+    // Stacktrace of exception occurred on server side
     private String stackTrace;
 }

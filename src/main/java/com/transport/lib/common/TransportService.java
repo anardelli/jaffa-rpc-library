@@ -1,5 +1,6 @@
 package com.transport.lib.common;
 
+import com.esotericsoftware.kryo.Kryo;
 import com.transport.lib.zookeeper.Utils;
 import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
@@ -20,6 +21,8 @@ import java.util.concurrent.CountDownLatch;
 @SuppressWarnings("all")
 public class TransportService {
 
+    private static Logger logger = LoggerFactory.getLogger(TransportService.class);
+
     public static final Properties producerProps = new Properties();
     public static final Properties consumerProps = new Properties();
     public static HashMap<Class, Object> wrappedServices = new HashMap<>();
@@ -31,7 +34,7 @@ public class TransportService {
     public static HashSet<String> clientAsyncTopics;
     public static HashSet<String> serverSyncTopics;
     public static HashSet<String> clientSyncTopics;
-    private static Logger logger = LoggerFactory.getLogger(TransportService.class);
+    public static Kryo kryo = new Kryo();
 
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));

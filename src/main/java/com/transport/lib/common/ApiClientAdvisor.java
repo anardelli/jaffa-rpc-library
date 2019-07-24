@@ -20,9 +20,9 @@ import java.lang.reflect.Method;
 @SuppressWarnings("unused")
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
-    private static final long serialVersionUID = 1L;
     private final MethodInterceptor interceptor;
     private final StaticMethodMatcherPointcut pointcut = new ApiClientAnnotationOnClassOrInheritedInterfacePointcut();
+
     @Autowired
     private ApplicationContext context;
 
@@ -47,7 +47,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             command.setMethodName(invocation.getMethod().getName());
             // Save arguments - all arguments must be serializable
             command.setArgs(invocation.getArguments());
-            // Save argument's types
+            // Save argument's types as an array of fully-qualified class names
             if (invocation.getMethod().getParameterCount() != 0) {
                 String[] methodArgs = new String[invocation.getMethod().getParameterCount()];
                 Class[] argClasses = invocation.getMethod().getParameterTypes();

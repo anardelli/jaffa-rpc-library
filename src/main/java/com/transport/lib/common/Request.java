@@ -26,17 +26,17 @@ import static java.time.temporal.ChronoUnit.MINUTES;
 @SuppressWarnings("all")
 public class Request<T> implements RequestInterface<T> {
 
+    private static Logger logger = LoggerFactory.getLogger(Request.class);
+
     // "object pool" of consumers that used for receiving sync response from server
     // each Request removes one of objects from consumers queue and puts back after timeout occurred of response was received
     private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
-    private static Logger logger = LoggerFactory.getLogger(Request.class);
     private final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
     private int timeout = -1;
     private String moduleId;
     private Command command;
-    public Request(Command command) {
-        this.command = command;
-    }
+
+    public Request(Command command) { this.command = command; }
 
     public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();

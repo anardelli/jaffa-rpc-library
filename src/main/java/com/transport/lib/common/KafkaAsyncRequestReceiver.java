@@ -25,7 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import static com.transport.lib.common.TransportService.*;
 
 /*
-    Class responsible for receiving requests using Kafka
+    Class responsible for receiving async requests using Kafka
  */
 @SuppressWarnings("WeakerAccess")
 public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable {
@@ -55,13 +55,12 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                 countDownLatch.countDown();
                 // Waiting and processing requests
                 while (!Thread.currentThread().isInterrupted()) {
-                    // Wait for 100 if data not available
+                    // Wait data for 100 ms if no new records available after last committed
                     ConsumerRecords<String, byte[]> records = consumer.poll(100);
                     // Process requests
                     for (ConsumerRecord<String, byte[]> record : records) {
                         try {
                             // Each request is represented by Command instance
-                            Kryo kryo = new Kryo();
                             Input input = new Input(new ByteArrayInputStream(record.value()));
                             // Deserialize Command from byte[]
                             Command command = kryo.readObject(input, Command.class);
@@ -110,7 +109,7 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                 logger.error("General Kafka exception", generalKafkaException);
             }
         };
-        // Start consumer threads
+        // Start receiver threads
         startThreadsAndWait(consumerThread);
     }
 }

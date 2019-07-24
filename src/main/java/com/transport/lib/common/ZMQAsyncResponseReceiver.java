@@ -1,6 +1,5 @@
 package com.transport.lib.common;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
@@ -12,6 +11,8 @@ import zmq.ZError;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.lang.reflect.Method;
+
+import static com.transport.lib.common.TransportService.*;
 
 @SuppressWarnings("all")
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
@@ -31,7 +32,6 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] bytes = socket.recv();
-                    Kryo kryo = new Kryo();
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     Class callbackClass = Class.forName(callbackContainer.getListener());

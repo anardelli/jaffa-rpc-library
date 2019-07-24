@@ -18,9 +18,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import static com.transport.lib.common.TransportService.clientAsyncTopics;
-import static com.transport.lib.common.TransportService.consumerProps;
+import static com.transport.lib.common.TransportService.*;
 
+/*
+    Class responsible for receiving async responses using Kafka
+ */
 @SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnable {
 
@@ -51,7 +53,6 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                     for (ConsumerRecord<String, byte[]> record : records) {
                         try {
                             // Deserialize response
-                            Kryo kryo = new Kryo();
                             Input input = new Input(new ByteArrayInputStream(record.value()));
                             CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                             // Take target callback class

@@ -38,7 +38,6 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] bytes = socket.recv();
-                    Kryo kryo = new Kryo();
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     final Command command = kryo.readObject(input, Command.class);
                     // It was async request, so answer with "OK" message before target message invocation

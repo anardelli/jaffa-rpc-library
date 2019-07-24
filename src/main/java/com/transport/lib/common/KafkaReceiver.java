@@ -8,6 +8,9 @@ import java.util.ArrayList;
 
 import static com.transport.lib.common.TransportService.brokersCount;
 
+/*
+    Class responsible for managing threads used by Kafka...Receivers
+ */
 @SuppressWarnings("WeakerAccess")
 public abstract class KafkaReceiver implements Closeable, Runnable {
 
