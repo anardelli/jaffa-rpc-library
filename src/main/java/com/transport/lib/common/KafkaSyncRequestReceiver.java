@@ -18,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -37,11 +36,6 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
 
     @Override
     public void run() {
-        Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
-        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("enable.auto.commit", "false");
         consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             try {

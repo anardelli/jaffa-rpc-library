@@ -1,7 +1,7 @@
 package com.transport.lib.common;
 
 /*
-    Implement this interface to implement callbacks
+    Represents Callbacks for async invocations
  */
 @SuppressWarnings("all")
 public interface Callback<T> {
