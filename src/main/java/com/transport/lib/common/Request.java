@@ -35,27 +35,34 @@ public class Request<T> implements RequestInterface<T> {
 
     private static Logger logger = LoggerFactory.getLogger(Request.class);
 
-    // "object pool" of consumers that used for receiving sync response from server
+    // Object pool of consumers that used for receiving sync response from server
     // each Request removes one of objects from consumers queue and puts back after timeout occurred of response was received
     private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
+    // One producer per Request - we need to optimize it
     private final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+    // Time period in milliseconds during which we wait for answer from server
     private int timeout = -1;
+    // Target module.id
     private String moduleId;
+    // Target command
     private Command command;
     // New Kryo instance per thread
     private Kryo kryo = new Kryo();
 
     public Request(Command command) { this.command = command; }
 
+    // Initialize Consumer object pool
     public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
+        // Earlist offset by default, but it will be set manually lately
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         for (int i = 0; i < brokersCount; i++) {
+            // Every Consumer represents unique consumer group
             consumerProps.put("group.id", UUID.randomUUID().toString());
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
             consumers.add(consumer);
