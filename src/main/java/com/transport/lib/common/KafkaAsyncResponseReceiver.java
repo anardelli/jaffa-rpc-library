@@ -2,6 +2,7 @@ package com.transport.lib.common;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.transport.lib.exception.TransportExecutionException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -43,6 +44,8 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
             try {
                 // Consumer waiting for async responses (CallbackContainer) from server
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+                // New Kryo instance per thread
+                Kryo kryo = new Kryo();
                 // Subscribe to known client topics
                 consumer.subscribe(clientAsyncTopics, new RebalanceListener());
                 countDownLatch.countDown();
@@ -63,7 +66,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                                 if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                     // Invoke onError with message from ExceptionHolder
                                     Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                                 } else {
                                     // Invoke onSuccess
                                     Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));

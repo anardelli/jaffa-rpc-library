@@ -1,6 +1,8 @@
 package com.transport.lib.common;
 
+import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,8 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             context = ZMQ.context(1);
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
-
+            // New Kryo instance per thread
+            Kryo kryo = new Kryo();
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] bytes = socket.recv();
@@ -38,7 +41,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                         } else {
                             Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                             if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {

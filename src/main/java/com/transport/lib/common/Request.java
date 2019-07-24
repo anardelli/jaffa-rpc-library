@@ -3,6 +3,9 @@ package com.transport.lib.common;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.transport.lib.exception.TransportExecutionException;
+import com.transport.lib.exception.TransportExecutionTimeoutException;
+import com.transport.lib.exception.TransportNoRouteException;
 import com.transport.lib.zookeeper.Utils;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -19,10 +22,14 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import static com.transport.lib.common.TransportService.*;
 import static java.time.temporal.ChronoUnit.MINUTES;
 
+/*
+    Class responsible for making synchronous and asynchronous requests
+ */
 @SuppressWarnings("all")
 public class Request<T> implements RequestInterface<T> {
 
@@ -35,6 +42,8 @@ public class Request<T> implements RequestInterface<T> {
     private int timeout = -1;
     private String moduleId;
     private Command command;
+    // New Kryo instance per thread
+    private Kryo kryo = new Kryo();
 
     public Request(Command command) { this.command = command; }
 
@@ -54,6 +63,14 @@ public class Request<T> implements RequestInterface<T> {
         }
     }
 
+    /*
+        Returns server-side topic name for synchronous and asynchronous requests
+        Topic name looks like <class name with packages>-<module.id>-server-<sync>/<async>
+        - Fully-qualified target class name defined in Command
+        - module.id could be provided by user or discovered from currently available in cluster
+        - If no API implementations currently available or module is registered
+          but his server topic does not exists - RuntimeException will be thrown
+     */
     private static String getTopicForService(String service, String moduleId, boolean sync) {
         String serviceInterface = service.replace("Transport", "");
         String avaiableModuleId = moduleId;
@@ -69,22 +86,31 @@ public class Request<T> implements RequestInterface<T> {
         String topicName = serviceInterface + "-" + avaiableModuleId + "-server" + (sync ? "-sync" : "-async");
         // if necessary topic does not exist for some reason - throw "transport no route" exception
         if (!zkClient.topicExists(topicName))
-            throw new RuntimeException("No route for service: " + serviceInterface + " and module.id " + avaiableModuleId);
+            throw new TransportNoRouteException(serviceInterface, avaiableModuleId);
         else
             return topicName;
     }
 
+    /*
+        Setter for user-provided timeout
+     */
     public Request<T> withTimeout(int timeout) {
         this.timeout = timeout;
         return this;
     }
 
+    /*
+        Setter for user-provided server module.id
+     */
     public Request<T> onModule(String moduleId) {
         this.moduleId = moduleId;
         return this;
     }
 
-    // Only used when transport works through Kafka
+    /*
+        Only used when transport works using Kafka
+        Waits for message with specific key in topic for a given period of time in milliseconds
+     */
     private byte[] waitForSyncAnswer(String requestTopic, long requestTime) {
         // Waiting for available consumer
         KafkaConsumer<String, byte[]> consumer;
@@ -92,33 +118,31 @@ public class Request<T> implements RequestInterface<T> {
             consumer = consumers.poll();
         } while (consumer == null);
 
-        // we will wait for response message in "client" topic
+        // We will wait for response message in "client" topic
         String clientTopicName = requestTopic.replace("-server", "-client");
 
         // 3 minute time offset to mitigate time desynchronization between client - kafka broker - server
         long threeMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
-        // resubscribe Kafka consumer to client target topic
+        // Resubscribe Kafka consumer to client target topic
         consumer.subscribe(Collections.singletonList(clientTopicName));
-        // trigger consumer resubscription
+        // Trigger consumer resubscription
         consumer.poll(0);
-        // check metadata information for required client topic
+        // Check metadata information for required client topic
         List<PartitionInfo> partitionInfos = consumer.listTopics().get(clientTopicName);
         List<TopicPartition> partitions = new ArrayList<>();
+        // No metadata - topic doesn't exist
         if (partitionInfos == null) {
-            logger.warn("Partition information was not found for topic ", clientTopicName);
+            logger.error("Partition information was not found for topic ", clientTopicName);
         } else {
-            for (PartitionInfo partitionInfo : partitionInfos) {
-                TopicPartition partition = new TopicPartition(clientTopicName, partitionInfo.partition());
-                partitions.add(partition);
-            }
+            // Collect metadata about all partitions for client topic
+            partitions = partitionInfos.stream().map(x -> new TopicPartition(clientTopicName, x.partition())).collect(Collectors.toList());
         }
-        // Seek consumer offset to call time minus 3 minutes
-        // and start waiting for response from server
+        // Seek consumer offset to call time minus 3 minutes and start waiting for response from server
         Map<TopicPartition, Long> query = new HashMap<>();
         partitions.forEach(x -> query.put(x, threeMinAgo));
-        Map<TopicPartition, OffsetAndTimestamp> result = consumer.offsetsForTimes(query);
-        for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : result.entrySet()) {
+        for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : consumer.offsetsForTimes(query).entrySet()) {
             if (entry.getValue() == null) continue;
+            // Apply offsets to consumer
             consumer.seek(entry.getKey(), entry.getValue().offset());
         }
 
@@ -152,10 +176,11 @@ public class Request<T> implements RequestInterface<T> {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
+    /*
+        Responsible for making synchronous request and waiting for answer using Kafka or ZeroMQ
+     */
     public T executeSync() {
         // Serialize command-request
-        Kryo kryo = new Kryo();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
@@ -163,40 +188,54 @@ public class Request<T> implements RequestInterface<T> {
         // Response from server, if null - transport timeout occurred
         byte[] response;
         if (Utils.useKafka()) {
+            // Get server-side topic in Kafka
             String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
             try {
+                // Prepare message with random key and byte[] payload
                 ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(requestTopic, UUID.randomUUID().toString(), out.toByteArray());
+                // Send message and ignore RecordMetadata
                 producer.send(resultPackage).get();
             } catch (Exception e) {
                 logger.error("Error in sending sync request", e);
+                // Kafka cluster is broken, return exception to user
+                throw new TransportExecutionException(e);
             }
+            // Waiting for asnwer from server
             response = waitForSyncAnswer(requestTopic, System.currentTimeMillis());
         } else {
+            // New ZeroMQ context with 1 thread
             ZMQ.Context context = ZMQ.context(1);
+            // Open socket
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
+            // Get target server host:port
             socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
+            // Send Command to server
             socket.send(out.toByteArray(), 0);
+            // Set timeout if provided
             if (timeout != -1) {
                 socket.setReceiveTimeOut(timeout);
             }
+            // Wait for answer from server
             response = socket.recv(0);
+            // Close socket and context
             Utils.closeSocketAndContext(socket, context);
         }
+        // Response could be null ONLY of timeout occurred, otherwise it is object or void or ExceptionHolder
         if (response == null) {
-            throw new RuntimeException("Transport execution timeout");
+            throw new TransportExecutionTimeoutException();
         }
         Input input = new Input(new ByteArrayInputStream(response));
         Object result = kryo.readClassAndObject(input);
         input.close();
+        // Server returned ExceptionHolder - exception occurred on server side
         if (result instanceof ExceptionHolder)
-            throw new RuntimeException(((ExceptionHolder) result).getStackTrace());
+            throw new TransportExecutionException(((ExceptionHolder) result).getStackTrace());
         return (T) result;
     }
 
     public void executeAsync(String key, Class listener) {
         command.setCallbackClass(listener.getName());
         command.setCallbackKey(key);
-        Kryo kryo = new Kryo();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);

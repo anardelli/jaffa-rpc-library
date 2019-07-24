@@ -35,6 +35,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             context = ZMQ.context(1);
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
+            // New Kryo instance per thread
+            Kryo kryo = new Kryo();
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] bytes = socket.recv();

@@ -1,5 +1,6 @@
 package com.transport.lib.common;
 
+import com.transport.lib.exception.TransportExecutionTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,9 @@ public class FinalizationWorker {
                             logger.info("Finalization command " + command);
                             // Get target Callback implementation
                             Class callbackClass = Class.forName(command.getCallbackClass());
-                            // And invoke Callback.onError() with new RuntimeException("Transport execution timeout")
+                            // And invoke Callback.onError() with new TransportExecutionTimeoutException()
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                            method.invoke(callbackClass.newInstance(), command.getCallbackKey(), new RuntimeException("Transport execution timeout"));
+                            method.invoke(callbackClass.newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
                         }
                     } catch (Exception e) {
                         logger.error("Error during finalization command: " + command);

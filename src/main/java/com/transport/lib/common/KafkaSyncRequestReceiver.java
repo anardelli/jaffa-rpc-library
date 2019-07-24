@@ -49,6 +49,8 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                 KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
                 // Then we subscribe to known server topics and waiting for requests
                 consumer.subscribe(serverSyncTopics, new RebalanceListener());
+                // New Kryo instance per thread
+                Kryo kryo = new Kryo();
                 // Here we consider receiver thread as started
                 countDownLatch.countDown();
                 // Waiting and processing requests

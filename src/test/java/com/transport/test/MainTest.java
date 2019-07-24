@@ -54,7 +54,7 @@ public class MainTest {
             logger.info("Name: " + personService.getName().executeSync());
             clientService.lol3("test3").onModule("test.server").executeSync();
             clientService.lol4("test4").onModule("test.server").executeSync();
-            clientService.lol4("test4").onModule("test.server").executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
+            clientService.lol4("test4").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
             personService.get(id).onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
             personService.lol2("kek").executeSync();
             try {

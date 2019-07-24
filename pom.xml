@@ -111,7 +111,7 @@
                 </executions>
                 <configuration>
                     <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server
-                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka=false
+                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka=true
                     </argLine>
                 </configuration>
             </plugin>

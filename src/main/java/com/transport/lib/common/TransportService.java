@@ -34,7 +34,6 @@ public class TransportService {
     public static HashSet<String> clientAsyncTopics;
     public static HashSet<String> serverSyncTopics;
     public static HashSet<String> clientSyncTopics;
-    public static Kryo kryo = new Kryo();
 
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));

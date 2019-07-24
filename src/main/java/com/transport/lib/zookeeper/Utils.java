@@ -1,6 +1,7 @@
 package com.transport.lib.zookeeper;
 
 import com.transport.lib.common.Protocol;
+import com.transport.lib.exception.TransportNoRouteException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -51,16 +52,16 @@ public class Utils {
             try {
                 return getHostsForService("/" + service, moduleId, protocol)[0];
             } catch (Exception e) {
-                throw new RuntimeException("No route for service: " + service);
+                throw new TransportNoRouteException(service);
             }
-        } else throw new RuntimeException("No route for service: " + service);
+        } else throw new TransportNoRouteException(service);
     }
 
     private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws Exception {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         if (jArray.size() == 0)
-            throw new RuntimeException("No route for service: " + service);
+            throw new TransportNoRouteException(service);
         else {
             ArrayList<String> hosts = new ArrayList<>();
             for (int i = 0; i < jArray.size(); i++) {
@@ -73,7 +74,7 @@ public class Utils {
                 }
             }
             if (hosts.isEmpty())
-                throw new RuntimeException("No route for service: " + service + " and module.id " + moduleId);
+                throw new TransportNoRouteException(service, moduleId);
             return hosts.toArray(new String[hosts.size()]);
         }
     }
@@ -83,7 +84,7 @@ public class Utils {
             byte[] zkData = zk.getData("/" + service, false, null);
             JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
             if (jArray.size() == 0)
-                throw new RuntimeException("No route for service: " + service);
+                throw new TransportNoRouteException(service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
                 for (int i = 0; i < jArray.size(); i++) {
@@ -92,12 +93,12 @@ public class Utils {
                     if (protocol.getShortName().equals(params[2])) hosts.add(params[1]);
                 }
                 if (hosts.isEmpty())
-                    throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getShortName());
+                    throw new TransportNoRouteException(service, protocol);
                 return hosts.get(0);
             }
         } catch (Exception e) {
             logger.error("Error while getting avaiable module.id:", e);
-            throw new RuntimeException("No route for service: " + service + " and protocol " + protocol.getShortName());
+            throw new TransportNoRouteException(service, protocol.getShortName());
         }
     }
 

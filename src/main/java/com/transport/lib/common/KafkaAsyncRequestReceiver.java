@@ -49,6 +49,8 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
                 // And producer for sending invocation results or CallbackContainers (for async calls)
                 KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+                // New Kryo instance per thread
+                Kryo kryo = new Kryo();
                 // Then we subscribe to known server topics and waiting for requests
                 consumer.subscribe(serverAsyncTopics, new RebalanceListener());
                 // Here we consider receiver thread as started
