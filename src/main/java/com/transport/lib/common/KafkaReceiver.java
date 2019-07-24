@@ -13,27 +13,36 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
 
-    // "thread pool" for Kafka message receivers of the following types:
-    // - async requests
-    // - async responses
-    // - sync requests
+    /*
+        Thread pool for Kafka message receivers one of the following types:
+        - async requests
+        - async responses
+        - sync requests
+     */
     protected final ArrayList<Thread> threads = new ArrayList<>(brokersCount);
 
-    // method starts one thread (consumer) per Kafka broker (partition)
+    // Method starts one thread (consumer) per Kafka broker (partition)
     protected void startThreadsAndWait(Runnable runnable) {
         for (int i = 0; i < brokersCount; i++) {
             threads.add(new Thread(runnable));
         }
+        // Start all threads
         threads.forEach(Thread::start);
+
+        // Join all threads
         threads.forEach(x -> {
             try {
                 x.join();
-            } catch (Exception ignore) {
+            } catch (InterruptedException e) {
+                logger.error("Can't join thread " + x.getName() + " in " + this.getClass().getSimpleName(), e);
             }
         });
     }
 
+    // Will be called from TransportService.close() during Spring context destruction
+    @Override
     public void close() {
+        // Stop all threads
         for (Thread thread : this.threads) {
             do {
                 thread.interrupt();

@@ -1,9 +1,14 @@
 package com.transport.lib.common;
 
 @SuppressWarnings("all")
+/*
+    Utility class for setting invocation metadata like client's module.id and security ticket in ThreadLocal variables
+ */
 public class TransportContext {
 
+    // Client's module.id
     private static ThreadLocal<String> sourceModuleId = new ThreadLocal<>();
+    // Security ticket instance
     private static ThreadLocal<SecurityTicket> securityTicketThreadLocal = new ThreadLocal<>();
 
     public static String getSourceModuleId() {

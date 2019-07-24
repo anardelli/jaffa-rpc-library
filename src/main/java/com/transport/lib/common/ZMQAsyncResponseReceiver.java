@@ -37,10 +37,10 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     Class callbackClass = Class.forName(callbackContainer.getListener());
                     if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
-                            Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
+                            Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                         } else {
-                            Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
+                            Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                             if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
                                 method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
                             } else

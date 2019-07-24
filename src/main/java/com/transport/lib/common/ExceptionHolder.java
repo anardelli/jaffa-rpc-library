@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/*
+    Class-container for passing Throwable as a result from server to client
+ */
 @SuppressWarnings("all")
 @NoArgsConstructor
 @AllArgsConstructor

@@ -9,13 +9,13 @@ public class ServiceCallback implements Callback<Void> {
     private static Logger logger = LoggerFactory.getLogger(ServiceCallback.class);
 
     @Override
-    public void callBack(String key, Void result) {
+    public void onSuccess(String key, Void result) {
         logger.info("Key: " + key);
         logger.info("Result: " + result);
     }
 
     @Override
-    public void callBackError(String key, Throwable exception) {
+    public void onError(String key, Throwable exception) {
         logger.error("Exception during async call:", exception);
     }
 }

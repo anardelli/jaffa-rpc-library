@@ -63,8 +63,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                                     callbackContainer.setListener(command.getCallbackClass());
                                     callbackContainer.setResult(getResult(result));
                                     Method targetMethod = getTargetMethod(command);
-                                    if (map.containsKey(targetMethod.getReturnType())) {
-                                        callbackContainer.setResultClass(map.get(targetMethod.getReturnType()).getName());
+                                    if (primitiveToWrappers.containsKey(targetMethod.getReturnType())) {
+                                        callbackContainer.setResultClass(primitiveToWrappers.get(targetMethod.getReturnType()).getName());
                                     } else {
                                         callbackContainer.setResultClass(targetMethod.getReturnType().getName());
                                     }

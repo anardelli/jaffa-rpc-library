@@ -35,15 +35,19 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
 
     @Override
     public void run() {
-        // New group.id per "thread pool"
+        // New group.id per consumer group
         consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             try {
+                // Consumer waiting for async responses (CallbackContainer) from server
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+                // Subscribe to known client topics
                 consumer.subscribe(clientAsyncTopics, new RebalanceListener());
                 countDownLatch.countDown();
                 while (!Thread.currentThread().isInterrupted()) {
+                    // Wait data for 100 ms if no new records available after last committed
                     ConsumerRecords<String, byte[]> records = consumer.poll(100);
+                    // Process CallbackContainers
                     for (ConsumerRecord<String, byte[]> record : records) {
                         try {
                             // Deserialize response
@@ -56,16 +60,20 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                                 // Exception occurred on server side
                                 if (callbackContainer.getResult() instanceof ExceptionHolder) {
-                                    Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
+                                    // Invoke onError with message from ExceptionHolder
+                                    Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                                     method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new Throwable(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                                 } else {
-                                    Method method = callbackClass.getMethod("callBack", String.class, Class.forName(callbackContainer.getResultClass()));
+                                    // Invoke onSuccess
+                                    Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
+                                    // If target method return type is void, then result object is null
                                     if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
                                         method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
                                     } else
                                         method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                                 }
                             } else {
+                                // Server failed to respond in time and invocation was already finalized with "Transport execution timeout"
                                 logger.warn("Response " + callbackContainer.getKey() + " already expired");
                             }
                             // Manually commit offsets for processed responses

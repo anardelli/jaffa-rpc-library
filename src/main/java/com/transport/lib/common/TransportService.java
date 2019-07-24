@@ -26,7 +26,7 @@ public class TransportService {
     public static KafkaZkClient zkClient;
     public static int brokersCount = 0;
     public static AdminZkClient adminZkClient;
-    public static Map<Class<?>, Class<?>> map = new HashMap<>();
+    public static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
     public static HashSet<String> serverAsyncTopics;
     public static HashSet<String> clientAsyncTopics;
     public static HashSet<String> serverSyncTopics;
@@ -44,15 +44,15 @@ public class TransportService {
         producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
 
-        map.put(boolean.class, Boolean.class);
-        map.put(byte.class, Byte.class);
-        map.put(short.class, Short.class);
-        map.put(char.class, Character.class);
-        map.put(int.class, Integer.class);
-        map.put(long.class, Long.class);
-        map.put(float.class, Float.class);
-        map.put(double.class, Double.class);
-        map.put(void.class, Void.class);
+        primitiveToWrappers.put(boolean.class, Boolean.class);
+        primitiveToWrappers.put(byte.class, Byte.class);
+        primitiveToWrappers.put(short.class, Short.class);
+        primitiveToWrappers.put(char.class, Character.class);
+        primitiveToWrappers.put(int.class, Integer.class);
+        primitiveToWrappers.put(long.class, Long.class);
+        primitiveToWrappers.put(float.class, Float.class);
+        primitiveToWrappers.put(double.class, Double.class);
+        primitiveToWrappers.put(void.class, Void.class);
     }
 
     @Autowired

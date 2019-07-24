@@ -7,6 +7,10 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
+/*
+    Class responsible for passing "Transport execution timeout" to Callback implementations
+    after timeout occurred during async remote method invocation
+ */
 @SuppressWarnings("all")
 public class FinalizationWorker {
 
@@ -28,13 +32,16 @@ public class FinalizationWorker {
         try {
             while (true) {
                 Thread.sleep(5);
+                // Get all Commands with expireTime > now()
                 eventsToConsume.values().stream().filter(x -> x.getAsyncExpireTime() < System.currentTimeMillis()).forEach((Command command) -> {
                     try {
-                        // necessary to eliminate the possibility of race between finalization thread and callback receiver thread
+                        // Necessary to eliminate the possibility of race between finalization thread and callback receiver thread
                         if (eventsToConsume.remove(command.getCallbackKey()) != null) {
                             logger.info("Finalization command " + command);
+                            // Get target Callback implementation
                             Class callbackClass = Class.forName(command.getCallbackClass());
-                            Method method = callbackClass.getMethod("callBackError", String.class, Throwable.class);
+                            // And invoke Callback.onError() with new RuntimeException("Transport execution timeout")
+                            Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                             method.invoke(callbackClass.newInstance(), command.getCallbackKey(), new RuntimeException("Transport execution timeout"));
                         }
                     } catch (Exception e) {

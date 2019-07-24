@@ -1,5 +1,8 @@
 package com.transport.lib.common;
 
+/*
+    Enum represents all supported transport protocols - Kafka and ZeroMQ
+ */
 public enum Protocol {
     KAFKA("kafka"),
     ZMQ("zmq");

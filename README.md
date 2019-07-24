@@ -98,14 +98,14 @@ public class PersonCallback implements Callback<Person> {
     // This method will be called if method executed without throwing exception
     // if T is Void then result will always be **null**
     @Override
-    public void callBack(String key, Person result) {
+    public void onSuccess(String key, Person result) {
         System.out.println("Key: " + key);
         System.out.println("Result: " + result);
     }
 
     // This method will be called if method thrown exception OR execution timeout occurs
     @Override
-    public void callBackError(String key, Throwable exception) {
+    public void onError(String key, Throwable exception) {
         System.out.println("Exception during async call");
         exception.printStackTrace();
     }
