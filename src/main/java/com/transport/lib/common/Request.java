@@ -188,7 +188,7 @@ public class Request<T> implements RequestInterface<T> {
         // Response from server, if null - transport timeout occurred
         byte[] response;
         if (Utils.useKafka()) {
-            // Get server-side topic in Kafka
+            // Get server-side async topic in Kafka
             String requestTopic = getTopicForService(command.getServiceClass(), moduleId, true);
             try {
                 // Prepare message with random key and byte[] payload
@@ -233,24 +233,39 @@ public class Request<T> implements RequestInterface<T> {
         return (T) result;
     }
 
+    /*
+        Responsible for making asynchronous request using Kafka or ZeroMQ
+     */
     public void executeAsync(String key, Class listener) {
+        // Set Callback class name
         command.setCallbackClass(listener.getName());
+        // Set user-provided unique callback key
         command.setCallbackKey(key);
+        // Marshall Command using Kryo
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         kryo.writeObject(output, command);
         output.close();
+        // Send Request using Kafka or ZeroMQ
         if (Utils.useKafka()) {
             try {
+                // Prepare message with random key and byte[] payload
                 ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), out.toByteArray());
+                // Send message to server-side sync topic and ignore RecordMetadata
                 producer.send(resultPackage).get();
             } catch (Exception e) {
                 logger.error("Error in sending async request", e);
+                // Kafka cluster is broken, return exception to user
+                throw new TransportExecutionException(e);
             }
         } else {
+            // New ZeroMQ context with 1 thread
             ZMQ.Context context = ZMQ.context(1);
+            // Open socket
             ZMQ.Socket socket = context.socket(ZMQ.REQ);
+            // Get target server host:port
             socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
+            // Send Command to server
             socket.send(out.toByteArray(), 0);
             // Wait for "OK" message from server that means request was received and correctly deserialized
             socket.recv(0);
@@ -260,6 +275,7 @@ public class Request<T> implements RequestInterface<T> {
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
         logger.debug("Async command " + command + " added to finalization queue");
+        // Add Command to finalization queue
         FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
     }
 }
