@@ -31,11 +31,16 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             Kryo kryo = new Kryo();
             while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    // Receive raw bytes
                     byte[] bytes = socket.recv();
                     Input input = new Input(new ByteArrayInputStream(bytes));
+                    // Unmarshall bytes to CallbackContainer
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                    // Get target callback class
                     Class<?> callbackClass = Class.forName(callbackContainer.getListener());
+                    // If request is still valid
                     if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
+                        // Send result to callback by invoking appropriate method
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                             method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
@@ -62,7 +67,5 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
     }
 
     @Override
-    public void close() {
-        Utils.closeSocketAndContext(socket, context);
-    }
+    public void close() { Utils.closeSocketAndContext(socket, context); }
 }

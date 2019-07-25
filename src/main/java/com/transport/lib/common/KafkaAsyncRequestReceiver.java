@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -74,23 +73,8 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                             // Marshall result as CallbackContainer
                             ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                             Output output = new Output(bOutput);
-                            // Construct CallbackContainer
-                            CallbackContainer callbackContainer = new CallbackContainer();
-                            // User-provided callback key for identifying original request
-                            callbackContainer.setKey(command.getCallbackKey());
-                            // Fully-qualified Callback class name
-                            callbackContainer.setListener(command.getCallbackClass());
-                            // Result object or ExceptionHolder instance
-                            callbackContainer.setResult(getResult(result));
-                            // If target method returned primitive object, then send back wrapper as result class
-                            Method targetMethod = getTargetMethod(command);
-                            if (primitiveToWrappers.containsKey(targetMethod.getReturnType())) {
-                                callbackContainer.setResultClass(primitiveToWrappers.get(targetMethod.getReturnType()).getName());
-                            } else {
-                                callbackContainer.setResultClass(targetMethod.getReturnType().getName());
-                            }
-                            // Write object to output stream
-                            kryo.writeObject(output, callbackContainer);
+                            // Construct CallbackContainer and marshall it to output stream
+                            kryo.writeObject(output, constructCallbackContainer(command, result));
                             output.close();
                             // Prepare record with result. Here we construct topic name on the fly
                             ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
