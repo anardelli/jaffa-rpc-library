@@ -14,8 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -28,35 +30,44 @@ public class Utils {
     public static ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
+    /*
+        Connects to ZooKeeper cluster
+     */
     public static void connect(String url) {
         try {
             conn = new ZooKeeperConnection();
             zk = conn.connect(url);
             ShutdownHook shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownHook);
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
         }
     }
 
+    /*
+        Returns first available host for specified service, module.id and protocol or throws TransportNoRouteException if no available
+     */
     public static String getHostForService(String service, String moduleId, Protocol protocol) {
         service = service.replace("Transport", "");
         Stat stat = null;
         try {
             stat = znode_exists("/" + service);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
         }
         if (stat != null) {
             try {
                 return getHostsForService("/" + service, moduleId, protocol)[0];
-            } catch (Exception e) {
+            } catch (KeeperException | ParseException | InterruptedException e) {
                 throw new TransportNoRouteException(service);
             }
         } else throw new TransportNoRouteException(service);
     }
 
-    private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws Exception {
+    /*
+        Returns all available hosts for specified service, module.id and protocol or throws TransportNoRouteException if no available
+     */
+    private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         if (jArray.size() == 0)
@@ -77,6 +88,9 @@ public class Utils {
         }
     }
 
+    /*
+        Returns active module.id for specified service name and protocol or throws TransportNoRouteException if no available
+     */
     public static String getModuleForService(String service, Protocol protocol) {
         try {
             byte[] zkData = zk.getData("/" + service, false, null);
@@ -93,12 +107,15 @@ public class Utils {
                     throw new TransportNoRouteException(service, protocol);
                 return hosts.get(0);
             }
-        } catch (Exception e) {
+        } catch (KeeperException |InterruptedException | ParseException e) {
             logger.error("Error while getting avaiable module.id:", e);
             throw new TransportNoRouteException(service, protocol.getShortName());
         }
     }
 
+    /*
+        Registers service with specified name and protocol in ZooKeeper cluster
+     */
     public static void registerService(String service, Protocol protocol) {
         try {
             Stat stat = znode_exists("/" + service);
@@ -109,15 +126,19 @@ public class Utils {
             }
             services.add("/" + service);
             logger.info("Registered service: " + service);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException | UnknownHostException | ParseException e) {
             logger.error("Can not register services in ZooKeeper", e);
         }
     }
 
-    public static boolean useKafka() {
-        return Boolean.valueOf(System.getProperty("use.kafka", "false"));
-    }
+    /*
+        Returns should we use Kafka or ZeroMQ
+     */
+    public static boolean useKafka() { return Boolean.valueOf(System.getProperty("use.kafka", "false")); }
 
+    /*
+        Returns user-provided service port or default if not
+     */
     private static int getServicePort() {
         try {
             return Integer.parseInt(System.getProperty("service.port", "4242"));
@@ -126,6 +147,9 @@ public class Utils {
         }
     }
 
+    /*
+        Returns user-provided callback port or default if not
+     */
     private static int getCallbackPort() {
         try {
             return Integer.parseInt(System.getProperty("service.port", "4242")) + 100;
@@ -134,16 +158,25 @@ public class Utils {
         }
     }
 
+    /*
+        Creates service metadata information in ZooKeeper cluster
+     */
     private static void create(String service, Protocol protocol) throws KeeperException, InterruptedException, UnknownHostException {
         JSONArray ja = new JSONArray();
         ja.add(getServiceBindAddress(protocol));
         zk.create(service, ja.toJSONString().getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
 
+    /*
+        Check if znode with specified string exists in ZooKeeper cluster
+     */
     private static Stat znode_exists(String service) throws KeeperException, InterruptedException {
         return zk.exists(service, true);
     }
 
+    /*
+        Updates service metadata information in ZooKeeper cluster
+     */
     private static void update(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -154,6 +187,9 @@ public class Utils {
         }
     }
 
+    /*
+        Unpublishes service in ZooKeeper cluster
+     */
     public static void delete(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -164,18 +200,30 @@ public class Utils {
         }
     }
 
+    /*
+        Returns string for registration/publishing service in ZooKeeper cluster
+     */
     private static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getShortName();
     }
 
+    /*
+        Returns ZeroMQ connection string for receiving sync and async requests from client
+     */
     public static String getZeroMQBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
     }
 
+    /*
+        Returns ZeroMQ connection string for receiving async responses from server
+     */
     public static String getZeroMQCallbackBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
+    /*
+        Returns local hostname
+     */
     private static InetAddress getLocalHostLANAddress() throws UnknownHostException {
         try {
             InetAddress candidateAddress = null;
@@ -201,13 +249,16 @@ public class Utils {
                 throw new UnknownHostException("The JDK InetAddress.getLocalHost() method unexpectedly returned null.");
             }
             return jdkSuppliedAddress;
-        } catch (Exception e) {
+        } catch (SocketException e) {
             UnknownHostException unknownHostException = new UnknownHostException("Failed to determine LAN address: " + e);
             unknownHostException.initCause(e);
             throw unknownHostException;
         }
     }
 
+    /*
+        Utility method for shutting down ZeroMQ socket and context
+     */
     public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context) {
         socket.close();
         if (!context.isClosed()) {
@@ -218,6 +269,9 @@ public class Utils {
     }
 }
 
+/*
+    We must unpublish services if JVM is shutting down
+ */
 class ShutdownHook extends Thread {
     public void run() {
         try {
@@ -226,7 +280,6 @@ class ShutdownHook extends Thread {
                 Utils.delete(service, Protocol.ZMQ);
             }
             Utils.conn.close();
-        } catch (Exception ignore) {
-        }
+        } catch (Exception ignore) { }
     }
 }
