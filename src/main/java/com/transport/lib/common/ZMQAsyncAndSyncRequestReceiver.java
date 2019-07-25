@@ -18,6 +18,9 @@ import java.util.concurrent.Executors;
 
 import static com.transport.lib.common.TransportService.*;
 
+/*
+    Class responsible for receiving synchronous and asynchronous requests using ZeroMQ
+ */
 public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);

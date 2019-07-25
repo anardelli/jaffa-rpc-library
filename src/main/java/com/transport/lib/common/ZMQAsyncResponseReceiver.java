@@ -14,6 +14,9 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.lang.reflect.Method;
 
+/*
+    Class responsible for receiving asynchronous responses using ZeroMQ
+ */
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
