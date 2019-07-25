@@ -4,6 +4,9 @@ import lombok.*;
 
 import java.io.Serializable;
 
+/*
+    Class-container for security information like login and token
+ */
 @ToString
 @Setter
 @Getter

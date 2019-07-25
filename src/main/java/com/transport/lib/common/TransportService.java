@@ -18,22 +18,28 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
+/*
+    Class responsible for initialization of transport subsystem
+ */
 @SuppressWarnings("all")
 public class TransportService {
 
     private static Logger logger = LoggerFactory.getLogger(TransportService.class);
 
+    // Known producer and consumer properties initialized
     public static final Properties producerProps = new Properties();
     public static final Properties consumerProps = new Properties();
-    public static HashMap<Class, Object> wrappedServices = new HashMap<>();
+    // Initialized implementations stored in a map, key - target service class, object - service instance
+    public static Map<Class, Object> wrappedServices = new HashMap<>();
+
     public static KafkaZkClient zkClient;
     public static int brokersCount = 0;
     public static AdminZkClient adminZkClient;
     public static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
-    public static HashSet<String> serverAsyncTopics;
-    public static HashSet<String> clientAsyncTopics;
-    public static HashSet<String> serverSyncTopics;
-    public static HashSet<String> clientSyncTopics;
+    public static Set<String> serverAsyncTopics;
+    public static Set<String> clientAsyncTopics;
+    public static Set<String> serverSyncTopics;
+    public static Set<String> clientSyncTopics;
 
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
@@ -57,10 +63,14 @@ public class TransportService {
         primitiveToWrappers.put(void.class, Void.class);
     }
 
+    // User-provided set of API implementations as array of Classes
     @Autowired
     private ServerEndpoints serverEndpoints;
+
+    // User-provided set of API client interfaces
     @Autowired
     private ClientEndpoints clientEndpoints;
+
     private List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
     private List<Closeable> zmqReceivers = new ArrayList<>();
     private List<Thread> receiverThreads = new ArrayList<>();
