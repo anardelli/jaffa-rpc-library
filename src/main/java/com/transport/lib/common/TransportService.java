@@ -1,6 +1,5 @@
 package com.transport.lib.common;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.transport.lib.zookeeper.Utils;
 import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
@@ -21,25 +20,29 @@ import java.util.concurrent.CountDownLatch;
 /*
     Class responsible for initialization of transport subsystem
  */
-@SuppressWarnings("all")
 public class TransportService {
 
+    // Known producer and consumer properties initialized in static context
+    static final Properties producerProps = new Properties();
+    static final Properties consumerProps = new Properties();
+
+    // ZooKeeper client for checking topic existence and broker count
+    static KafkaZkClient zkClient;
+    // Current number of brokers in ZooKeeper cluster
+    static int brokersCount = 0;
+    // Mapping from primitives to associated wrappers
+    static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
+    // Topic names for
+    static Set<String> serverAsyncTopics;
+    static Set<String> clientAsyncTopics;
+    static Set<String> serverSyncTopics;
+
     private static Logger logger = LoggerFactory.getLogger(TransportService.class);
-
-    // Known producer and consumer properties initialized
-    public static final Properties producerProps = new Properties();
-    public static final Properties consumerProps = new Properties();
-    // Initialized implementations stored in a map, key - target service class, object - service instance
-    public static Map<Class, Object> wrappedServices = new HashMap<>();
-
-    public static KafkaZkClient zkClient;
-    public static int brokersCount = 0;
-    public static AdminZkClient adminZkClient;
-    public static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
-    public static Set<String> serverAsyncTopics;
-    public static Set<String> clientAsyncTopics;
-    public static Set<String> serverSyncTopics;
-    public static Set<String> clientSyncTopics;
+    // Initialized API implementations stored in a map, key - target service class, object - service instance
+    private static Map<Class, Object> wrappedServices = new HashMap<>();
+    // ZooKeeper client for topic creation
+    private static AdminZkClient adminZkClient;
+    private static Set<String> clientSyncTopics;
 
     static {
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
@@ -75,14 +78,20 @@ public class TransportService {
     private List<Closeable> zmqReceivers = new ArrayList<>();
     private List<Thread> receiverThreads = new ArrayList<>();
 
-    public static String getRequiredOption(String option) {
+    /*
+        Get required JVM option or throw IllegalArgumentException
+     */
+    static String getRequiredOption(String option) {
         String optionValue = System.getProperty(option);
         if (optionValue == null || optionValue.trim().isEmpty())
             throw new IllegalArgumentException("Property " + option + "  was not set");
         else return optionValue;
     }
 
-    public static void waitForRebalance() {
+    /*
+        Wait for Kafka cluster to rebalance itself
+     */
+    private static void waitForRebalance() {
         long start = 0L;
         long lastRebalance = RebalanceListener.lastRebalance;
         while (true) {
@@ -97,11 +106,17 @@ public class TransportService {
         }
     }
 
-    public static Object getTargetService(Command command) throws ClassNotFoundException {
+    /*
+        Get name of target server API implementation from class name of transport proxy received from client
+     */
+    private static Object getTargetService(Command command) throws ClassNotFoundException {
         return wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
     }
 
-    public static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
+    /*
+        Get target Method object basing on information available in Command received from client
+     */
+    private static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
         Object wrappedService = getTargetService(command);
         if (command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             Class[] methodArgClasses = new Class[command.getMethodArgs().length];
@@ -114,7 +129,10 @@ public class TransportService {
         }
     }
 
-    public static Object invoke(Command command) {
+    /*
+        Invoke Command on some initialized API implementation instance
+     */
+    static Object invoke(Command command) {
         try {
             Object targetService = getTargetService(command);
             Method targetMethod = getTargetMethod(command);
@@ -130,7 +148,11 @@ public class TransportService {
         }
     }
 
-    public static Object getResult(Object result) {
+    /*
+        Get result from raw object after method execution
+        Throwable objects are wrapped in ExceptionHolder instance because they are not serializable by Kryo
+     */
+    static Object getResult(Object result) {
         if (result instanceof Throwable) {
             StringWriter sw = new StringWriter();
             ((Throwable) result).printStackTrace(new PrintWriter(sw));
@@ -138,7 +160,10 @@ public class TransportService {
         } else return result;
     }
 
-    public void registerServices() throws Exception {
+    /*
+        Register/publish server API implementations in ZooKeeper cluster
+     */
+    private void registerServices() throws Exception {
         Map<Class<?>, Class<?>> apiImpls = new HashMap<>();
         for (Class server : serverEndpoints.getServerEndpoints()) {
             logger.info("Server endpoint: " + server.getName());
@@ -157,6 +182,9 @@ public class TransportService {
         }
     }
 
+    /*
+        Connect to ZooKeeper cluster, initialize ZooKeeper clients, create necessary topics in Kafka
+     */
     private void prepareServiceRegistration() throws Exception {
         Utils.connect(getRequiredOption("zookeeper.connection"));
         if (Utils.useKafka()) {
@@ -171,6 +199,9 @@ public class TransportService {
         }
     }
 
+    /*
+        Create necessary topics in Kafka cluster
+     */
     private HashSet<String> createTopics(String type) throws Exception {
         Properties topicConfig = new Properties();
         HashSet<String> topicsCreated = new HashSet<>();
@@ -191,9 +222,7 @@ public class TransportService {
                 apiImpls.add(Class.forName(client.getName().replace("Transport", "")));
             }
         }
-        apiImpls.forEach(x -> {
-            topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type);
-        });
+        apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type));
         topicsCreated.forEach(topic -> {
             if (!zkClient.topicExists(topic))
                 adminZkClient.createTopic(topic, brokersCount, 1, topicConfig, RackAwareMode.Disabled$.MODULE$);
@@ -203,6 +232,9 @@ public class TransportService {
         return topicsCreated;
     }
 
+    /*
+        Transport subsystem initialization starts here
+     */
     @PostConstruct
     private void init() throws Exception {
         try {
@@ -253,6 +285,9 @@ public class TransportService {
         }
     }
 
+    /*
+        Shutting down transport subsystem
+     */
     public void close() {
         logger.info("Close started");
 
@@ -263,6 +298,7 @@ public class TransportService {
             }
             Utils.conn.close();
         } catch (Exception e) {
+            logger.error("Unable to unregister services from ZooKeeper cluster", e);
         }
 
         this.kafkaReceivers.forEach(KafkaReceiver::close);
@@ -271,6 +307,7 @@ public class TransportService {
             try {
                 a.close();
             } catch (Exception e) {
+                logger.error("Unable to shut down ZeroMQ receivers", e);
             }
         });
 
