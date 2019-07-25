@@ -24,7 +24,6 @@ import static com.transport.lib.common.TransportService.*;
 /*
     Class responsible for receiving async responses using Kafka
  */
-@SuppressWarnings("WeakerAccess, unchecked")
 public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
@@ -32,7 +31,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
     // Used for waiting receiver thread startup
     private CountDownLatch countDownLatch;
 
-    public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
+    KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 
@@ -59,7 +58,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             Input input = new Input(new ByteArrayInputStream(record.value()));
                             CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                             // Take target callback class
-                            Class callbackClass = Class.forName(callbackContainer.getListener());
+                            Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                             // If timeout not occurred yet - process response and invoke target method
                             if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                                 // Exception occurred on server side

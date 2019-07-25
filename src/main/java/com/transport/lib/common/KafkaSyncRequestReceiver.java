@@ -26,14 +26,13 @@ import static com.transport.lib.common.TransportService.*;
 /*
     Class responsible for receiving sync requests using Kafka
  */
-@SuppressWarnings("WeakerAccess")
 public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaSyncRequestReceiver.class);
 
     private CountDownLatch countDownLatch;
 
-    public KafkaSyncRequestReceiver(CountDownLatch countDownLatch) {
+    KafkaSyncRequestReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 

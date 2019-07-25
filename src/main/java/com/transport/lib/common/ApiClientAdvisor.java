@@ -17,7 +17,6 @@ import java.lang.reflect.Method;
     AOP advisor to intercept method invocations on @ApiClient transport proxies
  */
 @Component
-@SuppressWarnings("unused")
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
     private final MethodInterceptor interceptor;

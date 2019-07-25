@@ -24,7 +24,6 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
     This allows us to use @ApiClient interfaces as Spring Beans and inject them
  */
 @Configuration
-@SuppressWarnings("unused")
 @DependsOn({"serverEndpoints", "clientEndpoints"})
 public class BeanStubLoader implements BeanDefinitionRegistryPostProcessor {
 

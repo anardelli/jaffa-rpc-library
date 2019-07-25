@@ -12,8 +12,7 @@ import java.util.concurrent.CountDownLatch;
     Class responsible for passing "Transport execution timeout" to Callback implementations
     after timeout occurred during async remote method invocation
  */
-@SuppressWarnings("all")
-public class FinalizationWorker {
+class FinalizationWorker {
 
     // Many threads add Command from Request to this map, then finalizer periodically query it
     // Command resides here until one of the following events occurs:
@@ -21,7 +20,7 @@ public class FinalizationWorker {
     // - Timeout occurred - each Command contains asyncExpireTime field,
     //   which equals to call time + timeout if it was specified
     //   or call time + 60 minutes otherwise
-    public static final ConcurrentHashMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
+    static final ConcurrentHashMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
     // Required to control finalizer thread startup
     private static final CountDownLatch countDownLatch = new CountDownLatch(1);
     private static Logger logger = LoggerFactory.getLogger(FinalizationWorker.class);
@@ -40,7 +39,7 @@ public class FinalizationWorker {
                         if (eventsToConsume.remove(command.getCallbackKey()) != null) {
                             logger.info("Finalization command " + command);
                             // Get target Callback implementation
-                            Class callbackClass = Class.forName(command.getCallbackClass());
+                            Class<?> callbackClass = Class.forName(command.getCallbackClass());
                             // And invoke Callback.onError() with new TransportExecutionTimeoutException()
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                             method.invoke(callbackClass.newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
@@ -55,7 +54,7 @@ public class FinalizationWorker {
         }
     });
 
-    public static void startFinalizer() {
+    static void startFinalizer() {
         finalizer.start();
         try {
             countDownLatch.await();
@@ -64,7 +63,7 @@ public class FinalizationWorker {
         }
     }
 
-    public static void stopFinalizer() {
+    static void stopFinalizer() {
         do {
             finalizer.interrupt();
         } while (finalizer.getState() != Thread.State.TERMINATED);

@@ -14,9 +14,6 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.lang.reflect.Method;
 
-import static com.transport.lib.common.TransportService.*;
-
-@SuppressWarnings("all")
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
@@ -37,7 +34,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     byte[] bytes = socket.recv();
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
-                    Class callbackClass = Class.forName(callbackContainer.getListener());
+                    Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                     if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
@@ -53,6 +50,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                         logger.warn("Response " + callbackContainer.getKey() + " already expired");
                     }
                 } catch (ZMQException | ZError.IOException recvTerminationException) {
+                    logger.error("General ZMQ exception", recvTerminationException);
                 } catch (Exception generalExecutionException) {
                     logger.error("ZMQ response method execution exception", generalExecutionException);
                 }

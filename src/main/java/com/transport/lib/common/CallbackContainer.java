@@ -8,12 +8,11 @@ import lombok.ToString;
 /*
     Class-container for passing result of async method invocation to Callback
  */
-@SuppressWarnings("WeakerAccess, unused")
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-public class CallbackContainer {
+class CallbackContainer {
     // Unique user-provided key for identifying original request in Callback
     private String key;
     // Fully-qualified classname for callback implementation

@@ -22,6 +22,8 @@ import java.util.concurrent.CountDownLatch;
  */
 public class TransportService {
 
+    private final static Logger logger = LoggerFactory.getLogger(TransportService.class);
+
     // Known producer and consumer properties initialized in static context
     static final Properties producerProps = new Properties();
     static final Properties consumerProps = new Properties();
@@ -32,16 +34,18 @@ public class TransportService {
     static int brokersCount = 0;
     // Mapping from primitives to associated wrappers
     static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
-    // Topic names for
+    // Topic names for server async topics: <class name>-<module.id>-server-async
     static Set<String> serverAsyncTopics;
+    // Topic names for client async topics: <class name>-<module.id>-client-async
     static Set<String> clientAsyncTopics;
+    // Topic names for server sync topics: <class name>-<module.id>-server-sync
     static Set<String> serverSyncTopics;
 
-    private static Logger logger = LoggerFactory.getLogger(TransportService.class);
     // Initialized API implementations stored in a map, key - target service class, object - service instance
     private static Map<Class, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for topic creation
     private static AdminZkClient adminZkClient;
+    // Topic names for client sync topics: <class name>-<module.id>-client-sync
     private static Set<String> clientSyncTopics;
 
     static {
@@ -116,7 +120,7 @@ public class TransportService {
     /*
         Get target Method object basing on information available in Command received from client
      */
-    private static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
+    static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
         Object wrappedService = getTargetService(command);
         if (command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             Class[] methodArgClasses = new Class[command.getMethodArgs().length];
@@ -238,12 +242,21 @@ public class TransportService {
     @PostConstruct
     private void init() throws Exception {
         try {
+            // Measure startup time
             long startedTime = System.currentTimeMillis();
+            // Connect to ZooKeeper cluster and create necessary Kafka topics using provided endpoints
             prepareServiceRegistration();
+            // Multiple latches to control readiness of various receivers
             CountDownLatch started = null;
+            // How many threads we need to start at the beginning?
             int expectedThreadCount = 0;
+            // If we use Kafka
             if (Utils.useKafka()) {
+                // One thread-consumer for receiving async responses from server
+                // One consumer (not thread) for receiving sync responses from server
                 if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) expectedThreadCount += 2;
+                // One thread-consumer for receiving async requests from client
+                // One thread-consumer for receiving sync requests from client
                 if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) expectedThreadCount += 2;
                 if (expectedThreadCount != 0) started = new CountDownLatch(brokersCount * expectedThreadCount);
                 if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) {

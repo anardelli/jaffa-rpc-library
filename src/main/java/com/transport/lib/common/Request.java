@@ -30,7 +30,6 @@ import static java.time.temporal.ChronoUnit.MINUTES;
 /*
     Class responsible for making synchronous and asynchronous requests
  */
-@SuppressWarnings("all")
 public class Request<T> implements RequestInterface<T> {
 
     private static Logger logger = LoggerFactory.getLogger(Request.class);
@@ -49,10 +48,10 @@ public class Request<T> implements RequestInterface<T> {
     // New Kryo instance per thread
     private Kryo kryo = new Kryo();
 
-    public Request(Command command) { this.command = command; }
+    Request(Command command) { this.command = command; }
 
     // Initialize Consumer object pool
-    public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
+    static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -139,7 +138,7 @@ public class Request<T> implements RequestInterface<T> {
         List<TopicPartition> partitions = new ArrayList<>();
         // No metadata - topic doesn't exist
         if (partitionInfos == null) {
-            logger.error("Partition information was not found for topic ", clientTopicName);
+            logger.error("Partition information was not found for topic {}", clientTopicName);
         } else {
             // Collect metadata about all partitions for client topic
             partitions = partitionInfos.stream().map(x -> new TopicPartition(clientTopicName, x.partition())).collect(Collectors.toList());
@@ -153,13 +152,13 @@ public class Request<T> implements RequestInterface<T> {
             consumer.seek(entry.getKey(), entry.getValue().offset());
         }
 
-        // Start timer for timeout.
-        // Timeout could be set by used or default == 60 minutes
+        /*
+            Start timer for timeout.
+            Timeout could be set by used or default == 60 minutes
+            Timeout occurred, stop waiting and return null
+         */
         long start = System.currentTimeMillis();
-        while (true) {
-            // Timeout occurred, stop waiting and return null
-            if ((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))
-                break;
+        while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
             ConsumerRecords<String, byte[]> records = consumer.poll(10);
             for (ConsumerRecord<String, byte[]> record : records) {
                 // Response must has same key as request
@@ -185,7 +184,9 @@ public class Request<T> implements RequestInterface<T> {
 
     /*
         Responsible for making synchronous request and waiting for answer using Kafka or ZeroMQ
+        @SuppressWarnings because Kryo returns raw Object
      */
+    @SuppressWarnings("unchecked")
     public T executeSync() {
         // Serialize command-request
         ByteArrayOutputStream out = new ByteArrayOutputStream();

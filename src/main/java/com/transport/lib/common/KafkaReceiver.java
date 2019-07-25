@@ -11,7 +11,6 @@ import static com.transport.lib.common.TransportService.brokersCount;
 /*
     Class responsible for managing threads used by Kafka...Receivers
  */
-@SuppressWarnings("WeakerAccess")
 public abstract class KafkaReceiver implements Closeable, Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
@@ -22,10 +21,10 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
         - async responses
         - sync requests
      */
-    protected final ArrayList<Thread> threads = new ArrayList<>(brokersCount);
+    private final ArrayList<Thread> threads = new ArrayList<>(brokersCount);
 
     // Method starts one thread (consumer) per Kafka broker (partition)
-    protected void startThreadsAndWait(Runnable runnable) {
+    void startThreadsAndWait(Runnable runnable) {
         for (int i = 0; i < brokersCount; i++) {
             threads.add(new Thread(runnable));
         }

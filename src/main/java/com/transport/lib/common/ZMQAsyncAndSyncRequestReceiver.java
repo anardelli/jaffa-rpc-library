@@ -19,7 +19,6 @@ import java.util.concurrent.Executors;
 
 import static com.transport.lib.common.TransportService.*;
 
-@SuppressWarnings("all")
 public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);
@@ -47,9 +46,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         socket.send("OK");
                     }
                     if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
-                        Runnable runnable = new Runnable() {
-                            @Override
-                            public void run() {
+                        Runnable runnable = () -> {
                                 try {
                                     TransportContext.setSourceModuleId(command.getSourceModuleId());
                                     TransportContext.setSecurityTicketThreadLocal(command.getTicket());
@@ -76,8 +73,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                                 } catch (Exception e) {
                                     logger.error("Error while receiving async request");
                                 }
-                            }
-                        };
+                            };
                         service.execute(runnable);
                     } else {
                         TransportContext.setSourceModuleId(command.getSourceModuleId());
@@ -90,6 +86,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         socket.send(bOutput.toByteArray());
                     }
                 } catch (ZMQException | ZError.IOException recvTerminationException) {
+                    logger.error("General ZMQ exception", recvTerminationException);
                 } catch (Exception generalExecutionException) {
                     logger.error("ZMQ request method execution exception", generalExecutionException);
                 }

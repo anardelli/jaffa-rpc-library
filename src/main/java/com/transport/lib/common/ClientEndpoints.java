@@ -5,7 +5,6 @@ import lombok.Getter;
 /*
     Class-container for passing list of required client implemenations to TransportService bean
  */
-@SuppressWarnings("all")
 @Getter
 public class ClientEndpoints {
 

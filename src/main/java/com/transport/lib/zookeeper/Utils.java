@@ -20,14 +20,13 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
-@SuppressWarnings("all")
 public class Utils {
 
-    public static final ArrayList<String> services = new ArrayList<>();
-    public static ZooKeeper zk;
+    private final static Logger logger = LoggerFactory.getLogger(Utils.class);
 
+    public static final ArrayList<String> services = new ArrayList<>();
     public static ZooKeeperConnection conn;
-    private static Logger logger = LoggerFactory.getLogger(Utils.class);
+    private static ZooKeeper zk;
 
     public static void connect(String url) {
         try {
@@ -64,9 +63,8 @@ public class Utils {
             throw new TransportNoRouteException(service);
         else {
             ArrayList<String> hosts = new ArrayList<>();
-            for (int i = 0; i < jArray.size(); i++) {
-                String registry = (String) jArray.get(i);
-                String[] params = registry.split("#");
+            for (Object json : jArray) {
+                String[] params = ((String) json).split("#");
                 if (moduleId != null) {
                     if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2])) hosts.add(params[0]);
                 } else {
@@ -75,7 +73,7 @@ public class Utils {
             }
             if (hosts.isEmpty())
                 throw new TransportNoRouteException(service, moduleId);
-            return hosts.toArray(new String[hosts.size()]);
+            return hosts.toArray(new String[0]);
         }
     }
 
@@ -87,9 +85,8 @@ public class Utils {
                 throw new TransportNoRouteException(service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
-                for (int i = 0; i < jArray.size(); i++) {
-                    String registry = (String) jArray.get(i);
-                    String[] params = registry.split("#");
+                for (Object json: jArray) {
+                    String[] params = ((String)json).split("#");
                     if (protocol.getShortName().equals(params[2])) hosts.add(params[1]);
                 }
                 if (hosts.isEmpty())
@@ -167,7 +164,7 @@ public class Utils {
         }
     }
 
-    public static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
+    private static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getShortName();
     }
 

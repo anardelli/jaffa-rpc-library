@@ -13,12 +13,11 @@ import java.util.UUID;
 /*
     Class-container for passing all required information about remote method invocation
  */
-@SuppressWarnings("all")
 @NoArgsConstructor
 @Setter
 @Getter
 @ToString
-public class Command {
+class Command {
 
     private static Logger logger = LoggerFactory.getLogger(Command.class);
 
@@ -45,7 +44,7 @@ public class Command {
     // For async calls: moment in the future after which Callback will receive "Transport execution timeout"
     private long asyncExpireTime;
 
-    public void setMetadata() {
+    void setMetadata() {
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
         } catch (Exception e) {
