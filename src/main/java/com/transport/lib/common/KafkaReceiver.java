@@ -50,6 +50,6 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
                 thread.interrupt();
             } while (thread.getState() != Thread.State.TERMINATED);
         }
-        logger.info(this.getClass().getSimpleName() + " terminated");
+        logger.info("{} terminated", this.getClass().getSimpleName());
     }
 }

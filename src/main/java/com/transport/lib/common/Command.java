@@ -29,7 +29,7 @@ class Command {
     private String[] methodArgs;
     // List of arguments for invocation
     private Object[] args;
-    // For async calls: fully-qualified calback class name
+    // For async calls: fully-qualified callback class name
     private String callbackClass;
     // For async calls: user-provided unique key for original request identification
     private String callbackKey;

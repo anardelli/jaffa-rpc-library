@@ -14,7 +14,7 @@ public class PersonServiceImpl implements PersonService {
 
     private static Logger logger = LoggerFactory.getLogger(PersonServiceImpl.class);
 
-    private List<Person> people = new ArrayList<Person>();
+    private List<Person> people = new ArrayList<>();
 
     private AtomicInteger idProvider = new AtomicInteger(1);
 

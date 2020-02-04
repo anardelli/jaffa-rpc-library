@@ -65,19 +65,19 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                                 if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                     // Invoke onError with message from ExceptionHolder
                                     Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                                    method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                                    method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                                 } else {
                                     // Invoke onSuccess
                                     Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                                     // If target method return type is void, then result object is null
                                     if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
-                                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
+                                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), null);
                                     } else
-                                        method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                                 }
                             } else {
                                 // Server failed to respond in time and invocation was already finalized with "Transport execution timeout"
-                                logger.warn("Response " + callbackContainer.getKey() + " already expired");
+                                logger.warn("Response {} already expired", callbackContainer.getKey());
                             }
                             // Manually commit offsets for processed responses
                             Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();

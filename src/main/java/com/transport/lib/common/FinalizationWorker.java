@@ -37,15 +37,15 @@ class FinalizationWorker {
                     try {
                         // Necessary to eliminate the possibility of race between finalization thread and callback receiver thread
                         if (eventsToConsume.remove(command.getCallbackKey()) != null) {
-                            logger.info("Finalization command " + command);
+                            logger.info("Finalization command {}", command);
                             // Get target Callback implementation
                             Class<?> callbackClass = Class.forName(command.getCallbackClass());
                             // And invoke Callback.onError() with new TransportExecutionTimeoutException()
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                            method.invoke(callbackClass.newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
+                            method.invoke(callbackClass.getDeclaredConstructor().newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
                         }
                     } catch (Exception e) {
-                        logger.error("Error during finalization command: " + command);
+                        logger.error("Error during finalization command: {}", command);
                     }
                 });
             }

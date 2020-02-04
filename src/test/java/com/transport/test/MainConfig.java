@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ComponentScan
 @Import(TransportConfig.class)
-@SuppressWarnings("all")
 public class MainConfig {
 
     @Bean

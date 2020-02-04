@@ -21,12 +21,13 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 
 public class Utils {
 
-    private final static Logger logger = LoggerFactory.getLogger(Utils.class);
+    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
 
-    public static final ArrayList<String> services = new ArrayList<>();
+    public static final List<String> services = new ArrayList<>();
     public static ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
@@ -51,7 +52,7 @@ public class Utils {
         service = service.replace("Transport", "");
         Stat stat = null;
         try {
-            stat = znode_exists("/" + service);
+            stat = isZNodeExists("/" + service);
         } catch (KeeperException | InterruptedException e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
         }
@@ -70,7 +71,7 @@ public class Utils {
     private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
-        if (jArray.size() == 0)
+        if (jArray.isEmpty())
             throw new TransportNoRouteException(service);
         else {
             ArrayList<String> hosts = new ArrayList<>();
@@ -95,7 +96,7 @@ public class Utils {
         try {
             byte[] zkData = zk.getData("/" + service, false, null);
             JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
-            if (jArray.size() == 0)
+            if (jArray.isEmpty())
                 throw new TransportNoRouteException(service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
@@ -118,14 +119,14 @@ public class Utils {
      */
     public static void registerService(String service, Protocol protocol) {
         try {
-            Stat stat = znode_exists("/" + service);
+            Stat stat = isZNodeExists("/" + service);
             if (stat != null) {
                 update("/" + service, protocol);
             } else {
                 create("/" + service, protocol);
             }
             services.add("/" + service);
-            logger.info("Registered service: " + service);
+            logger.info("Registered service: {}", service);
         } catch (KeeperException | InterruptedException | UnknownHostException | ParseException e) {
             logger.error("Can not register services in ZooKeeper", e);
         }
@@ -134,7 +135,7 @@ public class Utils {
     /*
         Returns should we use Kafka or ZeroMQ
      */
-    public static boolean useKafka() { return Boolean.valueOf(System.getProperty("use.kafka", "false")); }
+    public static boolean useKafka() { return Boolean.parseBoolean(System.getProperty("use.kafka", "false")); }
 
     /*
         Returns user-provided service port or default if not
@@ -161,6 +162,7 @@ public class Utils {
     /*
         Creates service metadata information in ZooKeeper cluster
      */
+    @SuppressWarnings("unchecked")
     private static void create(String service, Protocol protocol) throws KeeperException, InterruptedException, UnknownHostException {
         JSONArray ja = new JSONArray();
         ja.add(getServiceBindAddress(protocol));
@@ -170,7 +172,7 @@ public class Utils {
     /*
         Check if znode with specified string exists in ZooKeeper cluster
      */
-    private static Stat znode_exists(String service) throws KeeperException, InterruptedException {
+    private static Stat isZNodeExists(String service) throws KeeperException, InterruptedException {
         return zk.exists(service, true);
     }
 
@@ -227,12 +229,11 @@ public class Utils {
     private static InetAddress getLocalHostLANAddress() throws UnknownHostException {
         try {
             InetAddress candidateAddress = null;
-            for (Enumeration ifaces = NetworkInterface.getNetworkInterfaces(); ifaces.hasMoreElements(); ) {
-                NetworkInterface iface = (NetworkInterface) ifaces.nextElement();
-                for (Enumeration inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
-                    InetAddress inetAddr = (InetAddress) inetAddrs.nextElement();
+            for (Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces(); ifaces.hasMoreElements(); ) {
+                NetworkInterface iface = ifaces.nextElement();
+                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
+                    InetAddress inetAddr = inetAddrs.nextElement();
                     if (!inetAddr.isLoopbackAddress()) {
-
                         if (inetAddr.isSiteLocalAddress()) {
                             return inetAddr;
                         } else if (candidateAddress == null) {
@@ -270,9 +271,10 @@ public class Utils {
 }
 
 /*
-    We must unpublish services if JVM is shutting down
+    We need to unpublish all services if JVM is shutting down
  */
 class ShutdownHook extends Thread {
+    @Override
     public void run() {
         try {
             for (String service : Utils.services) {

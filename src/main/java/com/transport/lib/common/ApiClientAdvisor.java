@@ -19,8 +19,8 @@ import java.lang.reflect.Method;
 @Component
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
-    private final MethodInterceptor interceptor;
-    private final StaticMethodMatcherPointcut pointcut = new ApiClientAnnotationOnClassOrInheritedInterfacePointcut();
+    private final transient MethodInterceptor interceptor;
+    private final transient StaticMethodMatcherPointcut pointcut = new ApiClientAnnotationOnClassOrInheritedInterfacePointcut();
 
     @Autowired
     private ApplicationContext context;
@@ -49,14 +49,14 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             // Save argument's types as an array of fully-qualified class names
             if (invocation.getMethod().getParameterCount() != 0) {
                 String[] methodArgs = new String[invocation.getMethod().getParameterCount()];
-                Class[] argClasses = invocation.getMethod().getParameterTypes();
+                Class<?>[] argClasses = invocation.getMethod().getParameterTypes();
                 for (int i = 0; i < methodArgs.length; i++) {
                     methodArgs[i] = argClasses[i].getName();
                 }
                 command.setMethodArgs(methodArgs);
             }
             // And here new Request is ready
-            return new Request(command);
+            return new Request<>(command);
         };
     }
 
@@ -70,7 +70,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
         return this.interceptor;
     }
 
-    private final class ApiClientAnnotationOnClassOrInheritedInterfacePointcut extends StaticMethodMatcherPointcut {
+    private static final class ApiClientAnnotationOnClassOrInheritedInterfacePointcut extends StaticMethodMatcherPointcut {
         @Override
         public boolean matches(Method method, Class<?> targetClass) {
             // Apply AOP only for classes with @ApiClient annotation

@@ -131,7 +131,7 @@ public class Request<T> implements RequestInterface<T> {
         long threeMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
         // Resubscribe Kafka consumer to client target topic
         consumer.subscribe(Collections.singletonList(clientTopicName));
-        // Trigger consumer resubscription
+        // Trigger consumer resubscribing
         consumer.poll(0);
         // Check metadata information for required client topic
         List<PartitionInfo> partitionInfos = consumer.listTopics().get(clientTopicName);
@@ -208,7 +208,7 @@ public class Request<T> implements RequestInterface<T> {
                 // Kafka cluster is broken, return exception to user
                 throw new TransportExecutionException(e);
             }
-            // Waiting for asnwer from server
+            // Waiting for answer from server
             response = waitForSyncAnswer(requestTopic, System.currentTimeMillis());
         } else {
             // New ZeroMQ context with 1 thread
@@ -244,7 +244,7 @@ public class Request<T> implements RequestInterface<T> {
     /*
         Responsible for making asynchronous request using Kafka or ZeroMQ
      */
-    public void executeAsync(String key, Class listener) {
+    public void executeAsync(String key, Class<?> listener) {
         // Set Callback class name
         command.setCallbackClass(listener.getName());
         // Set user-provided unique callback key
@@ -282,7 +282,7 @@ public class Request<T> implements RequestInterface<T> {
         // Add command to background finalization thread
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
-        logger.debug("Async command " + command + " added to finalization queue");
+        logger.debug("Async command {} added to finalization queue", command);
         // Add Command to finalization queue
         FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
     }

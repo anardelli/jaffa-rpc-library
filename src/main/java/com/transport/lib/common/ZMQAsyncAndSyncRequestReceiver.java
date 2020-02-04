@@ -43,7 +43,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 try {
                     // Receiver raw bytes
                     byte[] bytes = socket.recv();
-                    // Unmarshall message to Command object
+                    // Unmarshal message to Command object
                     Input input = new Input(new ByteArrayInputStream(bytes));
                     final Command command = kryo.readObject(input, Command.class);
                     // If it is async request - answer with "OK" message before target method invocation
@@ -102,7 +102,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
         } catch (Exception generalZmqException) {
             logger.error("Error during request receiver startup:", generalZmqException);
         }
-        logger.info(this.getClass().getSimpleName() + " terminated");
+        logger.info("{} terminated", this.getClass().getSimpleName());
     }
 
     @Override

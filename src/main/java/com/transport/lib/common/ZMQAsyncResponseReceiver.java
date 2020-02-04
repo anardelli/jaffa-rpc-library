@@ -37,7 +37,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     // Receive raw bytes
                     byte[] bytes = socket.recv();
                     Input input = new Input(new ByteArrayInputStream(bytes));
-                    // Unmarshall bytes to CallbackContainer
+                    // Unmarshal bytes to CallbackContainer
                     CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                     // Get target callback class
                     Class<?> callbackClass = Class.forName(callbackContainer.getListener());
@@ -46,16 +46,16 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                         // Send result to callback by invoking appropriate method
                         if (callbackContainer.getResult() instanceof ExceptionHolder) {
                             Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                            method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                            method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                         } else {
                             Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                             if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
-                                method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), null);
+                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), null);
                             } else
-                                method.invoke(callbackClass.newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
+                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                         }
                     } else {
-                        logger.warn("Response " + callbackContainer.getKey() + " already expired");
+                        logger.warn("Response {} already expired", callbackContainer.getKey());
                     }
                 } catch (ZMQException | ZError.IOException recvTerminationException) {
                     logger.error("General ZMQ exception", recvTerminationException);
@@ -66,7 +66,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
         } catch (Exception generalZmqException) {
             logger.error("Error during callback receiver startup:", generalZmqException);
         }
-        logger.info(this.getClass().getSimpleName() + " terminated");
+        logger.info("{} terminated", this.getClass().getSimpleName());
     }
 
     @Override

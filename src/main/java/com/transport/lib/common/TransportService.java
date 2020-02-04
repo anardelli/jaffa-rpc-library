@@ -13,6 +13,7 @@ import javax.annotation.PostConstruct;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -22,7 +23,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class TransportService {
 
-    private final static Logger logger = LoggerFactory.getLogger(TransportService.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
 
     // Known producer and consumer properties initialized in static context
     static final Properties producerProps = new Properties();
@@ -42,7 +43,7 @@ public class TransportService {
     static Set<String> serverSyncTopics;
 
     // Initialized API implementations stored in a map, key - target service class, object - service instance
-    private static Map<Class, Object> wrappedServices = new HashMap<>();
+    private static Map<Class<?>, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for topic creation
     private static AdminZkClient adminZkClient;
     // Topic names for client sync topics: <class name>-<module.id>-client-sync
@@ -134,7 +135,7 @@ public class TransportService {
         // Client passed method arguments
         if (command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
             // Convert array of class names to array of Classes
-            Class[] methodArgClasses = new Class[command.getMethodArgs().length];
+            Class<?>[] methodArgClasses = new Class[command.getMethodArgs().length];
             for (int i = 0; i < command.getMethodArgs().length; i++) {
                 methodArgClasses[i] = Class.forName(command.getMethodArgs()[i]);
             }
@@ -189,19 +190,19 @@ public class TransportService {
     /*
         Register/publish server API implementations in ZooKeeper cluster
      */
-    private void registerServices() throws InstantiationException, IllegalAccessException {
+    private void registerServices() throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         // Construct map <API interface> <API implementation class>
         Map<Class<?>, Class<?>> apiImpls = new HashMap<>();
         // Take user provided list of server endpoints that must be started
-        for (Class<?> server : serverEndpoints.getServerEndpoints()) {
-            logger.info("Server endpoint: " + server.getName());
+        for (Class<?> server : serverEndpoints.getEndpoints()) {
+            logger.info("Server endpoint: {}", server.getName());
             // Add to target map
             apiImpls.put(server, server.getInterfaces()[0]);
         }
 
         for (Map.Entry<Class<?>, Class<?>> apiImpl : apiImpls.entrySet()) {
             // Initialize endpoint and add to map
-            wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().newInstance());
+            wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().getDeclaredConstructor().newInstance());
             // Then register every API implementation endpoint
             Utils.registerService(apiImpl.getValue().getName(), Utils.useKafka() ? Protocol.KAFKA : Protocol.ZMQ);
         }
@@ -216,7 +217,7 @@ public class TransportService {
             zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"), false, 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
             adminZkClient = new AdminZkClient(zkClient);
             brokersCount = zkClient.getAllBrokersInCluster().size();
-            logger.info("Kafka brokers: " + brokersCount);
+            logger.info("Kafka brokers: {}", brokersCount);
             serverAsyncTopics = createTopics("server-async");
             clientAsyncTopics = createTopics("client-async");
             serverSyncTopics = createTopics("server-sync");
@@ -235,21 +236,21 @@ public class TransportService {
         // First, we need to construct list of classes - server and client endpoints that must be initialized
         if (type.contains("server")) {
             // Take all server endpoints and
-            for (Class<?> server : serverEndpoints.getServerEndpoints()) {
+            for (Class<?> server : serverEndpoints.getEndpoints()) {
                 // If endpoint implementation is not annotated - it's an error
                 if (!server.isAnnotationPresent(ApiServer.class))
-                    throw new IllegalArgumentException("Class " + server.getName() + " is not annotated as ApiServer!");
+                    throw new IllegalArgumentException(String.format("Class %s is not annotated as ApiServer!", server.getName()));
                 // If endpoint implementation does not implement any interfaces - it's an error
                 if (server.getInterfaces().length == 0)
-                    throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+                    throw new IllegalArgumentException(String.format("Class %s does not extend Api interface!", server.getName()));
                 // If first implemented interface not annotated as @Api - it's an error
-                Class serverInterface = server.getInterfaces()[0];
+                Class<?> serverInterface = server.getInterfaces()[0];
                 if (!serverInterface.isAnnotationPresent(Api.class))
-                    throw new IllegalArgumentException("Class " + server.getName() + " does not extend Api interface!");
+                    throw new IllegalArgumentException(String.format("Class %s does not extend Api interface!", server.getName()));
                 try {
                     // API implementation must have default constructor
                     if (server.getConstructor() == null)
-                        throw new IllegalArgumentException("Class " + server.getName() + " does not have default constructor!");
+                        throw new IllegalArgumentException(String.format("Class %s does not have default constructor!", server.getName()));
                 }catch (NoSuchMethodException e){
                     logger.error("General error during endpoint initialization", e);
                 }
@@ -257,7 +258,7 @@ public class TransportService {
             }
         } else {
             // For client endpoint
-            for (Class client : clientEndpoints.getClientEndpoints()) {
+            for (Class<?> client : clientEndpoints.getEndpoints()) {
                 // We only check @ApiClient annotation presence
                 if (!client.isAnnotationPresent(ApiClient.class))
                     throw new IllegalArgumentException("Class " + client.getName() + " does has ApiClient annotation!");
@@ -319,13 +320,13 @@ public class TransportService {
                 }
             } else {
                 // Construct ZeroMQ server receiver threads
-                if (serverEndpoints.getServerEndpoints().length != 0) {
+                if (serverEndpoints.getEndpoints().length != 0) {
                     ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
                     this.zmqReceivers.add(zmqSyncRequestReceiver);
                     this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
                 }
                 // Construct ZeroMQ client receiver threads
-                if (clientEndpoints.getClientEndpoints().length != 0) {
+                if (clientEndpoints.getEndpoints().length != 0) {
                     ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
                     this.zmqReceivers.add(zmqAsyncResponseReceiver);
                     this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
@@ -341,8 +342,8 @@ public class TransportService {
             waitForRebalance();
             // Start finalizer
             FinalizationWorker.startFinalizer();
-            logger.info("STARTED IN: " + (System.currentTimeMillis() - startedTime) + " ms");
-            logger.info("Initial rebalance took:" + (RebalanceListener.lastRebalance - RebalanceListener.firstRebalance));
+            logger.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
+            logger.info("Initial rebalance took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
         } catch (Exception e) {
             logger.error("Exception during transport library startup:", e);
             throw e;
