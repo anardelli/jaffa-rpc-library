@@ -21,6 +21,6 @@ public interface PersonService {
 
     public String getName();
 
-    public String testError();
+    public Person testError();
 
 }

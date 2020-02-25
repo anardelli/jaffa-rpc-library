@@ -244,7 +244,7 @@ public class Request<T> implements RequestInterface<T> {
     /*
         Responsible for making asynchronous request using Kafka or ZeroMQ
      */
-    public void executeAsync(String key, Class<?> listener) {
+    public void executeAsync(String key, Class<? extends Callback<T>> listener) {
         // Set Callback class name
         command.setCallbackClass(listener.getName());
         // Set user-provided unique callback key

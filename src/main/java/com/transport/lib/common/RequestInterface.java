@@ -11,5 +11,5 @@ public interface RequestInterface<T> {
 
     RequestInterface<T> onModule(String moduleId);
 
-    void executeAsync(String key, Class<?> listener);
+    void executeAsync(String key, Class<? extends Callback<T>> listener);
 }

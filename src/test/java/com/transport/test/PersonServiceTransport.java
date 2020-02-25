@@ -16,6 +16,6 @@ public interface PersonServiceTransport {
 
     public RequestInterface<String> getName();
 
-    public RequestInterface<String> testError();
+    public RequestInterface<Person> testError();
 }
 
