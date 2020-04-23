@@ -3,11 +3,10 @@
 This library was created to provide communication between applications running on different JVMs
 through interface method calls. 
 Key features:
-- Very easy to use
-- Sync & async method calls - type determined by client, not server
+- Sync & async method calls - type of communication determined by client, not server
 - One interface could have multiple server implementations - 
   client choose the right one by specifying target module.id
-- User-provided timeout for both sync/async calls
+- Request-scoped timeout for both sync/async calls
 - High throughput with Kafka and low latency with ZMQ
 - User could specify custom security provider (see example below)
  
