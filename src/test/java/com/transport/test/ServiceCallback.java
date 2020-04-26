@@ -1,6 +1,6 @@
 package com.transport.test;
 
-import com.transport.lib.common.Callback;
+import com.transport.lib.callbacks.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.callbacks;
 
 /*
     Represents Callbacks for async invocations

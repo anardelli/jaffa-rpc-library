@@ -1,5 +1,7 @@
-package com.transport.lib.common;
+package com.transport.lib.entities;
 
+import com.transport.lib.security.SecurityTicket;
+import com.transport.lib.TransportService;
 import com.transport.lib.zookeeper.Utils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +19,7 @@ import java.util.UUID;
 @Setter
 @Getter
 @ToString
-class Command {
+public class Command {
 
     private static Logger logger = LoggerFactory.getLogger(Command.class);
 
@@ -44,7 +46,7 @@ class Command {
     // For async calls: moment in the future after which Callback will receive "Transport execution timeout"
     private long asyncExpireTime;
 
-    void setMetadata() {
+    public void setMetadata() {
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
         } catch (Exception e) {

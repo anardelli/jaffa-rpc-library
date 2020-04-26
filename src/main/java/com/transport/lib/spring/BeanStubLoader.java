@@ -1,5 +1,6 @@
-package com.transport.lib.common;
+package com.transport.lib.spring;
 
+import com.transport.lib.annotations.ApiClient;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.StubMethod;

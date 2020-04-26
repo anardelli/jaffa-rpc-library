@@ -1,8 +1,10 @@
-package com.transport.lib.common;
+package com.transport.lib.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.transport.lib.entities.Command;
+import com.transport.lib.entities.TransportContext;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,7 @@ import java.io.Closeable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.transport.lib.common.TransportService.*;
+import static com.transport.lib.TransportService.*;
 
 /*
     Class responsible for receiving synchronous and asynchronous requests using ZeroMQ
@@ -57,7 +59,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                                     // Target method will be executed in current Thread, so set service metadata
                                     // like client's module.id and SecurityTicket token in ThreadLocal variables
                                     TransportContext.setSourceModuleId(command.getSourceModuleId());
-                                    TransportContext.setSecurityTicketThreadLocal(command.getTicket());
+                                    TransportContext.setSecurityTicket(command.getTicket());
                                     // Invoke target method and receive result
                                     Object result = invoke(command);
                                     // Marshall result as CallbackContainer
@@ -82,7 +84,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         // Target method will be executed in current Thread, so set service metadata
                         // like client's module.id and SecurityTicket token in ThreadLocal variables
                         TransportContext.setSourceModuleId(command.getSourceModuleId());
-                        TransportContext.setSecurityTicketThreadLocal(command.getTicket());
+                        TransportContext.setSecurityTicket(command.getTicket());
                         // Invoke target method and receive result
                         Object result = invoke(command);
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();

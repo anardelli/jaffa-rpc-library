@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-class ExceptionHolder {
+public class ExceptionHolder {
     // Stacktrace of exception occurred on server side
     private String stackTrace;
 }

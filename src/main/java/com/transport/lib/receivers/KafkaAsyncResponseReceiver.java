@@ -1,7 +1,11 @@
-package com.transport.lib.common;
+package com.transport.lib.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.transport.lib.entities.CallbackContainer;
+import com.transport.lib.entities.ExceptionHolder;
+import com.transport.lib.common.FinalizationWorker;
+import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.exception.TransportExecutionException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -19,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import static com.transport.lib.common.TransportService.*;
+import static com.transport.lib.TransportService.*;
 
 /*
     Class responsible for receiving async responses using Kafka
@@ -31,7 +35,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
     // Used for waiting receiver thread startup
     private CountDownLatch countDownLatch;
 
-    KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
+    public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 

@@ -1,5 +1,18 @@
-package com.transport.lib.common;
+package com.transport.lib;
 
+import com.transport.lib.annotations.Api;
+import com.transport.lib.annotations.ApiClient;
+import com.transport.lib.annotations.ApiServer;
+import com.transport.lib.common.FinalizationWorker;
+import com.transport.lib.common.RebalanceListener;
+import com.transport.lib.entities.CallbackContainer;
+import com.transport.lib.entities.Command;
+import com.transport.lib.entities.ExceptionHolder;
+import com.transport.lib.entities.Protocol;
+import com.transport.lib.receivers.*;
+import com.transport.lib.request.RequestImpl;
+import com.transport.lib.spring.ClientEndpoints;
+import com.transport.lib.spring.ServerEndpoints;
 import com.transport.lib.zookeeper.Utils;
 import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
@@ -26,21 +39,21 @@ public class TransportService {
     private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
 
     // Known producer and consumer properties initialized in static context
-    static final Properties producerProps = new Properties();
-    static final Properties consumerProps = new Properties();
+    public static final Properties producerProps = new Properties();
+    public static final Properties consumerProps = new Properties();
 
     // ZooKeeper client for checking topic existence and broker count
-    static KafkaZkClient zkClient;
+    public static KafkaZkClient zkClient;
     // Current number of brokers in ZooKeeper cluster
-    static int brokersCount = 0;
+    public static int brokersCount = 0;
     // Mapping from primitives to associated wrappers
-    static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
+    public static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
     // Topic names for server async topics: <class name>-<module.id>-server-async
-    static Set<String> serverAsyncTopics;
+    public static Set<String> serverAsyncTopics;
     // Topic names for client async topics: <class name>-<module.id>-client-async
-    static Set<String> clientAsyncTopics;
+    public static Set<String> clientAsyncTopics;
     // Topic names for server sync topics: <class name>-<module.id>-server-sync
-    static Set<String> serverSyncTopics;
+    public static Set<String> serverSyncTopics;
 
     // Initialized API implementations stored in a map, key - target service class, object - service instance
     private static Map<Class<?>, Object> wrappedServices = new HashMap<>();
@@ -86,7 +99,7 @@ public class TransportService {
     /*
         Get required JVM option or throw IllegalArgumentException
      */
-    static String getRequiredOption(String option) {
+    public static String getRequiredOption(String option) {
         // Take required JVM option
         String optionValue = System.getProperty(option);
         // Oops, it was not set - throw exception
@@ -150,7 +163,7 @@ public class TransportService {
     /*
         Invoke Command on some initialized API implementation instance
      */
-    static Object invoke(Command command) {
+    public static Object invoke(Command command) {
         try {
             // Take target API implementation instance
             Object targetService = getTargetService(command);
@@ -177,7 +190,7 @@ public class TransportService {
         Get result from raw object after method execution
         Throwable objects are wrapped in ExceptionHolder instance because they are not serializable by Kryo
      */
-    static Object getResult(Object result) {
+    public static Object getResult(Object result) {
         // Exception occurred during target API method invocation
         if (result instanceof Throwable) {
             // Get stacktrace and save it in ExceptionHolder to transfer to client
@@ -315,7 +328,7 @@ public class TransportService {
                 if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) {
                     KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
                     this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
-                    Request.initSyncKafkaConsumers(brokersCount, started);
+                    RequestImpl.initSyncKafkaConsumers(brokersCount, started);
                     this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
                 }
             } else {
@@ -353,7 +366,7 @@ public class TransportService {
     /*
         Responsible for constructing CallbackContainer
      */
-    static CallbackContainer constructCallbackContainer(Command command, Object result) throws ClassNotFoundException, NoSuchMethodException{
+    public static CallbackContainer constructCallbackContainer(Command command, Object result) throws ClassNotFoundException, NoSuchMethodException{
         // Construct CallbackContainer
         CallbackContainer callbackContainer = new CallbackContainer();
         // User-provided callback key for identifying original request

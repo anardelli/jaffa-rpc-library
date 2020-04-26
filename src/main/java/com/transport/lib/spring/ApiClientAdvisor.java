@@ -1,5 +1,9 @@
-package com.transport.lib.common;
+package com.transport.lib.spring;
 
+import com.transport.lib.annotations.ApiClient;
+import com.transport.lib.entities.Command;
+import com.transport.lib.request.RequestImpl;
+import com.transport.lib.security.TicketProvider;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -56,7 +60,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
                 command.setMethodArgs(methodArgs);
             }
             // And here new Request is ready
-            return new Request<>(command);
+            return new RequestImpl<>(command);
         };
     }
 

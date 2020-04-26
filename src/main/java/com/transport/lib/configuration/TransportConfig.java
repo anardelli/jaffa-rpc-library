@@ -1,5 +1,6 @@
-package com.transport.lib.common;
+package com.transport.lib.configuration;
 
+import com.transport.lib.TransportService;
 import org.springframework.context.annotation.*;
 
 /*

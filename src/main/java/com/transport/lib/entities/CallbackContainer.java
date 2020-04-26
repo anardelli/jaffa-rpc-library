@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.entities;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-class CallbackContainer {
+public class CallbackContainer {
     // Unique user-provided key for identifying original request in Callback
     private String key;
     // Fully-qualified classname for callback implementation

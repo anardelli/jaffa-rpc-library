@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.receivers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.ArrayList;
 
-import static com.transport.lib.common.TransportService.brokersCount;
+import static com.transport.lib.TransportService.brokersCount;
 
 /*
     Class responsible for managing threads used by Kafka...Receivers

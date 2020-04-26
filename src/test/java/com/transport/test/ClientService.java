@@ -1,6 +1,6 @@
 package com.transport.test;
 
-import com.transport.lib.common.Api;
+import com.transport.lib.annotations.Api;
 
 @Api
 public interface ClientService {

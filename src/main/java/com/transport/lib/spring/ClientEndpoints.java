@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.spring;
 
 import lombok.Getter;
 

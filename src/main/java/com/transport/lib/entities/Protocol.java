@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

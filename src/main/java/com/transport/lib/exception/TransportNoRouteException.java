@@ -1,6 +1,6 @@
 package com.transport.lib.exception;
 
-import com.transport.lib.common.Protocol;
+import com.transport.lib.entities.Protocol;
 
 public class TransportNoRouteException extends RuntimeException {
     public TransportNoRouteException(String service, String moduleId){

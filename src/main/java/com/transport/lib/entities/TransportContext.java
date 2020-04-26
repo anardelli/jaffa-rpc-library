@@ -1,4 +1,6 @@
-package com.transport.lib.common;
+package com.transport.lib.entities;
+
+import com.transport.lib.security.SecurityTicket;
 
 /*
     Utility class for setting invocation metadata like client's module.id and security ticket in ThreadLocal variables
@@ -14,7 +16,7 @@ public class TransportContext {
         return sourceModuleId.get();
     }
 
-    static void setSourceModuleId(String sourceModuleId) {
+    public static void setSourceModuleId(String sourceModuleId) {
         TransportContext.sourceModuleId.set(sourceModuleId);
     }
 
@@ -22,7 +24,7 @@ public class TransportContext {
         return securityTicketThreadLocal.get();
     }
 
-    static void setSecurityTicketThreadLocal(SecurityTicket securityTicket) {
+    public static void setSecurityTicket(SecurityTicket securityTicket) {
         TransportContext.securityTicketThreadLocal.set(securityTicket);
     }
 }

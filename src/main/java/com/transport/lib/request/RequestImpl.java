@@ -1,8 +1,13 @@
-package com.transport.lib.common;
+package com.transport.lib.request;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.transport.lib.callbacks.Callback;
+import com.transport.lib.common.*;
+import com.transport.lib.entities.Command;
+import com.transport.lib.entities.ExceptionHolder;
+import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportNoRouteException;
@@ -24,15 +29,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
-import static com.transport.lib.common.TransportService.*;
+import static com.transport.lib.TransportService.*;
 import static java.time.temporal.ChronoUnit.MINUTES;
 
 /*
     Class responsible for making synchronous and asynchronous requests
  */
-public class Request<T> implements RequestInterface<T> {
+public class RequestImpl<T> implements Request<T> {
 
-    private static Logger logger = LoggerFactory.getLogger(Request.class);
+    private static Logger logger = LoggerFactory.getLogger(RequestImpl.class);
 
     // Object pool of consumers that used for receiving sync response from server
     // each Request removes one of objects from consumers queue and puts back after timeout occurred of response was received
@@ -48,16 +53,16 @@ public class Request<T> implements RequestInterface<T> {
     // New Kryo instance per thread
     private Kryo kryo = new Kryo();
 
-    Request(Command command) { this.command = command; }
+    public RequestImpl(Command command) { this.command = command; }
 
     // Initialize Consumer object pool
-    static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
+    public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();
         consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");
-        // Earlist offset by default, but it will be set manually lately
+        // Earliest offset by default, but it will be set manually lately
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         for (int i = 0; i < brokersCount; i++) {
@@ -100,7 +105,7 @@ public class Request<T> implements RequestInterface<T> {
     /*
         Setter for user-provided timeout
      */
-    public Request<T> withTimeout(int timeout) {
+    public RequestImpl<T> withTimeout(int timeout) {
         this.timeout = timeout;
         return this;
     }
@@ -108,7 +113,7 @@ public class Request<T> implements RequestInterface<T> {
     /*
         Setter for user-provided server module.id
      */
-    public Request<T> onModule(String moduleId) {
+    public RequestImpl<T> onModule(String moduleId) {
         this.moduleId = moduleId;
         return this;
     }

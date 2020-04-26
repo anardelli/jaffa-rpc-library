@@ -15,9 +15,9 @@ public class RebalanceListener implements ConsumerRebalanceListener {
     private static Logger logger = LoggerFactory.getLogger(RebalanceListener.class);
 
     // Used only for displaying time for rebalance
-    static volatile long firstRebalance = 0L;
+    public static volatile long firstRebalance = 0L;
     // Used in TransportService.waitForRebalance() for waiting cluster stability
-    static volatile long lastRebalance = 0L;
+    public static volatile long lastRebalance = 0L;
 
     @Override
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {

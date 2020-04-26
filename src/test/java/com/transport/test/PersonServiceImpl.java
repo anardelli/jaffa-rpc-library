@@ -1,7 +1,7 @@
 package com.transport.test;
 
-import com.transport.lib.common.ApiServer;
-import com.transport.lib.common.TransportContext;
+import com.transport.lib.annotations.ApiServer;
+import com.transport.lib.entities.TransportContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

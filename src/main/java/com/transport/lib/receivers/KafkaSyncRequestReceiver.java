@@ -1,8 +1,11 @@
-package com.transport.lib.common;
+package com.transport.lib.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.transport.lib.entities.Command;
+import com.transport.lib.common.RebalanceListener;
+import com.transport.lib.entities.TransportContext;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -21,18 +24,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import static com.transport.lib.common.TransportService.*;
+import static com.transport.lib.TransportService.*;
 
 /*
-    Class responsible for receiving async requests using Kafka
+    Class responsible for receiving sync requests using Kafka
  */
-public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable {
+public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable {
 
-    private static Logger logger = LoggerFactory.getLogger(KafkaAsyncRequestReceiver.class);
+    private static Logger logger = LoggerFactory.getLogger(KafkaSyncRequestReceiver.class);
 
     private CountDownLatch countDownLatch;
 
-    KafkaAsyncRequestReceiver(CountDownLatch countDownLatch) {
+    public KafkaSyncRequestReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
     }
 
@@ -40,17 +43,16 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
     public void run() {
         // Each RequestReceiver represents new group of consumers in Kafka
         consumerProps.put("group.id", UUID.randomUUID().toString());
-        // Start <number of brokers> consumers
         Runnable consumerThread = () -> {
             try {
                 // Each thread has consumer for receiving Requests
                 KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
                 // And producer for sending invocation results or CallbackContainers (for async calls)
                 KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+                // Then we subscribe to known server topics and waiting for requests
+                consumer.subscribe(serverSyncTopics, new RebalanceListener());
                 // New Kryo instance per thread
                 Kryo kryo = new Kryo();
-                // Then we subscribe to known server topics and waiting for requests
-                consumer.subscribe(serverAsyncTopics, new RebalanceListener());
                 // Here we consider receiver thread as started
                 countDownLatch.countDown();
                 // Waiting and processing requests
@@ -67,17 +69,17 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                             // Target method will be executed in current Thread, so set service metadata
                             // like client's module.id and SecurityTicket token in ThreadLocal variables
                             TransportContext.setSourceModuleId(command.getSourceModuleId());
-                            TransportContext.setSecurityTicketThreadLocal(command.getTicket());
+                            TransportContext.setSecurityTicket(command.getTicket());
                             // Invoke target method and receive result
                             Object result = invoke(command);
-                            // Marshall result as CallbackContainer
+                            // Prepare for result marshalling
                             ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                             Output output = new Output(bOutput);
-                            // Construct CallbackContainer and marshall it to output stream
-                            kryo.writeObject(output, constructCallbackContainer(command, result));
+                            // Marshall result
+                            kryo.writeClassAndObject(output, getResult(result));
                             output.close();
                             // Prepare record with result. Here we construct topic name on the fly
-                            ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
+                            ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
                             // Send record and ignore returned RecordMetadata
                             producer.send(resultPackage).get();
                             // Commit original request's message

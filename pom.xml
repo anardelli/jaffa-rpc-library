@@ -132,7 +132,6 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <phase>validate</phase>
                                 <goals>
                                     <goal>generate-transport-api</goal>
                                 </goals>

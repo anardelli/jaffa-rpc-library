@@ -1,5 +1,6 @@
 package com.transport.lib.common;
 
+import com.transport.lib.entities.Command;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,7 @@ import java.util.concurrent.CountDownLatch;
     Class responsible for passing "Transport execution timeout" to Callback implementations
     after timeout occurred during async remote method invocation
  */
-class FinalizationWorker {
+public class FinalizationWorker {
 
     // Many threads add Command from Request to this map, then finalizer periodically query it
     // Command resides here until one of the following events occurs:
@@ -20,7 +21,7 @@ class FinalizationWorker {
     // - Timeout occurred - each Command contains asyncExpireTime field,
     //   which equals to call time + timeout if it was specified
     //   or call time + 60 minutes otherwise
-    static final ConcurrentHashMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
     // Required to control finalizer thread startup
     private static final CountDownLatch countDownLatch = new CountDownLatch(1);
     private static Logger logger = LoggerFactory.getLogger(FinalizationWorker.class);
@@ -54,7 +55,7 @@ class FinalizationWorker {
         }
     });
 
-    static void startFinalizer() {
+    public static void startFinalizer() {
         finalizer.start();
         try {
             countDownLatch.await();
@@ -63,7 +64,7 @@ class FinalizationWorker {
         }
     }
 
-    static void stopFinalizer() {
+    public static void stopFinalizer() {
         do {
             finalizer.interrupt();
         } while (finalizer.getState() != Thread.State.TERMINATED);

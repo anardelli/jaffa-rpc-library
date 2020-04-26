@@ -1,6 +1,7 @@
 package com.transport.lib.zookeeper;
 
-import com.transport.lib.common.Protocol;
+import com.transport.lib.entities.Protocol;
+import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.exception.TransportNoRouteException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -42,6 +43,7 @@ public class Utils {
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } catch (IOException | InterruptedException e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
+            throw new TransportSystemException(e);
         }
     }
 
@@ -55,6 +57,7 @@ public class Utils {
             stat = isZNodeExists("/" + service);
         } catch (KeeperException | InterruptedException e) {
             logger.error("Can not connect to ZooKeeper cluster", e);
+            throw new TransportSystemException(e);
         }
         if (stat != null) {
             try {
@@ -129,6 +132,7 @@ public class Utils {
             logger.info("Registered service: {}", service);
         } catch (KeeperException | InterruptedException | UnknownHostException | ParseException e) {
             logger.error("Can not register services in ZooKeeper", e);
+            throw new TransportSystemException(e);
         }
     }
 

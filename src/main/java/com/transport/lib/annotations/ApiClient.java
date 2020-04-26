@@ -1,4 +1,4 @@
-package com.transport.lib.common;
+package com.transport.lib.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
