@@ -9,6 +9,7 @@ import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.entities.Protocol;
+import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.receivers.*;
 import com.transport.lib.request.RequestImpl;
 import com.transport.lib.spring.ClientEndpoints;
@@ -47,7 +48,7 @@ public class TransportService {
     // Current number of brokers in ZooKeeper cluster
     public static int brokersCount = 0;
     // Mapping from primitives to associated wrappers
-    public static Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
+    public static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
     // Topic names for server async topics: <class name>-<module.id>-server-async
     public static Set<String> serverAsyncTopics;
     // Topic names for client async topics: <class name>-<module.id>-client-async
@@ -108,29 +109,6 @@ public class TransportService {
         else return optionValue;
     }
 
-    /*
-        Wait for Kafka cluster to rebalance itself
-     */
-    private static void waitForRebalance() {
-        long start = 0L;
-        // Take last rebalance event
-        long lastRebalance = RebalanceListener.lastRebalance;
-        // Wait...
-        while (true) {
-            // Last rebalance time not changed
-            if (RebalanceListener.lastRebalance == lastRebalance) {
-                // Start counting time since that event
-                if (start == 0L) {
-                    start = System.currentTimeMillis();
-                    // Wait for 500 ms since last event
-                } else if (System.currentTimeMillis() - start > 500) break;
-            } else {
-                // Oops, new rebalance event, start waiting again
-                start = 0L;
-                lastRebalance = RebalanceListener.lastRebalance;
-            }
-        }
-    }
 
     /*
         Get name of target server API implementation from class name of transport proxy received from client
@@ -351,15 +329,15 @@ public class TransportService {
             if (expectedThreadCount != 0) started.await();
             // Publish services in ZeroMQ
             registerServices();
-            // Wait for Kafka cluster rebalance
-            waitForRebalance();
+            // Wait for Kafka cluster to be rebalanced
+            RebalanceListener.waitForRebalance();
             // Start finalizer
             FinalizationWorker.startFinalizer();
             logger.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
-            logger.info("Initial rebalance took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
-        } catch (Exception e) {
+            logger.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
+        } catch (Throwable e) {
             logger.error("Exception during transport library startup:", e);
-            throw e;
+            throw new TransportSystemException(e);
         }
     }
 

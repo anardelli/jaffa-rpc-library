@@ -32,4 +32,29 @@ public class RebalanceListener implements ConsumerRebalanceListener {
         if (firstRebalance == 0L) firstRebalance = lastRebalance;
         logger.info("onPartitionsAssigned");
     }
+
+    /*
+        Wait for Kafka cluster to be rebalanced
+     */
+    public static void waitForRebalance() {
+        long start = 0L;
+        // Take last rebalance event
+        long lastRebalance = RebalanceListener.lastRebalance;
+        // Wait...
+        while (true) {
+            // Last rebalance time not changed
+            if (RebalanceListener.lastRebalance == lastRebalance) {
+                // Start counting time since that event
+                if (start == 0L) {
+                    start = System.currentTimeMillis();
+                    // Wait for 500 ms since last event
+                } else if (System.currentTimeMillis() - start > 500) break;
+            } else {
+                // Oops, new rebalance event, start waiting again
+                start = 0L;
+                lastRebalance = RebalanceListener.lastRebalance;
+            }
+        }
+    }
+
 }
