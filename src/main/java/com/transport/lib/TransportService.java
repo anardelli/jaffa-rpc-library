@@ -382,9 +382,9 @@ public class TransportService {
 
         // Shut down Kafka consumers and associated threads
         this.kafkaReceivers.forEach(KafkaReceiver::close);
-
+        logger.info("Kafka receivers closed");
         KafkaRequestSender.shutDownConsumers();
-
+        logger.info("Kafka sync response consumers closed");
         // Unregister all server endpoints first
         try {
             for (String service : Utils.services) {
@@ -396,14 +396,7 @@ public class TransportService {
             logger.error("Unable to unregister services from ZooKeeper cluster", e);
             throw new TransportSystemException(e);
         }
-
-        // Kill all threads
-        for (Thread thread : this.receiverThreads) {
-            do {
-                thread.interrupt();
-            } while (thread.getState() != Thread.State.TERMINATED);
-        }
-
+        logger.info("Services were unregistered");
         // Shut down ZeroMQ receivers and associated threads
         this.zmqReceivers.forEach(a -> {
             try {
@@ -413,10 +406,17 @@ public class TransportService {
                 throw new TransportSystemException(e);
             }
         });
-
+        logger.info("All ZMQ sockets were closed");
+        // Kill all threads
+        for (Thread thread : this.receiverThreads) {
+            do {
+                thread.interrupt();
+            } while (thread.getState() != Thread.State.TERMINATED);
+        }
+        logger.info("All receiver threads stopped");
         // Stop finalizer threads
         FinalizationWorker.stopFinalizer();
-
+        logger.info("Finalizer was stopped");
         logger.info("Transport shutdown completed");
     }
 }

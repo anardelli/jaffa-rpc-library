@@ -68,8 +68,10 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     logger.warn("Response {} already expired", callbackContainer.getKey());
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {
-                logger.error("General ZMQ exception", recvTerminationException);
-                throw new TransportSystemException(recvTerminationException);
+                if(!recvTerminationException.getMessage().contains("156384765")) {
+                    logger.error("General ZMQ exception", recvTerminationException);
+                    throw new TransportSystemException(recvTerminationException);
+                }
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
                 logger.error("ZMQ callback execution exception", callbackExecutionException);
                 throw new TransportExecutionException(callbackExecutionException);
