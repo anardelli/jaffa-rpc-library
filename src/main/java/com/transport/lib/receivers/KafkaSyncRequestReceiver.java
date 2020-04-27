@@ -3,9 +3,10 @@ package com.transport.lib.receivers;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.transport.lib.entities.Command;
 import com.transport.lib.common.RebalanceListener;
+import com.transport.lib.entities.Command;
 import com.transport.lib.entities.TransportContext;
+import com.transport.lib.exception.TransportSystemException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -19,10 +20,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 
 import static com.transport.lib.TransportService.*;
 
@@ -44,57 +48,60 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
         // Each RequestReceiver represents new group of consumers in Kafka
         consumerProps.put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
-            try {
-                // Each thread has consumer for receiving Requests
-                KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-                // And producer for sending invocation results or CallbackContainers (for async calls)
-                KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
-                // Then we subscribe to known server topics and waiting for requests
-                consumer.subscribe(serverSyncTopics, new RebalanceListener());
-                // New Kryo instance per thread
-                Kryo kryo = new Kryo();
-                // Here we consider receiver thread as started
-                countDownLatch.countDown();
-                // Waiting and processing requests
-                while (!Thread.currentThread().isInterrupted()) {
-                    // Wait data for 100 ms if no new records available after last committed
-                    ConsumerRecords<String, byte[]> records = consumer.poll(100);
-                    // Process requests
-                    for (ConsumerRecord<String, byte[]> record : records) {
-                        try {
-                            // Each request is represented by Command instance
-                            Input input = new Input(new ByteArrayInputStream(record.value()));
-                            // Deserialize Command from byte[]
-                            Command command = kryo.readObject(input, Command.class);
-                            // Target method will be executed in current Thread, so set service metadata
-                            // like client's module.id and SecurityTicket token in ThreadLocal variables
-                            TransportContext.setSourceModuleId(command.getSourceModuleId());
-                            TransportContext.setSecurityTicket(command.getTicket());
-                            // Invoke target method and receive result
-                            Object result = invoke(command);
-                            // Prepare for result marshalling
-                            ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                            Output output = new Output(bOutput);
-                            // Marshall result
-                            kryo.writeClassAndObject(output, getResult(result));
-                            output.close();
-                            // Prepare record with result. Here we construct topic name on the fly
-                            ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
-                            // Send record and ignore returned RecordMetadata
-                            producer.send(resultPackage).get();
-                            // Commit original request's message
-                            Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
-                            commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
-                            consumer.commitSync(commitData);
-                        } catch (Exception executionException) {
-                            logger.error("Target method execution exception", executionException);
-                        }
+            // Each thread has consumer for receiving Requests
+            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+            // And producer for sending invocation results or CallbackContainers (for async calls)
+            KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+            // Then we subscribe to known server topics and waiting for requests
+            consumer.subscribe(serverSyncTopics, new RebalanceListener());
+            // New Kryo instance per thread
+            Kryo kryo = new Kryo();
+            // Here we consider receiver thread as started
+            countDownLatch.countDown();
+            // Waiting and processing requests
+            while (!Thread.currentThread().isInterrupted()) {
+                // Wait data for 100 ms if no new records available after last committed
+                ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());
+                try {
+                    records = consumer.poll(Duration.ofMillis(100));
+                }catch (InterruptException ignore){}
+                // Process requests
+                for (ConsumerRecord<String, byte[]> record : records) {
+                    try {
+                        // Each request is represented by Command instance
+                        Input input = new Input(new ByteArrayInputStream(record.value()));
+                        // Deserialize Command from byte[]
+                        Command command = kryo.readObject(input, Command.class);
+                        // Target method will be executed in current Thread, so set service metadata
+                        // like client's module.id and SecurityTicket token in ThreadLocal variables
+                        TransportContext.setSourceModuleId(command.getSourceModuleId());
+                        TransportContext.setSecurityTicket(command.getTicket());
+                        // Invoke target method and receive result
+                        Object result = invoke(command);
+                        // Prepare for result marshalling
+                        ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                        Output output = new Output(bOutput);
+                        // Marshall result
+                        kryo.writeClassAndObject(output, getResult(result));
+                        output.close();
+                        // Prepare record with result. Here we construct topic name on the fly
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
+                        // Send record and ignore returned RecordMetadata
+                        producer.send(resultPackage).get();
+                        // Commit original request's message
+                        Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
+                        commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
+                        consumer.commitSync(commitData);
+                    } catch (ExecutionException | InterruptedException executionException) {
+                        logger.error("Target method execution exception", executionException);
+                        throw new TransportSystemException(executionException);
                     }
                 }
-            } catch (InterruptException ignore) {
-            } catch (Exception generalKafkaException) {
-                logger.error("General Kafka exception", generalKafkaException);
             }
+            try {
+                consumer.close();
+                producer.close();
+            }catch (InterruptException ignore){}
         };
         // Start receiver threads
         startThreadsAndWait(consumerThread);

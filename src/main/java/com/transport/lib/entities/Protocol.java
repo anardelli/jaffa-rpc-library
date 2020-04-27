@@ -16,4 +16,9 @@ public enum Protocol {
     // Short protocol name used for service registration in ZooKeeper
     private String shortName;
 
+    public static Protocol getByName(String name) {
+        for (Protocol protocol : Protocol.values())
+            if (protocol.getShortName().equals(name)) return protocol;
+        return null;
+    }
 }

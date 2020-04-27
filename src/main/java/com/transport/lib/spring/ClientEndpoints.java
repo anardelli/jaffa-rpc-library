@@ -12,5 +12,7 @@ public class ClientEndpoints {
     private Class<?>[] endpoints;
 
     // Vararg constructor (lombok can't generate it)
-    public ClientEndpoints(Class<?>... endpoints) { this.endpoints = endpoints; }
+    public ClientEndpoints(Class<?>... endpoints) {
+        this.endpoints = endpoints;
+    }
 }

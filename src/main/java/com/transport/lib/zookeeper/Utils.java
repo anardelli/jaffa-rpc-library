@@ -1,8 +1,8 @@
 package com.transport.lib.zookeeper;
 
 import com.transport.lib.entities.Protocol;
-import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.exception.TransportNoRouteException;
+import com.transport.lib.exception.TransportSystemException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -26,9 +26,8 @@ import java.util.List;
 
 public class Utils {
 
-    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
-
     public static final List<String> services = new ArrayList<>();
+    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
     public static ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
@@ -103,15 +102,15 @@ public class Utils {
                 throw new TransportNoRouteException(service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
-                for (Object json: jArray) {
-                    String[] params = ((String)json).split("#");
+                for (Object json : jArray) {
+                    String[] params = ((String) json).split("#");
                     if (protocol.getShortName().equals(params[2])) hosts.add(params[1]);
                 }
                 if (hosts.isEmpty())
                     throw new TransportNoRouteException(service, protocol);
                 return hosts.get(0);
             }
-        } catch (KeeperException |InterruptedException | ParseException e) {
+        } catch (KeeperException | InterruptedException | ParseException e) {
             logger.error("Error while getting avaiable module.id:", e);
             throw new TransportNoRouteException(service, protocol.getShortName());
         }
@@ -139,7 +138,9 @@ public class Utils {
     /*
         Returns should we use Kafka or ZeroMQ
      */
-    public static boolean useKafka() { return Boolean.parseBoolean(System.getProperty("use.kafka", "false")); }
+    public static Protocol getTransportProtocol() {
+        return Protocol.getByName(System.getProperty("transport.protocol"));
+    }
 
     /*
         Returns user-provided service port or default if not
@@ -286,6 +287,8 @@ class ShutdownHook extends Thread {
                 Utils.delete(service, Protocol.ZMQ);
             }
             Utils.conn.close();
-        } catch (Exception ignore) { }
+        } catch (KeeperException | InterruptedException | ParseException | IOException e) {
+            throw new TransportSystemException(e);
+        }
     }
 }

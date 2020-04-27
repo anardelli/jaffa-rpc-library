@@ -10,25 +10,30 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.receivers.*;
-import com.transport.lib.request.RequestImpl;
 import com.transport.lib.spring.ClientEndpoints;
 import com.transport.lib.spring.ServerEndpoints;
 import com.transport.lib.zookeeper.Utils;
 import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
+import kafka.zookeeper.ZooKeeperClient;
 import org.apache.kafka.common.utils.Time;
+import org.apache.zookeeper.KeeperException;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -37,18 +42,16 @@ import java.util.concurrent.CountDownLatch;
  */
 public class TransportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
-
     // Known producer and consumer properties initialized in static context
     public static final Properties producerProps = new Properties();
     public static final Properties consumerProps = new Properties();
-
+    // Mapping from primitives to associated wrappers
+    public static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
     // ZooKeeper client for checking topic existence and broker count
     public static KafkaZkClient zkClient;
     // Current number of brokers in ZooKeeper cluster
     public static int brokersCount = 0;
-    // Mapping from primitives to associated wrappers
-    public static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
     // Topic names for server async topics: <class name>-<module.id>-server-async
     public static Set<String> serverAsyncTopics;
     // Topic names for client async topics: <class name>-<module.id>-client-async
@@ -179,6 +182,28 @@ public class TransportService {
     }
 
     /*
+        Responsible for constructing CallbackContainer
+     */
+    public static CallbackContainer constructCallbackContainer(Command command, Object result) throws ClassNotFoundException, NoSuchMethodException {
+        // Construct CallbackContainer
+        CallbackContainer callbackContainer = new CallbackContainer();
+        // User-provided callback key for identifying original request
+        callbackContainer.setKey(command.getCallbackKey());
+        // Fully-qualified Callback class name
+        callbackContainer.setListener(command.getCallbackClass());
+        // Result object or ExceptionHolder instance
+        callbackContainer.setResult(getResult(result));
+        // If target method returned primitive object, then send back wrapper as result class
+        Method targetMethod = getTargetMethod(command);
+        if (primitiveToWrappers.containsKey(targetMethod.getReturnType())) {
+            callbackContainer.setResultClass(primitiveToWrappers.get(targetMethod.getReturnType()).getName());
+        } else {
+            callbackContainer.setResultClass(targetMethod.getReturnType().getName());
+        }
+        return callbackContainer;
+    }
+
+    /*
         Register/publish server API implementations in ZooKeeper cluster
      */
     private void registerServices() throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
@@ -195,7 +220,7 @@ public class TransportService {
             // Initialize endpoint and add to map
             wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().getDeclaredConstructor().newInstance());
             // Then register every API implementation endpoint
-            Utils.registerService(apiImpl.getValue().getName(), Utils.useKafka() ? Protocol.KAFKA : Protocol.ZMQ);
+            Utils.registerService(apiImpl.getValue().getName(), Utils.getTransportProtocol());
         }
     }
 
@@ -204,8 +229,10 @@ public class TransportService {
      */
     private void prepareServiceRegistration() throws ClassNotFoundException {
         Utils.connect(getRequiredOption("zookeeper.connection"));
-        if (Utils.useKafka()) {
-            zkClient = KafkaZkClient.apply(getRequiredOption("zookeeper.connection"), false, 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        Protocol protocol = Utils.getTransportProtocol();
+        if (protocol.equals(Protocol.KAFKA)) {
+            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            zkClient = new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM);
             adminZkClient = new AdminZkClient(zkClient);
             brokersCount = zkClient.getAllBrokersInCluster().size();
             logger.info("Kafka brokers: {}", brokersCount);
@@ -242,7 +269,7 @@ public class TransportService {
                     // API implementation must have default constructor
                     if (server.getConstructor() == null)
                         throw new IllegalArgumentException(String.format("Class %s does not have default constructor!", server.getName()));
-                }catch (NoSuchMethodException e){
+                } catch (NoSuchMethodException e) {
                     logger.error("General error during endpoint initialization", e);
                 }
                 apiImpls.add(serverInterface);
@@ -273,7 +300,7 @@ public class TransportService {
         Transport subsystem initialization starts here
      */
     @PostConstruct
-    private void init() throws Exception {
+    private void init() {
         try {
             // Measure startup time
             long startedTime = System.currentTimeMillis();
@@ -283,45 +310,51 @@ public class TransportService {
             CountDownLatch started = null;
             // How many threads we need to start at the beginning?
             int expectedThreadCount = 0;
-            // If we use Kafka
-            if (Utils.useKafka()) {
-                // One thread-consumer for receiving async responses from server
-                // One consumer (not thread) for receiving sync responses from server
-                if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) expectedThreadCount += 2;
-                // One thread-consumer for receiving async requests from client
-                // One thread-consumer for receiving sync requests from client
-                if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) expectedThreadCount += 2;
-                // Number of threads-consumer and consumers expected to start - expectedThreadCount * number of brokers
-                if (expectedThreadCount != 0) started = new CountDownLatch(brokersCount * expectedThreadCount);
-                // Construct server consumer threads
-                if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) {
-                    KafkaSyncRequestReceiver kafkaSyncRequestReceiver = new KafkaSyncRequestReceiver(started);
-                    KafkaAsyncRequestReceiver kafkaAsyncRequestReceiver = new KafkaAsyncRequestReceiver(started);
-                    this.kafkaReceivers.add(kafkaAsyncRequestReceiver);
-                    this.kafkaReceivers.add(kafkaSyncRequestReceiver);
-                    this.receiverThreads.add(new Thread(kafkaSyncRequestReceiver));
-                    this.receiverThreads.add(new Thread(kafkaAsyncRequestReceiver));
-                }
-                // Construct client consumer threads and just consumers (for sync calls)
-                if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) {
-                    KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
-                    this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
-                    RequestImpl.initSyncKafkaConsumers(brokersCount, started);
-                    this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
-                }
-            } else {
-                // Construct ZeroMQ server receiver threads
-                if (serverEndpoints.getEndpoints().length != 0) {
-                    ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
-                    this.zmqReceivers.add(zmqSyncRequestReceiver);
-                    this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
-                }
-                // Construct ZeroMQ client receiver threads
-                if (clientEndpoints.getEndpoints().length != 0) {
-                    ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
-                    this.zmqReceivers.add(zmqAsyncResponseReceiver);
-                    this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
-                }
+
+            Protocol protocol = Utils.getTransportProtocol();
+            switch (protocol) {
+                case KAFKA:
+                    // One thread-consumer for receiving async responses from server
+                    // One consumer (not thread) for receiving sync responses from server
+                    if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) expectedThreadCount += 2;
+                    // One thread-consumer for receiving async requests from client
+                    // One thread-consumer for receiving sync requests from client
+                    if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) expectedThreadCount += 2;
+                    // Number of threads-consumer and consumers expected to start - expectedThreadCount * number of brokers
+                    if (expectedThreadCount != 0) started = new CountDownLatch(brokersCount * expectedThreadCount);
+                    // Construct server consumer threads
+                    if (!serverSyncTopics.isEmpty() && !serverAsyncTopics.isEmpty()) {
+                        KafkaSyncRequestReceiver kafkaSyncRequestReceiver = new KafkaSyncRequestReceiver(started);
+                        KafkaAsyncRequestReceiver kafkaAsyncRequestReceiver = new KafkaAsyncRequestReceiver(started);
+                        this.kafkaReceivers.add(kafkaAsyncRequestReceiver);
+                        this.kafkaReceivers.add(kafkaSyncRequestReceiver);
+                        this.receiverThreads.add(new Thread(kafkaSyncRequestReceiver));
+                        this.receiverThreads.add(new Thread(kafkaAsyncRequestReceiver));
+                    }
+                    // Construct client consumer threads and just consumers (for sync calls)
+                    if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) {
+                        KafkaAsyncResponseReceiver kafkaAsyncResponseReceiver = new KafkaAsyncResponseReceiver(started);
+                        this.kafkaReceivers.add(kafkaAsyncResponseReceiver);
+                        KafkaRequestSender.initSyncKafkaConsumers(brokersCount, started);
+                        this.receiverThreads.add(new Thread(kafkaAsyncResponseReceiver));
+                    }
+                    break;
+                case ZMQ:
+                    // Construct ZeroMQ server receiver threads
+                    if (serverEndpoints.getEndpoints().length != 0) {
+                        ZMQAsyncAndSyncRequestReceiver zmqSyncRequestReceiver = new ZMQAsyncAndSyncRequestReceiver();
+                        this.zmqReceivers.add(zmqSyncRequestReceiver);
+                        this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
+                    }
+                    // Construct ZeroMQ client receiver threads
+                    if (clientEndpoints.getEndpoints().length != 0) {
+                        ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
+                        this.zmqReceivers.add(zmqAsyncResponseReceiver);
+                        this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
+                    }
+                    break;
+                default:
+                    throw new TransportSystemException("No known protocol defined");
             }
             // Start all threads
             this.receiverThreads.forEach(Thread::start);
@@ -342,32 +375,15 @@ public class TransportService {
     }
 
     /*
-        Responsible for constructing CallbackContainer
-     */
-    public static CallbackContainer constructCallbackContainer(Command command, Object result) throws ClassNotFoundException, NoSuchMethodException{
-        // Construct CallbackContainer
-        CallbackContainer callbackContainer = new CallbackContainer();
-        // User-provided callback key for identifying original request
-        callbackContainer.setKey(command.getCallbackKey());
-        // Fully-qualified Callback class name
-        callbackContainer.setListener(command.getCallbackClass());
-        // Result object or ExceptionHolder instance
-        callbackContainer.setResult(getResult(result));
-        // If target method returned primitive object, then send back wrapper as result class
-        Method targetMethod = getTargetMethod(command);
-        if (primitiveToWrappers.containsKey(targetMethod.getReturnType())) {
-            callbackContainer.setResultClass(primitiveToWrappers.get(targetMethod.getReturnType()).getName());
-        } else {
-            callbackContainer.setResultClass(targetMethod.getReturnType().getName());
-        }
-        return callbackContainer;
-    }
-
-    /*
         Shutting down transport subsystem
      */
     public void close() {
         logger.info("Close started");
+
+        // Shut down Kafka consumers and associated threads
+        this.kafkaReceivers.forEach(KafkaReceiver::close);
+
+        KafkaRequestSender.shutDownConsumers();
 
         // Unregister all server endpoints first
         try {
@@ -376,21 +392,10 @@ public class TransportService {
                 Utils.delete(service, Protocol.KAFKA);
             }
             Utils.conn.close();
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
             logger.error("Unable to unregister services from ZooKeeper cluster", e);
+            throw new TransportSystemException(e);
         }
-
-        // Shut down Kafka consumers and associated threads
-        this.kafkaReceivers.forEach(KafkaReceiver::close);
-
-        // Shut down ZeroMQ receivers and associated threads
-        this.zmqReceivers.forEach(a -> {
-            try {
-                a.close();
-            } catch (Exception e) {
-                logger.error("Unable to shut down ZeroMQ receivers", e);
-            }
-        });
 
         // Kill all threads
         for (Thread thread : this.receiverThreads) {
@@ -399,9 +404,19 @@ public class TransportService {
             } while (thread.getState() != Thread.State.TERMINATED);
         }
 
+        // Shut down ZeroMQ receivers and associated threads
+        this.zmqReceivers.forEach(a -> {
+            try {
+                a.close();
+            } catch (IOException e) {
+                logger.error("Unable to shut down ZeroMQ receivers", e);
+                throw new TransportSystemException(e);
+            }
+        });
+
         // Stop finalizer threads
         FinalizationWorker.stopFinalizer();
 
-        logger.info("Transport subsystem shut down");
+        logger.info("Transport shutdown completed");
     }
 }

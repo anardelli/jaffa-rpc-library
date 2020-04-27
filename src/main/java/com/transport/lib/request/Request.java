@@ -7,7 +7,7 @@ import com.transport.lib.callbacks.Callback;
  */
 public interface Request<T> {
 
-    Request<T> withTimeout(int timeout);
+    Request<T> withTimeout(long timeout);
 
     T executeSync();
 

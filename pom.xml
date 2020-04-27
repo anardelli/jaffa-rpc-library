@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.komesergey</groupId>
+    <groupId>com.edwardhyde</groupId>
     <artifactId>transport-lib</artifactId>
     <version>1.0-SNAPSHOT</version>
 
@@ -17,19 +17,19 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>5.0.6.RELEASE</version>
+            <version>5.2.5.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>5.0.6.RELEASE</version>
+            <version>5.2.5.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aspects</artifactId>
-            <version>5.0.6.RELEASE</version>
+            <version>5.2.5.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -40,17 +40,17 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.8.12</version>
+            <version>1.10.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.5</version>
+            <version>3.10</version>
         </dependency>
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.4.12</version>
+            <version>3.6.0</version>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware</groupId>
@@ -65,7 +65,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>5.0.6.RELEASE</version>
+            <version>5.2.5.RELEASE</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -76,8 +76,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
-            <version>1.1.0</version>
+            <artifactId>kafka_2.12</artifactId>
+            <version>2.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -111,7 +111,7 @@
                 </executions>
                 <configuration>
                     <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server
-                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Duse.kafka=true
+                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dtransport.protocol=zmq
                     </argLine>
                 </configuration>
             </plugin>
@@ -124,7 +124,7 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>com.komesergey</groupId>
+                        <groupId>com.edwardhyde</groupId>
                         <artifactId>transport-maven-plugin</artifactId>
                         <version>1.0-SNAPSHOT</version>
                         <configuration>

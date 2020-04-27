@@ -1,5 +1,6 @@
 package com.transport.test;
 
+import com.transport.lib.exception.TransportExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class MainTest {
             personService.lol2("kek").executeSync();
             try {
                 personService.testError().onModule("test.server").executeSync();
-            } catch (Exception e) {
+            } catch (TransportExecutionException e) {
                 logger.error("Exception during sync call:", e);
             }
             personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);

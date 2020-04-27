@@ -1,7 +1,8 @@
 package com.transport.lib.entities;
 
-import com.transport.lib.security.SecurityTicket;
 import com.transport.lib.TransportService;
+import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.security.SecurityTicket;
 import com.transport.lib.zookeeper.Utils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.UnknownHostException;
 import java.util.UUID;
 
 /*
@@ -49,8 +51,9 @@ public class Command {
     public void setMetadata() {
         try {
             this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
-        } catch (Exception e) {
+        } catch (UnknownHostException e) {
             logger.error("Error during metadata setting", e);
+            throw new TransportSystemException(e);
         }
         this.sourceModuleId = TransportService.getRequiredOption("module.id");
         this.rqUid = UUID.randomUUID().toString();
