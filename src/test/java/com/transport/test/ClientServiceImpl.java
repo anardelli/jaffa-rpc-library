@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 @ApiServer
 public class ClientServiceImpl implements ClientService {
 
-    private static Logger logger = LoggerFactory.getLogger(ClientServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientServiceImpl.class);
 
     @Override
     public void lol3(String message) {

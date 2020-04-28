@@ -12,11 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ApiServer
 public class PersonServiceImpl implements PersonService {
 
-    private static Logger logger = LoggerFactory.getLogger(PersonServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(PersonServiceImpl.class);
 
-    private List<Person> people = new ArrayList<>();
+    private final List<Person> people = new ArrayList<>();
 
-    private AtomicInteger idProvider = new AtomicInteger(1);
+    private final AtomicInteger idProvider = new AtomicInteger(1);
 
     public int add(String name, String email, Address address) {
         logger.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
@@ -34,7 +34,7 @@ public class PersonServiceImpl implements PersonService {
         logger.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         logger.info("TICKET: " + RequestContext.getTicket());
         for (Person p : this.people) {
-            if (p.getId() == id) {
+            if (p.getId().equals(id)) {
                 return p;
             }
         }
