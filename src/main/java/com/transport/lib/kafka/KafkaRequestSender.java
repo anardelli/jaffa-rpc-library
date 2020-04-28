@@ -6,7 +6,6 @@ import com.transport.lib.request.Sender;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.transport.lib.TransportService.getRequiredOption;
 import static com.transport.lib.TransportService.producerProps;
@@ -28,7 +27,7 @@ public class KafkaRequestSender extends Sender {
     // Object pool of consumers that used for receiving sync response from server
     // each Request removes one of objects from consumers queue and puts back after timeout occurred of response was received
     private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
-    private static Logger logger = LoggerFactory.getLogger(KafkaRequestSender.class);
+    private static final Logger logger = LoggerFactory.getLogger(KafkaRequestSender.class);
     // One producer per Request - we need to optimize it
     private final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
 
@@ -73,9 +72,12 @@ public class KafkaRequestSender extends Sender {
         long threeMinAgo = Instant.ofEpochMilli(requestTime).minus(3, MINUTES).toEpochMilli();
         // Resubscribe Kafka consumer to client target topic
         final KafkaConsumer<String, byte[]> finalConsumer = consumer;
+        long startRebalance = System.nanoTime();
         consumer.subscribe(Collections.singletonList(clientTopicName), new ConsumerRebalanceListener() {
             @Override
-            public void onPartitionsRevoked(Collection<TopicPartition> partitions) { }
+            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                // No-op
+            }
 
             @Override
             public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
@@ -87,8 +89,10 @@ public class KafkaRequestSender extends Sender {
                     // Apply offsets to consumer
                     finalConsumer.seek(entry.getKey(), entry.getValue().offset());
                 }
+                logger.info(">>>>>> Partitions assigned took {} ns", System.nanoTime() - startRebalance);
             }
         });
+        logger.info(">>>>>> Consumer rebalance took {} ns", System.nanoTime() - startRebalance);
         /*
             Start timer for timeout.
             Timeout could be set by used or default == 60 minutes
@@ -121,6 +125,7 @@ public class KafkaRequestSender extends Sender {
 
     @Override
     public byte[] executeSync(byte[] message) {
+        long start = System.currentTimeMillis();
         // Get server-side async topic in Kafka
         String requestTopic = RequestUtils.getTopicForService(command.getServiceClass(), moduleId, true);
         try {
@@ -134,16 +139,20 @@ public class KafkaRequestSender extends Sender {
             throw new TransportExecutionException(e);
         }
         // Waiting for answer from server
-        return waitForSyncAnswer(requestTopic, System.currentTimeMillis());
+        byte[] result = waitForSyncAnswer(requestTopic, System.currentTimeMillis());
+        logger.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
+        return result;
     }
 
     @Override
     public void executeAsync(byte[] message) {
+        long start = System.currentTimeMillis();
         try {
             // Prepare message with random key and byte[] payload
             ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(RequestUtils.getTopicForService(command.getServiceClass(), moduleId, false), UUID.randomUUID().toString(), message);
             // Send message to server-side sync topic and ignore RecordMetadata
             producer.send(resultPackage).get();
+            logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         } catch (InterruptedException | ExecutionException e) {
             logger.error("Error in sending async request", e);
             // Kafka cluster is broken, return exception to user

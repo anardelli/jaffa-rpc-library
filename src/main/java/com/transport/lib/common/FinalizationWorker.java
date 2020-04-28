@@ -27,7 +27,7 @@ public class FinalizationWorker {
     public static final ConcurrentMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
     // Required to control finalizer thread startup
     private static final CountDownLatch countDownLatch = new CountDownLatch(1);
-    private static Logger logger = LoggerFactory.getLogger(FinalizationWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(FinalizationWorker.class);
     // One thread per TransportService context, it is used to call target async callbacks with
     // RuntimeException("Transport execution timeout") when asyncExpireTime is larger than current time (timeout occurred)
     private static final Thread finalizer = new Thread(() -> {

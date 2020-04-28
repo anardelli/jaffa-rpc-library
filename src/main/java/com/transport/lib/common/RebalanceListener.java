@@ -17,7 +17,7 @@ public class RebalanceListener implements ConsumerRebalanceListener {
     public static volatile long firstRebalance = 0L;
     // Used in TransportService.waitForRebalance() for waiting cluster stability
     public static volatile long lastRebalance = 0L;
-    private static Logger logger = LoggerFactory.getLogger(RebalanceListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(RebalanceListener.class);
 
     /*
         Wait for Kafka cluster to be rebalanced

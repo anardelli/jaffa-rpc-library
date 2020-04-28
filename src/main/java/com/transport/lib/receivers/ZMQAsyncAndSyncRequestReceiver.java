@@ -4,7 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.entities.Command;
-import com.transport.lib.entities.TransportContext;
+import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
@@ -28,10 +28,10 @@ import static com.transport.lib.TransportService.*;
  */
 public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
-    private static Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);
 
     // ZeroMQ async requests are processed by 3 receiver threads
-    private static ExecutorService service = Executors.newFixedThreadPool(3);
+    private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
     private ZMQ.Context context;
     private ZMQ.Socket socket;
@@ -68,8 +68,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         try {
                             // Target method will be executed in current Thread, so set service metadata
                             // like client's module.id and SecurityTicket token in ThreadLocal variables
-                            TransportContext.setSourceModuleId(command.getSourceModuleId());
-                            TransportContext.setSecurityTicket(command.getTicket());
+                            RequestContext.setSourceModuleId(command.getSourceModuleId());
+                            RequestContext.setSecurityTicket(command.getTicket());
                             // Invoke target method and receive result
                             Object result = invoke(command);
                             // Marshall result as CallbackContainer
@@ -94,8 +94,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 } else {
                     // Target method will be executed in current Thread, so set service metadata
                     // like client's module.id and SecurityTicket token in ThreadLocal variables
-                    TransportContext.setSourceModuleId(command.getSourceModuleId());
-                    TransportContext.setSecurityTicket(command.getTicket());
+                    RequestContext.setSourceModuleId(command.getSourceModuleId());
+                    RequestContext.setSecurityTicket(command.getTicket());
                     // Invoke target method and receive result
                     Object result = invoke(command);
                     ByteArrayOutputStream bOutput = new ByteArrayOutputStream();

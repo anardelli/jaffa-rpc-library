@@ -60,7 +60,7 @@ public class TransportService {
     public static Set<String> serverSyncTopics;
 
     // Initialized API implementations stored in a map, key - target service class, object - service instance
-    private static Map<Class<?>, Object> wrappedServices = new HashMap<>();
+    private static final Map<Class<?>, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for topic creation
     private static AdminZkClient adminZkClient;
     // Topic names for client sync topics: <class name>-<module.id>-client-sync
@@ -96,9 +96,9 @@ public class TransportService {
     @Autowired
     private ClientEndpoints clientEndpoints;
 
-    private List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
-    private List<Closeable> zmqReceivers = new ArrayList<>();
-    private List<Thread> receiverThreads = new ArrayList<>();
+    private final List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
+    private final List<Closeable> zmqReceivers = new ArrayList<>();
+    private final List<Thread> receiverThreads = new ArrayList<>();
 
     /*
         Get required JVM option or throw IllegalArgumentException

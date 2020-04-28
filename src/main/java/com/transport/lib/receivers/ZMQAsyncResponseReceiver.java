@@ -25,7 +25,7 @@ import java.net.UnknownHostException;
  */
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
-    private static Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
 
     private ZMQ.Context context;
     private ZMQ.Socket socket;

@@ -5,7 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
-import com.transport.lib.entities.TransportContext;
+import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -35,9 +35,9 @@ import static com.transport.lib.TransportService.*;
  */
 public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable {
 
-    private static Logger logger = LoggerFactory.getLogger(KafkaAsyncRequestReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(KafkaAsyncRequestReceiver.class);
 
-    private CountDownLatch countDownLatch;
+    private final CountDownLatch countDownLatch;
 
     public KafkaAsyncRequestReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
@@ -75,8 +75,8 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                         Command command = kryo.readObject(input, Command.class);
                         // Target method will be executed in current Thread, so set service metadata
                         // like client's module.id and SecurityTicket token in ThreadLocal variables
-                        TransportContext.setSourceModuleId(command.getSourceModuleId());
-                        TransportContext.setSecurityTicket(command.getTicket());
+                        RequestContext.setSourceModuleId(command.getSourceModuleId());
+                        RequestContext.setSecurityTicket(command.getTicket());
                         // Invoke target method and receive result
                         Object result = invoke(command);
                         // Marshall result as CallbackContainer

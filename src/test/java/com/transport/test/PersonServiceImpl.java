@@ -1,7 +1,7 @@
 package com.transport.test;
 
 import com.transport.lib.annotations.ApiServer;
-import com.transport.lib.entities.TransportContext;
+import com.transport.lib.entities.RequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +19,8 @@ public class PersonServiceImpl implements PersonService {
     private AtomicInteger idProvider = new AtomicInteger(1);
 
     public int add(String name, String email, Address address) {
-        logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
-        logger.info("TICKET: " + TransportContext.getTicket());
+        logger.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + RequestContext.getTicket());
         Person p = new Person();
         p.setEmail(email);
         p.setName(name);
@@ -31,8 +31,8 @@ public class PersonServiceImpl implements PersonService {
     }
 
     public Person get(final Integer id) {
-        logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
-        logger.info("TICKET: " + TransportContext.getTicket());
+        logger.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + RequestContext.getTicket());
         for (Person p : this.people) {
             if (p.getId() == id) {
                 return p;
@@ -42,8 +42,8 @@ public class PersonServiceImpl implements PersonService {
     }
 
     public void lol() {
-        logger.info("SOURCE MODULE ID: " + TransportContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
-        logger.info("TICKET: " + TransportContext.getTicket());
+        logger.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
+        logger.info("TICKET: " + RequestContext.getTicket());
         logger.info("Lol");
     }
 

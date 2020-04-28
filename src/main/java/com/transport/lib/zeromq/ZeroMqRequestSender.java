@@ -9,10 +9,11 @@ import org.zeromq.ZMQ;
 
 public class ZeroMqRequestSender extends Sender {
 
-    private static Logger logger = LoggerFactory.getLogger(ZeroMqRequestSender.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZeroMqRequestSender.class);
 
     @Override
     public byte[] executeSync(byte[] message) {
+        long start = System.currentTimeMillis();
         // New ZeroMQ context with 1 thread
         ZMQ.Context context = ZMQ.context(1);
         // Open socket
@@ -29,11 +30,13 @@ public class ZeroMqRequestSender extends Sender {
         byte[] response = socket.recv(0);
         // Close socket and context
         Utils.closeSocketAndContext(socket, context);
+        logger.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         return response;
     }
 
     @Override
     public void executeAsync(byte[] message) {
+        long start = System.currentTimeMillis();
         // New ZeroMQ context with 1 thread
         ZMQ.Context context = ZMQ.context(1);
         // Open socket
@@ -45,5 +48,6 @@ public class ZeroMqRequestSender extends Sender {
         // Wait for "OK" message from server that means request was received and correctly deserialized
         socket.recv(0);
         Utils.closeSocketAndContext(socket, context);
+        logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
     }
 }

@@ -13,7 +13,7 @@ import static com.transport.lib.TransportService.brokersCount;
  */
 public abstract class KafkaReceiver implements Closeable, Runnable {
 
-    private static Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
 
     /*
         Thread pool for Kafka message receivers one of the following types:

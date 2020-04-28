@@ -33,10 +33,10 @@ import static com.transport.lib.TransportService.consumerProps;
  */
 public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnable {
 
-    private static Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
 
     // Used for waiting receiver thread startup
-    private CountDownLatch countDownLatch;
+    private final CountDownLatch countDownLatch;
 
     public KafkaAsyncResponseReceiver(CountDownLatch countDownLatch) {
         this.countDownLatch = countDownLatch;
