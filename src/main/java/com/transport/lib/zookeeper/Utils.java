@@ -16,10 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -147,7 +144,7 @@ public class Utils {
      */
     private static int getServicePort() {
         try {
-            return Integer.parseInt(System.getProperty("service.port", "4242"));
+            return Integer.parseInt(System.getProperty("zmq.service.port", "4242"));
         } catch (NumberFormatException e) {
             return 4242;
         }
@@ -158,7 +155,7 @@ public class Utils {
      */
     private static int getCallbackPort() {
         try {
-            return Integer.parseInt(System.getProperty("service.port", "4242")) + 100;
+            return Integer.parseInt(System.getProperty("zmq.service.port", "4242")) + 100;
         } catch (NumberFormatException e) {
             return 4342;
         }
@@ -221,10 +218,21 @@ public class Utils {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
     }
 
+    public static InetSocketAddress getHttpBindAddress() throws UnknownHostException {
+        return new InetSocketAddress(Inet4Address.getLocalHost(),  getServicePort());
+    }
+
     /*
         Returns ZeroMQ connection string for receiving async responses from server
      */
     public static String getZeroMQCallbackBindAddress() throws UnknownHostException {
+        return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
+    }
+
+    /*
+        Returns HTTP connection string for receiving async responses from server
+     */
+    public static String getHttpCallbackBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 

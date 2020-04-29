@@ -37,7 +37,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
-            logger.error("Error during callback receiver startup:", zmqStartupException);
+            logger.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }
         // New Kryo instance per thread

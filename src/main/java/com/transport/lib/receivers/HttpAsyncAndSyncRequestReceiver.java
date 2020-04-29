@@ -3,64 +3,78 @@ package com.transport.lib.receivers;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.net.UnknownHostException;
+import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.transport.lib.TransportService.*;
 
-/*
-    Class responsible for receiving synchronous and asynchronous requests using ZeroMQ
- */
-public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
+public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(HttpAsyncAndSyncRequestReceiver.class);
 
     // ZeroMQ async requests are processed by 3 receiver threads
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
-    private ZMQ.Context context;
-    private ZMQ.Socket socket;
+    private HttpServer server;
 
     @Override
     public void run() {
 
         try {
-            context = ZMQ.context(1);
-            socket = context.socket(ZMQ.REP);
-            socket.bind("tcp://" + Utils.getZeroMQBindAddress());
-        } catch (
-                UnknownHostException zmqStartupException) {
-            logger.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
-            throw new TransportSystemException(zmqStartupException);
+            server = HttpServer.create(Utils.getHttpBindAddress(),0);
+            server.createContext("/request", new HttpRequestHandler());
+            server.setExecutor(Executors.newFixedThreadPool(3));
+            server.start();
+        } catch (IOException httpServerStartupException) {
+            logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
+            throw new TransportSystemException(httpServerStartupException);
         }
+        logger.info("{} terminated", this.getClass().getSimpleName());
+    }
 
-        // New Kryo instance per thread
-        Kryo kryo = new Kryo();
-        while (!Thread.currentThread().isInterrupted()) {
+    @Override
+    public void close() {
+        server.stop(2);
+    }
+
+    private class HttpRequestHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange request) throws IOException {
+            // New Kryo instance per thread
+            Kryo kryo = new Kryo();
             try {
-                // Receiver raw bytes
-                byte[] bytes = socket.recv();
                 // Unmarshal message to Command object
-                Input input = new Input(new ByteArrayInputStream(bytes));
+                Input input = new Input(request.getRequestBody());
                 final Command command = kryo.readObject(input, Command.class);
                 // If it is async request - answer with "OK" message before target method invocation
                 if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
-                    socket.send("OK");
+                    String response = "OK";
+                    request.sendResponseHeaders(200, response.getBytes().length);
+                    OutputStream os = request.getResponseBody();
+                    os.write(response.getBytes());
+                    os.close();
+                    request.close();
                 }
                 // If it is async request - start target method invocation in separate thread
                 if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
@@ -78,14 +92,18 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             // Construct CallbackContainer and marshall it to output stream
                             kryo.writeObject(output, constructCallbackContainer(command, result));
                             output.close();
-                            // Connect to client
-                            ZMQ.Context contextAsync = ZMQ.context(1);
-                            ZMQ.Socket socketAsync = contextAsync.socket(ZMQ.REQ);
-                            socketAsync.connect("tcp://" + command.getCallBackZMQ());
-                            // And send response
-                            socketAsync.send(bOutput.toByteArray());
-                            Utils.closeSocketAndContext(socketAsync, contextAsync);
-                        } catch (ClassNotFoundException | NoSuchMethodException e) {
+
+                            CloseableHttpClient client = HttpClientBuilder.create().build();
+                            HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
+                            HttpEntity postParams = new ByteArrayEntity(bOutput.toByteArray());
+                            httpPost.setEntity(postParams);
+                            CloseableHttpResponse httpResponse = client.execute(httpPost);
+                            int response = httpResponse.getStatusLine().getStatusCode();
+                            client.close();
+                            if(response != 200){
+                                throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
+                            }
+                        } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                             logger.error("Error while receiving async request");
                             throw new TransportExecutionException(e);
                         }
@@ -103,8 +121,12 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     // Marshall result
                     kryo.writeClassAndObject(output, getResult(result));
                     output.close();
-                    // Send result back to client
-                    socket.send(bOutput.toByteArray());
+                    byte[] response = bOutput.toByteArray();
+                    request.sendResponseHeaders(200, response.length);
+                    OutputStream os = request.getResponseBody();
+                    os.write(response);
+                    os.close();
+                    request.close();
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {
                 if(!recvTerminationException.getMessage().contains("156384765")){
@@ -113,12 +135,6 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 }
             }
         }
-        logger.info("{} terminated", this.getClass().getSimpleName());
     }
 
-    @Override
-    public void close() {
-        Utils.closeSocketAndContext(socket, context);
-        service.shutdownNow();
-    }
 }
