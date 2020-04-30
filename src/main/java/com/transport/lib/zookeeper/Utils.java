@@ -57,11 +57,19 @@ public class Utils {
         }
         if (stat != null) {
             try {
-                return getHostsForService("/" + service, moduleId, protocol)[0];
+                String host =  getHostsForService("/" + service, moduleId, protocol)[0];
+                if(protocol.equals(Protocol.HTTP)){
+                    host = getHttpPrefix() + host;
+                }
+                return host;
             } catch (KeeperException | ParseException | InterruptedException e) {
                 throw new TransportNoRouteException(service);
             }
         } else throw new TransportNoRouteException(service);
+    }
+
+    private static String getHttpPrefix(){
+        return (Boolean.parseBoolean(System.getProperty("http.ssl.enabled", "false")) ? "https" : "http") + "://";
     }
 
     /*
@@ -236,6 +244,13 @@ public class Utils {
      */
     public static InetSocketAddress getHttpCallbackBindAddress() throws UnknownHostException {
         return new InetSocketAddress(InetAddress.getLocalHost(), getCallbackPort());
+    }
+
+    /*
+        Returns HTTP connection string for receiving async responses from server
+     */
+    public static String getHttpCallbackStringAddress() throws UnknownHostException {
+        return getHttpPrefix() + getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
     /*

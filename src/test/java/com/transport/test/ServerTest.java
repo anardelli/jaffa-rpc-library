@@ -19,7 +19,7 @@ public class ServerTest {
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("service.port", "4543");
         System.setProperty("module.id", "test.server");
-        System.setProperty("transport.protocol", "zmq");
+        System.setProperty("transport.protocol", "http");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();

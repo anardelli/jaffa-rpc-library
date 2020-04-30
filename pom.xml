@@ -116,7 +116,7 @@
                 </executions>
                 <configuration>
                     <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server
-                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dtransport.protocol=zmq
+                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dtransport.protocol=http
                     </argLine>
                 </configuration>
             </plugin>

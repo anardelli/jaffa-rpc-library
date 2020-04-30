@@ -50,7 +50,10 @@ public class Command {
 
     public void setMetadata() {
         try {
-            this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
+            if(Utils.getTransportProtocol().equals(Protocol.ZMQ))
+                this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
+            if(Utils.getTransportProtocol().equals(Protocol.HTTP))
+                this.callBackZMQ = Utils.getHttpCallbackStringAddress();
         } catch (UnknownHostException e) {
             logger.error("Error during metadata setting", e);
             throw new TransportSystemException(e);
