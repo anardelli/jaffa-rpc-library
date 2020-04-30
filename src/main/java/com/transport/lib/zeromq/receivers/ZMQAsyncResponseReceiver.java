@@ -1,10 +1,7 @@
-package com.transport.lib.receivers;
+package com.transport.lib.zeromq.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.ExceptionHolder;
@@ -13,47 +10,43 @@ import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zeromq.ZMQ;
+import org.zeromq.ZMQException;
+import zmq.ZError;
+
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.concurrent.Executors;
+import java.net.UnknownHostException;
 
-public class HttpAsyncResponseReceiver implements Runnable, Closeable {
+/*
+    Class responsible for receiving asynchronous responses using ZeroMQ
+ */
+public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpAsyncResponseReceiver.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
 
-    private HttpServer server;
+    private ZMQ.Context context;
+    private ZMQ.Socket socket;
 
     @Override
     public void run() {
         try {
-            server = HttpServer.create(Utils.getHttpCallbackBindAddress(),0);
-            server.createContext("/response", new HttpRequestHandler());
-            server.setExecutor(Executors.newFixedThreadPool(3));
-            server.start();
-        } catch (IOException httpServerStartupException) {
-            logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
-            throw new TransportSystemException(httpServerStartupException);
+            context = ZMQ.context(1);
+            socket = context.socket(ZMQ.REP);
+            socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
+        } catch (UnknownHostException zmqStartupException) {
+            logger.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
+            throw new TransportSystemException(zmqStartupException);
         }
-        logger.info("{} terminated", this.getClass().getSimpleName());
-    }
-
-    @Override
-    public void close() {
-        server.stop(2);
-    }
-
-    private class HttpRequestHandler implements HttpHandler {
-
-        @Override
-        public void handle(HttpExchange request) throws IOException {
-            // New Kryo instance per thread
-            Kryo kryo = new Kryo();
+        // New Kryo instance per thread
+        Kryo kryo = new Kryo();
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 // Receive raw bytes
-                Input input = new Input(request.getRequestBody());
+                byte[] bytes = socket.recv();
+                Input input = new Input(new ByteArrayInputStream(bytes));
                 // Unmarshal bytes to CallbackContainer
                 CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                 // Get target callback class
@@ -74,17 +67,22 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 } else {
                     logger.warn("Response {} already expired", callbackContainer.getKey());
                 }
-                String response = "OK";
-                request.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream os = request.getResponseBody();
-                os.write(response.getBytes());
-                os.close();
-                request.close();
+            } catch (ZMQException | ZError.IOException recvTerminationException) {
+                if(!recvTerminationException.getMessage().contains("156384765")) {
+                    logger.error("General ZMQ exception", recvTerminationException);
+                    throw new TransportSystemException(recvTerminationException);
+                }
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
                 logger.error("ZMQ callback execution exception", callbackExecutionException);
                 throw new TransportExecutionException(callbackExecutionException);
             }
-
         }
+
+        logger.info("{} terminated", this.getClass().getSimpleName());
+    }
+
+    @Override
+    public void close() {
+        Utils.closeSocketAndContext(socket, context);
     }
 }

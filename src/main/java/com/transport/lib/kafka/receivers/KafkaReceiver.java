@@ -1,4 +1,4 @@
-package com.transport.lib.receivers;
+package com.transport.lib.kafka.receivers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

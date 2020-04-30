@@ -1,4 +1,4 @@
-package com.transport.lib.receivers;
+package com.transport.lib.http.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
