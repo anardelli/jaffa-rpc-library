@@ -153,12 +153,12 @@ NOTE: Number of partitions for library's topics is equal to broker's count.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
 #### Required JVM options
-1. **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
-2. **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (default port is 4242)
-3. **-Dhttp.service.port**     - port for receiving request connections for HTTP (default port is 4242)
-4. **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (default port is 4342)
-5. **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (default port is 4342)
-6. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
-7. **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http'
-8. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
+  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster  
+  **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (default port is 4242)  
+  **-Dhttp.service.port**     - port for receiving request connections for HTTP (default port is 4242)  
+  **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (default port is 4342)  
+  **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (default port is 4342)  
+  **-Dmodule.id**             - unique name of server in ZooKeeper cluster  
+  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http'  
+  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  
 
