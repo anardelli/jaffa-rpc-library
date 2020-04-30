@@ -1,30 +1,42 @@
 ### Transport library
 
-This library was created to provide communication between applications running on different JVMs
-through interface method calls. 
-Key features:
-- Sync & async method calls - type of communication determined by client, not server
+Library provides communication between applications running on different JVMs using interface method calls.  
+
+Key features:  
+- Sync & async method calls - type of communication is determined by client, not server
 - One interface could have multiple server implementations - 
-  client choose the right one by specifying target module.id
+  client choose required by specifying target module.id
 - Request-scoped timeout for both sync/async calls
-- High throughput with Kafka and low latency with ZMQ
+- 3 protocols:
+  - ZeroMQ
+    - Unlimited message size
+    - Low latency
+    - Pure TCP connection
+  - Kafka
+    - Persistence (messages could be replayed)
+    - High throughput
+  - HTTP
+    - Low latency
+    - High throughput
 - User could specify custom security provider (see example below)
  
-### How it works for end user
+### How it works for user
 
 You create interface with ```@Api```annotation, for example:
 
 ```java
 @Api
 public interface PersonService {
-    public static final String TEST = "TEST"; // will be ignored
-    public int add(String name,  String email, Address address);
+    public static final String TEST = "TEST";
+    public static void lol3() {
+        System.out.println("lol3");
+    }
+    public int add(String name, String email, Address address);
     public Person get(Integer id);
     public void lol();
     public void lol2(String message);
-    public static void lol3(){ System.out.println("lol3"); } // will be ignored
     public String getName();
-    public String testError();
+    public Person testError();
 }
 ```
 
@@ -36,24 +48,27 @@ public class PersonServiceImpl implements PersonService{
     // Methods
     // ...
     public void lol(){
-        TransportContext.getSourceModuleId(); // client module.id available on server side
-        TransportContext.getTicket(); // and security ticket too
+        RequestContext.getSourceModuleId(); // client module.id available on server side
+        RequestContext.getTicket(); // and security ticket too
+    }
+    public Person testError() {
+        throw new RuntimeException("Exception in " + System.getProperty("module.id"));
     }
 }
 ```
 
 Then ```transport-maven-plugin``` generates client transport interface.
-It ignores all static and default methods, all fields and makes all methods public:
+It ignores all static and default methods, all fields:
 
 ```java
 @ApiClient(ticketProvider = TicketProviderImpl.class)
 public interface PersonServiceTransport {
-    public RequestInterface<Integer> add(String name, String email, Address address);
-    public RequestInterface<Person> get(Integer id);
-    public RequestInterface<Void> lol();
-    public RequestInterface<Void> lol2(String message);
-    public RequestInterface<String> getName();
-    public RequestInterface<String> testError();
+    public Request<Integer> add(String name, String email, Address address);
+    public Request<Person> get(Integer id);
+    public Request<Void> lol();
+    public Request<Void> lol2(String message);
+    public Request<String> getName();
+    public Request<Person> testError();
 }
 ```
 
@@ -79,11 +94,11 @@ com.transport.test.PersonServiceTransport personService;
 
 // Sync call on any implementation with 10s timeout:
 Integer id = personService.add("Test name", "test@mail.com", null)
-                          .withTimeout(10_000)
+                          .withTimeout(TimeUnit.MILLISECONDS.toMillis(15000))
+                          .onModule("test.server")
                           .executeSync();
 
 // Async call on module with moduleId = main.server and timeout = 10s
-
 personService.get(id)
              .onModule("main.server")
              .withTimeout(10_000)
@@ -92,17 +107,17 @@ personService.get(id)
 // Async callback implementation example
 public class PersonCallback implements Callback<Person> {
 
-    // **key** - used as RqUID, same value that was used during invocation
+    // **key** - used as request ID, will be the same value that was used during invocation
     // **result** - result of method invocation
-    // This method will be called if method executed without throwing exception
-    // if T is Void then result will always be **null**
+    // This method will be called if method was executed without exceptions
+    // If T is Void then result will always be **null**
     @Override
     public void onSuccess(String key, Person result) {
         System.out.println("Key: " + key);
         System.out.println("Result: " + result);
     }
 
-    // This method will be called if method thrown exception OR execution timeout occurs
+    // This method will be called if method has thrown exception OR execution timeout occurred
     @Override
     public void onError(String key, Throwable exception) {
         System.out.println("Exception during async call");
@@ -139,8 +154,11 @@ NOTE: Number of partitions for library's topics is equal to broker's count.
 
 #### Required JVM options
 1. **-Dzookeeper.connection**  - host:port for ZooKeeper cluster
-2. **-Dservice.port**          - port for receiving TCP connections for ZeroMQ
-3. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
-4. **-Duse.kafka**             - if true - make all sync & async calls through Kafka, otherwise it goes through ZeroMQ
-5. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
+2. **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (default port is 4242)
+3. **-Dhttp.service.port**     - port for receiving request connections for HTTP (default port is 4242)
+4. **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (default port is 4342)
+5. **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (default port is 4342)
+6. **-Dmodule.id**             - unique name of server in ZooKeeper cluster
+7. **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http'
+8. **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster
 
