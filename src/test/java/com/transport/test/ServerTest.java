@@ -37,15 +37,15 @@ public class ServerTest {
         } catch (Exception ignore) {
         }
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
-        logger.info("Resulting id is " + id);
+        logger.info("Resulting id is {}", id);
         Person person = personService.get(id).onModule("test.server").executeSync();
         Assert.assertEquals(person.getId(), id);
         logger.info(person.toString());
         personService.lol().executeSync();
         personService.lol2("kek").executeSync();
         String name = personService.getName().executeSync();
+        logger.info("Name: {}", name);
         Assert.assertNull(name);
-        logger.info("Name: " + name);
         clientService.lol3("test3").onModule("test.server").executeSync();
         clientService.lol4("test4").onModule("test.server").executeSync();
         clientService.lol4("test4").onModule("test.server").withTimeout(TimeUnit.MILLISECONDS.toMillis(10000)).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
