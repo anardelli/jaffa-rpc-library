@@ -115,7 +115,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server
+                    <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server -Dhttp.callback.port=7001 -Dhttp.service.port=7000
                         -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dtransport.protocol=http
                     </argLine>
                 </configuration>
