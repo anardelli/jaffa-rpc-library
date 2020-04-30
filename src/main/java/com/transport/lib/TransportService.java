@@ -73,16 +73,17 @@ public class TransportService {
     private static Set<String> clientSyncTopics;
 
     static {
-        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
-        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerProps.put("enable.auto.commit", "false");
-        consumerProps.put("group.id", UUID.randomUUID().toString());
+        if(Utils.getTransportProtocol().equals(Protocol.KAFKA)){
+            consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+            consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+            consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            consumerProps.put("enable.auto.commit", "false");
+            consumerProps.put("group.id", UUID.randomUUID().toString());
 
-        producerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
-        producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-
+            producerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+            producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+            producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        }
         primitiveToWrappers.put(boolean.class, Boolean.class);
         primitiveToWrappers.put(byte.class, Byte.class);
         primitiveToWrappers.put(short.class, Short.class);
@@ -383,11 +384,13 @@ public class TransportService {
             // Publish services in ZeroMQ
             registerServices();
             // Wait for Kafka cluster to be rebalanced
-            RebalanceListener.waitForRebalance();
+            if(protocol.equals(Protocol.KAFKA)) {
+                RebalanceListener.waitForRebalance();
+                logger.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
+            }
             // Start finalizer
             FinalizationWorker.startFinalizer();
             logger.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
-            logger.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
         } catch (Throwable e) {
             logger.error("Exception during transport library startup:", e);
             throw new TransportSystemException(e);

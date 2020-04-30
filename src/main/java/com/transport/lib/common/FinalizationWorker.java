@@ -33,11 +33,11 @@ public class FinalizationWorker {
     private static final Thread finalizer = new Thread(() -> {
         logger.info("Finalizer thread started");
         countDownLatch.countDown();
-        while (Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 Thread.sleep(5);
             } catch (InterruptedException e) {
-
+                logger.info("Finalizer thread was interrupted");
                 Thread.currentThread().interrupt();
             }
             // Get all Commands with expireTime > now()
@@ -45,12 +45,14 @@ public class FinalizationWorker {
                 try {
                     // Necessary to eliminate the possibility of race between finalization thread and callback receiver thread
                     if (eventsToConsume.remove(command.getCallbackKey()) != null) {
-                        logger.info("Finalization command {}", command);
+                        long start = System.nanoTime();
+                        logger.info("Finalization request {}", command.getRqUid());
                         // Get target Callback implementation
                         Class<?> callbackClass = Class.forName(command.getCallbackClass());
                         // And invoke Callback.onError() with new TransportExecutionTimeoutException()
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                         method.invoke(callbackClass.getDeclaredConstructor().newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
+                        logger.info("Finalization request {} took {}ns", command.getRqUid(), (System.nanoTime() - start));
                     }
                 } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     logger.error("Error during finalization command: {}", command);

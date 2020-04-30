@@ -50,7 +50,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
             throw new TransportSystemException(httpServerStartupException);
         }
-        logger.info("{} terminated", this.getClass().getSimpleName());
+        logger.info("{} started", this.getClass().getSimpleName());
     }
 
     @Override
