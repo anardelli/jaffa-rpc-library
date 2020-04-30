@@ -219,7 +219,7 @@ public class Utils {
     }
 
     public static InetSocketAddress getHttpBindAddress() throws UnknownHostException {
-        return new InetSocketAddress(Inet4Address.getLocalHost(),  getServicePort());
+        return new InetSocketAddress(InetAddress.getLocalHost(),  getServicePort());
     }
 
     /*
@@ -232,8 +232,8 @@ public class Utils {
     /*
         Returns HTTP connection string for receiving async responses from server
      */
-    public static String getHttpCallbackBindAddress() throws UnknownHostException {
-        return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
+    public static InetSocketAddress getHttpCallbackBindAddress() throws UnknownHostException {
+        return new InetSocketAddress(InetAddress.getLocalHost(), getCallbackPort());
     }
 
     /*

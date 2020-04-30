@@ -346,11 +346,25 @@ public class TransportService {
                         this.zmqReceivers.add(zmqSyncRequestReceiver);
                         this.receiverThreads.add(new Thread(zmqSyncRequestReceiver));
                     }
-                    // Construct ZeroMQ client receiver threads
+                    // Construct ZeroMQ client response receiver threads
                     if (clientEndpoints.getEndpoints().length != 0) {
                         ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
                         this.zmqReceivers.add(zmqAsyncResponseReceiver);
                         this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
+                    }
+                    break;
+                case HTTP:
+                    // Construct HTTP server receiver threads
+                    if (serverEndpoints.getEndpoints().length != 0) {
+                        HttpAsyncAndSyncRequestReceiver httpAsyncAndSyncRequestReceiver = new HttpAsyncAndSyncRequestReceiver();
+                        this.zmqReceivers.add(httpAsyncAndSyncRequestReceiver);
+                        this.receiverThreads.add(new Thread(httpAsyncAndSyncRequestReceiver));
+                    }
+                    // Construct HTTP client response receiver threads
+                    if (clientEndpoints.getEndpoints().length != 0) {
+                        HttpAsyncResponseReceiver httpAsyncResponseReceiver = new HttpAsyncResponseReceiver();
+                        this.zmqReceivers.add(httpAsyncResponseReceiver);
+                        this.receiverThreads.add(new Thread(httpAsyncResponseReceiver));
                     }
                     break;
                 default:

@@ -19,10 +19,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQException;
-import zmq.ZError;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,7 +33,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpAsyncAndSyncRequestReceiver.class);
 
-    // ZeroMQ async requests are processed by 3 receiver threads
+    // HTTP async requests are processed by 3 receiver threads
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
     private HttpServer server;
@@ -41,7 +42,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
     public void run() {
 
         try {
-            server = HttpServer.create(Utils.getHttpBindAddress(),0);
+            server = HttpServer.create(Utils.getHttpBindAddress(), 0);
             server.createContext("/request", new HttpRequestHandler());
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
@@ -63,76 +64,69 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
         public void handle(HttpExchange request) throws IOException {
             // New Kryo instance per thread
             Kryo kryo = new Kryo();
-            try {
-                // Unmarshal message to Command object
-                Input input = new Input(request.getRequestBody());
-                final Command command = kryo.readObject(input, Command.class);
-                // If it is async request - answer with "OK" message before target method invocation
-                if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
-                    String response = "OK";
-                    request.sendResponseHeaders(200, response.getBytes().length);
-                    OutputStream os = request.getResponseBody();
-                    os.write(response.getBytes());
-                    os.close();
-                    request.close();
-                }
-                // If it is async request - start target method invocation in separate thread
-                if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
-                    Runnable runnable = () -> {
-                        try {
-                            // Target method will be executed in current Thread, so set service metadata
-                            // like client's module.id and SecurityTicket token in ThreadLocal variables
-                            RequestContext.setSourceModuleId(command.getSourceModuleId());
-                            RequestContext.setSecurityTicket(command.getTicket());
-                            // Invoke target method and receive result
-                            Object result = invoke(command);
-                            // Marshall result as CallbackContainer
-                            ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                            Output output = new Output(bOutput);
-                            // Construct CallbackContainer and marshall it to output stream
-                            kryo.writeObject(output, constructCallbackContainer(command, result));
-                            output.close();
+            // Unmarshal message to Command object
+            Input input = new Input(request.getRequestBody());
+            final Command command = kryo.readObject(input, Command.class);
+            // If it is async request - answer with "OK" message before target method invocation
+            if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
+                String response = "OK";
+                request.sendResponseHeaders(200, response.getBytes().length);
+                OutputStream os = request.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+                request.close();
+            }
+            // If it is async request - start target method invocation in separate thread
+            if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
+                Runnable runnable = () -> {
+                    try {
+                        // Target method will be executed in current Thread, so set service metadata
+                        // like client's module.id and SecurityTicket token in ThreadLocal variables
+                        RequestContext.setSourceModuleId(command.getSourceModuleId());
+                        RequestContext.setSecurityTicket(command.getTicket());
+                        // Invoke target method and receive result
+                        Object result = invoke(command);
+                        // Marshall result as CallbackContainer
+                        ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                        Output output = new Output(bOutput);
+                        // Construct CallbackContainer and marshall it to output stream
+                        kryo.writeObject(output, constructCallbackContainer(command, result));
+                        output.close();
 
-                            CloseableHttpClient client = HttpClientBuilder.create().build();
-                            HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
-                            HttpEntity postParams = new ByteArrayEntity(bOutput.toByteArray());
-                            httpPost.setEntity(postParams);
-                            CloseableHttpResponse httpResponse = client.execute(httpPost);
-                            int response = httpResponse.getStatusLine().getStatusCode();
-                            client.close();
-                            if(response != 200){
-                                throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
-                            }
-                        } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
-                            logger.error("Error while receiving async request");
-                            throw new TransportExecutionException(e);
+                        CloseableHttpClient client = HttpClientBuilder.create().build();
+                        HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
+                        HttpEntity postParams = new ByteArrayEntity(bOutput.toByteArray());
+                        httpPost.setEntity(postParams);
+                        CloseableHttpResponse httpResponse = client.execute(httpPost);
+                        int response = httpResponse.getStatusLine().getStatusCode();
+                        client.close();
+                        if (response != 200) {
+                            throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
                         }
-                    };
-                    service.execute(runnable);
-                } else {
-                    // Target method will be executed in current Thread, so set service metadata
-                    // like client's module.id and SecurityTicket token in ThreadLocal variables
-                    RequestContext.setSourceModuleId(command.getSourceModuleId());
-                    RequestContext.setSecurityTicket(command.getTicket());
-                    // Invoke target method and receive result
-                    Object result = invoke(command);
-                    ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                    Output output = new Output(bOutput);
-                    // Marshall result
-                    kryo.writeClassAndObject(output, getResult(result));
-                    output.close();
-                    byte[] response = bOutput.toByteArray();
-                    request.sendResponseHeaders(200, response.length);
-                    OutputStream os = request.getResponseBody();
-                    os.write(response);
-                    os.close();
-                    request.close();
-                }
-            } catch (ZMQException | ZError.IOException recvTerminationException) {
-                if(!recvTerminationException.getMessage().contains("156384765")){
-                    logger.error("General ZMQ exception", recvTerminationException);
-                    throw new TransportSystemException(recvTerminationException);
-                }
+                    } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
+                        logger.error("Error while receiving async request");
+                        throw new TransportExecutionException(e);
+                    }
+                };
+                service.execute(runnable);
+            } else {
+                // Target method will be executed in current Thread, so set service metadata
+                // like client's module.id and SecurityTicket token in ThreadLocal variables
+                RequestContext.setSourceModuleId(command.getSourceModuleId());
+                RequestContext.setSecurityTicket(command.getTicket());
+                // Invoke target method and receive result
+                Object result = invoke(command);
+                ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
+                Output output = new Output(bOutput);
+                // Marshall result
+                kryo.writeClassAndObject(output, getResult(result));
+                output.close();
+                byte[] response = bOutput.toByteArray();
+                request.sendResponseHeaders(200, response.length);
+                OutputStream os = request.getResponseBody();
+                os.write(response);
+                os.close();
+                request.close();
             }
         }
     }

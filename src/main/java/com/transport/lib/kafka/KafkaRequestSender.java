@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.transport.lib.TransportService.getRequiredOption;
 import static com.transport.lib.TransportService.producerProps;
@@ -50,7 +49,7 @@ public class KafkaRequestSender extends Sender {
         }
     }
 
-    public static void shutDownConsumers(){
+    public static void shutDownConsumers() {
         consumers.forEach(KafkaConsumer::close);
     }
 
@@ -154,7 +153,7 @@ public class KafkaRequestSender extends Sender {
             producer.send(resultPackage).get();
             logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error in sending async request", e);
+            logger.error("Error while sending async Kafka request", e);
             // Kafka cluster is broken, return exception to user
             throw new TransportExecutionException(e);
         }

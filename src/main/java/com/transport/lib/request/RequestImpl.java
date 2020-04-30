@@ -11,6 +11,7 @@ import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.http.HttpRequestSender;
 import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
@@ -25,18 +26,18 @@ import java.io.ByteArrayOutputStream;
  */
 public class RequestImpl<T> implements Request<T> {
 
-    private static Logger logger = LoggerFactory.getLogger(RequestImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(RequestImpl.class);
 
     // Time period in milliseconds during which we wait for answer from server
     private long timeout = -1;
     // Target module.id
     private String moduleId;
     // Target command
-    private Command command;
+    private final Command command;
     // New Kryo instance per thread
-    private Kryo kryo = new Kryo();
+    private final Kryo kryo = new Kryo();
 
-    private Sender sender;
+    private final Sender sender;
 
     public RequestImpl(Command command) {
         this.command = command;
@@ -47,6 +48,9 @@ public class RequestImpl<T> implements Request<T> {
                 break;
             case KAFKA:
                 sender = new KafkaRequestSender();
+                break;
+            case HTTP:
+                sender = new HttpRequestSender();
                 break;
             default:
                 throw new TransportSystemException(TransportSystemException.NO_PROTOCOL_DEFINED);

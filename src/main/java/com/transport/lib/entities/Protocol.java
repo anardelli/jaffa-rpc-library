@@ -11,7 +11,8 @@ import lombok.Getter;
 public enum Protocol {
 
     KAFKA("kafka"),
-    ZMQ("zmq");
+    ZMQ("zmq"),
+    HTTP("http");
 
     // Short protocol name used for service registration in ZooKeeper
     private String shortName;
