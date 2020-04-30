@@ -43,6 +43,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
     @Override
     public void close() {
         server.stop(2);
+        logger.info("HTTP async response receiver stopped");
     }
 
     private class HttpRequestHandler implements HttpHandler {

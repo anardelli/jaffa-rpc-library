@@ -48,7 +48,7 @@ public class HttpRequestSender extends Sender {
             logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
             return byteArray;
         } catch (IOException e) {
-            logger.error("Error while sending async HTTP request", e);
+            logger.error("Error while sending sync HTTP request", e);
             throw new TransportExecutionException(e);
         }
     }
