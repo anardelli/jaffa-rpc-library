@@ -28,7 +28,6 @@ public class HttpRequestSender extends Sender {
     @Override
     public byte[] executeSync(byte[] message) {
         try {
-            long start = System.currentTimeMillis();
             RequestConfig config = RequestConfig.custom()
                     .setConnectTimeout((int) this.timeout)
                     .setConnectionRequestTimeout((int) this.timeout)
@@ -58,7 +57,6 @@ public class HttpRequestSender extends Sender {
             buffer.flush();
             byte[] byteArray = buffer.toByteArray();
             client.close();
-            logger.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
             return byteArray;
         } catch (IOException e) {
             logger.error("Error while sending sync HTTP request", e);
@@ -69,7 +67,6 @@ public class HttpRequestSender extends Sender {
     @Override
     public void executeAsync(byte[] message) {
         try {
-            long start = System.currentTimeMillis();
             CloseableHttpClient client = HttpClientBuilder.create().build();
             HttpPost httpPost = new HttpPost(Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.HTTP) + "/request");
             HttpEntity postParams = new ByteArrayEntity(message);
@@ -77,7 +74,6 @@ public class HttpRequestSender extends Sender {
             CloseableHttpResponse httpResponse = client.execute(httpPost);
             int response = httpResponse.getStatusLine().getStatusCode();
             client.close();
-            logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
             if (response != 200) {
                 throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
             }

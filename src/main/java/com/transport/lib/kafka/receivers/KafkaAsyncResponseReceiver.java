@@ -5,8 +5,10 @@ import com.esotericsoftware.kryo.io.Input;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.CallbackContainer;
+import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
+import com.transport.lib.ui.AdminServer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -69,7 +71,8 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                         // Take target callback class
                         Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                         // If timeout not occurred yet - process response and invoke target method
-                        if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
+                        Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
+                        if (command != null) {
                             // Exception occurred on server side
                             if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                 // Invoke onError with message from ExceptionHolder
@@ -84,6 +87,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                                 } else
                                     method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                             }
+                            AdminServer.addMetric(command);
                         } else {
                             // Server failed to respond in time and invocation was already finalized with "Transport execution timeout"
                             logger.warn("Response {} already expired", callbackContainer.getKey());

@@ -47,6 +47,7 @@ public class Command {
     private SecurityTicket ticket;
     // For async calls: moment in the future after which Callback will receive "Transport execution timeout"
     private long asyncExpireTime;
+    private long requestTime;
 
     public void setMetadata() {
         try {

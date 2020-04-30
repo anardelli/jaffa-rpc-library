@@ -7,9 +7,11 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.entities.CallbackContainer;
+import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +62,8 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 // Get target callback class
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                 // If request is still valid
-                if (FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey()) != null) {
+                Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
+                if (command != null) {
                     // Send result to callback by invoking appropriate method
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
@@ -72,6 +75,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                         } else
                             method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), callbackContainer.getResult());
                     }
+                    AdminServer.addMetric(command);
                 } else {
                     logger.warn("Response {} already expired", callbackContainer.getKey());
                 }

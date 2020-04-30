@@ -13,6 +13,7 @@ import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.http.HttpRequestSender;
 import com.transport.lib.kafka.KafkaRequestSender;
+import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
 import org.slf4j.Logger;
@@ -86,6 +87,7 @@ public class RequestImpl<T> implements Request<T> {
     @SuppressWarnings("unchecked")
     public T executeSync() {
         initSender();
+        command.setRequestTime(System.currentTimeMillis());
         // Serialize command-request
         byte[] out = marshallCommand(command);
         // Response from server, if null - transport timeout occurred
@@ -97,6 +99,7 @@ public class RequestImpl<T> implements Request<T> {
         Input input = new Input(new ByteArrayInputStream(response));
         Object result = kryo.readClassAndObject(input);
         input.close();
+        AdminServer.addMetric(command);
         // Server returned ExceptionHolder - exception occurred on server side
         if (result instanceof ExceptionHolder)
             throw new TransportExecutionException(((ExceptionHolder) result).getStackTrace());
@@ -123,6 +126,7 @@ public class RequestImpl<T> implements Request<T> {
         command.setCallbackKey(key);
         // Send Request using Kafka or ZeroMQ
         sender.executeAsync(marshallCommand(command));
+        command.setRequestTime(System.currentTimeMillis());
         // Add command to background finalization thread
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));

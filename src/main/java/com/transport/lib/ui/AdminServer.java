@@ -2,6 +2,9 @@ package com.transport.lib.ui;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.transport.lib.entities.Command;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -14,16 +17,31 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
 @Component
 public class AdminServer {
 
+    @Getter
+    @AllArgsConstructor
+    public static class ResponseMetric{
+        private final long time;
+        private final long duration;
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(AdminServer.class);
 
     private HttpServer server;
 
-    public static volatile long lastResponseTime = 0;
+    public static final Queue<ResponseMetric> responses = new ConcurrentLinkedQueue<>();
+
+    public static void addMetric(Command command){
+        long executionDuration = System.currentTimeMillis() - command.getRequestTime();
+        logger.info(">>>>>> Executed request {} in {} ms", command.getRqUid(), executionDuration);
+        responses.add(new ResponseMetric(command.getRequestTime(), executionDuration));
+    }
 
     private void respondWithFile(HttpExchange exchange, String fileName) throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
@@ -64,7 +82,17 @@ public class AdminServer {
                 } else if ("/vis.min.js".equals(path)) {
                     respondWithFile(exchange, "vis.min.js");
                 }else if ("/response".equals(path)) {
-                    respondWithString(exchange, String.valueOf(lastResponseTime));
+                    int count = 0;
+                    StringBuilder builder = new StringBuilder();
+                    ResponseMetric metric;
+                    do{
+                        metric = responses.poll();
+                        if(metric != null){
+                            count++;
+                            builder.append(metric.getTime()).append(':').append(metric.getDuration()).append(';');
+                        }
+                    } while(metric != null && count < 30);
+                    respondWithString(exchange, builder.toString());
                 } else {
                     respondWithString(exchange, "OK");
                 }
