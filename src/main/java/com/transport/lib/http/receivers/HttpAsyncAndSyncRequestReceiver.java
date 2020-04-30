@@ -16,7 +16,8 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,13 +39,21 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     private HttpServer server;
 
+    public static final CloseableHttpClient client;
+
+    static {
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+        connManager.setMaxTotal(200);
+        client = HttpClients.custom().setConnectionManager(connManager).build();
+    }
+
     @Override
     public void run() {
 
         try {
             server = HttpServer.create(Utils.getHttpBindAddress(), 0);
             server.createContext("/request", new HttpRequestHandler());
-            server.setExecutor(Executors.newFixedThreadPool(3));
+            server.setExecutor(Executors.newFixedThreadPool(9));
             server.start();
         } catch (IOException httpServerStartupException) {
             logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
@@ -56,6 +65,11 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
     @Override
     public void close() {
         server.stop(2);
+        try {
+            client.close();
+        }catch (IOException e){
+            logger.error("Error while closing HTTP client", e);
+        }
         logger.info("HTTP request receiver stopped");
     }
 
@@ -93,14 +107,12 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         // Construct CallbackContainer and marshall it to output stream
                         kryo.writeObject(output, constructCallbackContainer(command, result));
                         output.close();
-
-                        CloseableHttpClient client = HttpClientBuilder.create().build();
                         HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
                         HttpEntity postParams = new ByteArrayEntity(bOutput.toByteArray());
                         httpPost.setEntity(postParams);
                         CloseableHttpResponse httpResponse = client.execute(httpPost);
                         int response = httpResponse.getStatusLine().getStatusCode();
-                        client.close();
+                        httpResponse.close();
                         if (response != 200) {
                             throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
                         }

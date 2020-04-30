@@ -78,6 +78,7 @@ public class MainTest {
             thread1.join();
             thread2.join();
             thread3.join();
+            Thread.sleep(20_000);
         } catch (Exception ignore) {
         }
     }

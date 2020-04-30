@@ -10,14 +10,15 @@ import java.util.concurrent.TimeUnit;
 
 public class ServerTest {
 
-    private static Logger logger = LoggerFactory.getLogger(ServerTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServerTest.class);
 
     public static void main(String[] args) {
 
         logger.info("================ TEST SERVER STARTING ================");
 
         System.setProperty("zookeeper.connection", "localhost:2181");
-        System.setProperty("service.port", "4543");
+        System.setProperty("http.service.port", "4543");
+        System.setProperty("http.callback.port", "4343");
         System.setProperty("module.id", "test.server");
         System.setProperty("transport.protocol", "http");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
