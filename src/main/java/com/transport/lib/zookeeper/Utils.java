@@ -143,10 +143,11 @@ public class Utils {
         Returns user-provided service port or default if not
      */
     private static int getServicePort() {
+        int defaultPort = 4242;
         try {
-            return Integer.parseInt(System.getProperty("zmq.service.port", "4242"));
+            return Integer.parseInt(System.getProperty(getTransportProtocol().getShortName() + ".service.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
-            return 4242;
+            return defaultPort;
         }
     }
 
@@ -154,10 +155,11 @@ public class Utils {
         Returns user-provided callback port or default if not
      */
     private static int getCallbackPort() {
+        int defaultPort = 4342;
         try {
-            return Integer.parseInt(System.getProperty("zmq.service.port", "4242")) + 100;
+            return Integer.parseInt(System.getProperty(getTransportProtocol().getShortName() + ".callback.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
-            return 4342;
+            return defaultPort;
         }
     }
 
