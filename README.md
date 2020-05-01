@@ -22,28 +22,21 @@ Key features:
 
 ## Latency
 
+Only **relative** latency could be estimated, because hardware and software varies greatly.   
 **X axis** - sliding time window  
 **Y axis** - response time in ms  
 Dashboard address is logged at startup like:
 ```
 2020-05-01 20:19:00 INFO  AdminServer:112 - Transport console started at http://host.docker.internal:62842/admin
 ```
-#### HTTP SYNC  
+#### SYNCHRONOUS RPC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http.PNG" width="900"/>  
-
-#### ZMQ SYNC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq.PNG" width="900"/>  
-
-#### KAFKA SYNC   
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka.PNG" width="900"/>  
 
-#### HTTP ASYNC  
+#### ASYNCHRONOUS RPC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http_async.PNG" width="900"/>  
-
-#### ZMQ ASYNC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq_async.PNG" width="900"/>  
-
-#### KAFKA ASYNC   
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka_async.PNG" width="900"/>  
 
 ## How to use
