@@ -35,6 +35,14 @@ This dashboard is available at http://localhost:1111/admin
 #### KAFKA SYNC   
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka.PNG" width="900"/>  
 
+#### HTTP ASYNC  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http_async.PNG" width="900"/>  
+
+#### ZMQ ASYNC  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq_async.PNG" width="900"/>  
+
+#### KAFKA ASYNC   
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka_async.PNG" width="900"/>  
 
 ## How to use
 
