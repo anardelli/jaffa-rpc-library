@@ -1,4 +1,4 @@
-### Transport library
+## Transport library
 
 Library provides communication between applications running on different JVMs using interface method calls.  
 
@@ -19,8 +19,24 @@ Key features:
     - Low latency
     - High throughput
 - User could specify custom security provider (see example below)
- 
-### How it works for user
+
+## Latency
+
+**X axis** - sliding time window  
+**Y axis** - response time in ms  
+This dashboard is available at http://localhost:1111/admin
+
+#### HTTP  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http.PNG" width="900"/>  
+
+#### ZeroMQ  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq.PNG" width="900"/>  
+
+#### Kafka  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka.PNG" width="900"/>  
+
+
+## How to use
 
 You create interface with ```@Api```annotation, for example:
 
@@ -127,7 +143,7 @@ public class PersonCallback implements Callback<Person> {
 
 ```
 
-### Configuration
+## Configuration
 
 ```java
 @Configuration
@@ -152,13 +168,13 @@ public class MainConfig {
 NOTE: Number of partitions for library's topics is equal to broker's count.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
-#### Required JVM options
-  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster  
-  **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (default port is 4242)  
-  **-Dhttp.service.port**     - port for receiving request connections for HTTP (default port is 4242)  
-  **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (default port is 4342)  
-  **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (default port is 4342)  
-  **-Dmodule.id**             - unique name of server in ZooKeeper cluster  
-  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http'  
-  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  
+#### Available options
+  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster (required)  
+  **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (optional, default port is 4242)  
+  **-Dhttp.service.port**     - port for receiving request connections for HTTP (optional, default port is 4242)  
+  **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (optional, default port is 4342)  
+  **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (optional, default port is 4342)  
+  **-Dmodule.id**             - unique name of server in ZooKeeper cluster (required)  
+  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http' (required)  
+  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)  
 
