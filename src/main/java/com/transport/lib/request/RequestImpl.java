@@ -124,14 +124,14 @@ public class RequestImpl<T> implements Request<T> {
         command.setCallbackClass(listener.getName());
         // Set user-provided unique callback key
         command.setCallbackKey(key);
-        // Send Request using Kafka or ZeroMQ
-        sender.executeAsync(marshallCommand(command));
         command.setRequestTime(System.currentTimeMillis());
         // Add command to background finalization thread
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
         logger.debug("Async command {} added to finalization queue", command);
-        // Add Command to finalization queue
+        // Add Command to finalization queue before request execution to avoid race between adding to queue and receiving response
         FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
+        // Send Request using Kafka or ZeroMQ
+        sender.executeAsync(marshallCommand(command));
     }
 }

@@ -5,6 +5,8 @@ import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.entities.Command;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.collections4.QueueUtils;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,7 +20,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
 @Component
@@ -35,7 +36,8 @@ public class AdminServer {
 
     private HttpServer server;
 
-    public static final Queue<ResponseMetric> responses = new ConcurrentLinkedQueue<>();
+    // Keep last 1000 responses
+    public static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
 
     public static void addMetric(Command command){
         long executionDuration = System.currentTimeMillis() - command.getRequestTime();
