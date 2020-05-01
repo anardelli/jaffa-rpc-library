@@ -26,13 +26,13 @@ Key features:
 **Y axis** - response time in ms  
 This dashboard is available at http://localhost:1111/admin
 
-#### HTTP  
+#### HTTP SYNC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http.PNG" width="900"/>  
 
-#### ZeroMQ  
+#### ZMQ SYNC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq.PNG" width="900"/>  
 
-#### Kafka  
+#### KAFKA SYNC   
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka.PNG" width="900"/>  
 
 
