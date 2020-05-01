@@ -73,8 +73,8 @@ public class PersonServiceImpl implements PersonService{
 }
 ```
 
-Then ```transport-maven-plugin``` generates client transport interface.
-It ignores all static and default methods, all fields:
+Then [transport-maven-plugin](https://github.com/dredwardhyde/transport-maven-plugin) generates client transport interface.  
+This plugin ignores all the static and default methods, all fields:
 
 ```java
 @ApiClient(ticketProvider = TicketProviderImpl.class)
@@ -102,7 +102,7 @@ public class TicketProviderImpl implements TicketProvider {
 }
 ```
 
-Next, you inject this transport interface through autowiring:
+Next, you could inject this transport interface using @Autowire:
 
 ```java
 @Autowired
