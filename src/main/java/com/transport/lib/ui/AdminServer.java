@@ -108,7 +108,7 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            logger.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort());
+            logger.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
         } catch (IOException httpServerStartupException) {
             logger.error("Exception during admin HTTP server startup", httpServerStartupException);
         }
