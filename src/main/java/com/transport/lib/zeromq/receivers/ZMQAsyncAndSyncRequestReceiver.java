@@ -43,8 +43,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             context = ZMQ.context(1);
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
-        } catch (
-                UnknownHostException zmqStartupException) {
+        } catch (UnknownHostException zmqStartupException) {
             logger.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }

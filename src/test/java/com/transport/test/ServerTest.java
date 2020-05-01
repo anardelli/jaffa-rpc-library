@@ -19,8 +19,10 @@ public class ServerTest {
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("http.service.port", "4543");
         System.setProperty("http.callback.port", "4343");
+        System.setProperty("zmq.service.port", "4843");
+        System.setProperty("zmq.callback.port", "4943");
         System.setProperty("module.id", "test.server");
-        System.setProperty("transport.protocol", "http");
+        System.setProperty("transport.protocol", "zmq");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
 
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
@@ -58,6 +60,22 @@ public class ServerTest {
         }
         personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
+//        1 hour load test
+//        Runnable runnable = () -> {
+//            long startTime = System.currentTimeMillis();
+//            while(!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)){
+//                clientService.lol3("test3").onModule("test.server").executeSync();
+//                try {
+//                    Thread.sleep((int)(Math.random() * 100));
+//                } catch (InterruptedException exception) {
+//                    exception.printStackTrace();
+//                }
+//            }
+//        };
+//
+//        Thread thread = new Thread(runnable);
+//        thread.start();
+//        thread.join();
         logger.info("================ TEST SERVER STARTED ================");
     }
 }
