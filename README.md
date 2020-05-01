@@ -24,8 +24,10 @@ Key features:
 
 **X axis** - sliding time window  
 **Y axis** - response time in ms  
-This dashboard is available at http://localhost:1111/admin
-
+Dashboard address is logged at startup like:
+```
+2020-05-01 20:19:00 INFO  AdminServer:112 - Transport console started at http://host.docker.internal:62842/admin
+```
 #### HTTP SYNC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http.PNG" width="900"/>  
 
