@@ -3,6 +3,7 @@ package com.transport.lib.ui;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.entities.Command;
+import com.transport.lib.zookeeper.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.collections4.QueueUtils;
@@ -90,7 +91,9 @@ public class AdminServer {
                     respondWithFile(exchange, "vis.min.css");
                 } else if ("/vis.min.js".equals(path)) {
                     respondWithFile(exchange, "vis.min.js");
-                }else if ("/response".equals(path)) {
+                } else if("/protocol".equals(path)){
+                    respondWithString(exchange, Utils.getTransportProtocol().getFullName());
+                } else if ("/response".equals(path)) {
                     int count = 0;
                     StringBuilder builder = new StringBuilder();
                     ResponseMetric metric;

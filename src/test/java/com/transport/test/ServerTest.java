@@ -60,22 +60,27 @@ public class ServerTest {
         }
         personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
-//        1 hour load test
+//        // 1 hour load test
 //        Runnable runnable = () -> {
 //            long startTime = System.currentTimeMillis();
-//            while(!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)){
+//            while (!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)) {
+//                // Sync call
 //                clientService.lol3("test3").onModule("test.server").executeSync();
+//                // Async call
+//                clientService.lol3("test3").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
 //                try {
-//                    Thread.sleep((int)(Math.random() * 100));
+//                    Thread.sleep((int) (Math.random() * 100));
 //                } catch (InterruptedException exception) {
 //                    exception.printStackTrace();
 //                }
 //            }
 //        };
-//
-//        Thread thread = new Thread(runnable);
-//        thread.start();
-//        thread.join();
+//        try {
+//            Thread thread = new Thread(runnable);
+//            thread.start();
+//            thread.join();
+//        } catch (Exception ignore) {
+//        }
         logger.info("================ TEST SERVER STARTED ================");
     }
 }

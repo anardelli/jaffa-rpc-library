@@ -21,11 +21,28 @@
 </head>
 
 <body>
-  <h2>Response time</h2>
+  <h2 id="header">Response time</h2>
+  <h3 id="count">Requests: 0</h3>
 
   <div id="visualization" />
 
   <script type="text/javascript">
+
+    var header = document.getElementById('header');
+    var count = document.getElementById('count');
+
+    let headerPrefix = 'Response time';
+    let countPrefix =  'Requests: ';
+    var requestCount = 0;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'protocol', false);
+    xhr.send();
+    if (xhr.status == 200) {
+        header.innerHTML = headerPrefix + ' (' + xhr.responseText + ')';
+    } else{
+        header.innerHTML = headerPrefix;
+    }
     var DELAY = 50;
 
     var container = document.getElementById('visualization');
@@ -37,7 +54,7 @@
       dataAxis: {
         left: {
           range: {
-            min: 0, max: 10
+            min: 0, max: 20
           }
         }
       },
@@ -59,11 +76,13 @@
       if (xhr.status == 200) {
         let fullResponse = xhr.responseText;
         var array = fullResponse.split(';');
+        requestCount += array.length;
         array.forEach(function (item, i, arr) {
           let point = item.split(':');
           result.push([Number(point[0]), Number(point[1])]);
         });
       }
+      count.innerHTML = countPrefix + requestCount;
       return result;
     }
 
