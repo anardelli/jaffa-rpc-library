@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 
@@ -71,10 +72,16 @@ public class AdminServer {
         exchange.close();
     }
 
+    private Integer getFreePort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
+    }
+
     @PostConstruct
     public void init() {
         try {
-            server = HttpServer.create(new InetSocketAddress(InetAddress.getLocalHost(), 1111), 0);
+            server = HttpServer.create(new InetSocketAddress(InetAddress.getLocalHost(), getFreePort()), 0);
             server.createContext("/", (HttpExchange exchange) -> {
                 String path = exchange.getRequestURI().getPath();
                 if ("/admin".equals(path)) {
@@ -101,7 +108,7 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            logger.info("Admin console started at {}", InetAddress.getLocalHost().getHostAddress());
+            logger.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort());
         } catch (IOException httpServerStartupException) {
             logger.error("Exception during admin HTTP server startup", httpServerStartupException);
         }
