@@ -25,7 +25,7 @@ Key features:
 Only **relative** latency could be estimated, because hardware and software varies greatly.   
 **X axis** - sliding time window  
 **Y axis** - response time in ms  
-Dashboard address is logged at startup like:
+Dashboard URL is logged at startup like this:
 ```
 2020-05-01 20:19:00 INFO  AdminServer:112 - Transport console started at http://host.docker.internal:62842/admin
 ```
@@ -172,12 +172,12 @@ NOTE: Number of partitions for library's topics is equal to broker's count.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
 #### Available options
-  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster (required)  
+  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster **(required)**  
   **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (optional, default port is 4242)  
   **-Dhttp.service.port**     - port for receiving request connections for HTTP (optional, default port is 4242)  
   **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (optional, default port is 4342)  
   **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (optional, default port is 4342)  
-  **-Dmodule.id**             - unique name of server in ZooKeeper cluster (required)  
-  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http' (required)  
+  **-Dmodule.id**             - unique name of server in ZooKeeper cluster **(required)**  
+  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http' **(required)**  
   **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)  
 
