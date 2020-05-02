@@ -1,12 +1,12 @@
 package com.transport.lib.kafka.receivers;
 
+import com.transport.lib.TransportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.text.MessageFormat;
 import java.util.ArrayList;
-
-import static com.transport.lib.TransportService.brokersCount;
 
 /*
     Class responsible for managing threads used by Kafka...Receivers
@@ -21,11 +21,11 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
         - async responses
         - sync requests
      */
-    private final ArrayList<Thread> threads = new ArrayList<>(brokersCount);
+    private final ArrayList<Thread> threads = new ArrayList<>(TransportService.getBrokersCount());
 
     // Method starts one thread (consumer) per Kafka broker (partition)
     void startThreadsAndWait(Runnable runnable) {
-        for (int i = 0; i < brokersCount; i++) {
+        for (int i = 0; i < TransportService.getBrokersCount(); i++) {
             threads.add(new Thread(runnable));
         }
         // Start all threads
@@ -36,7 +36,7 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
             try {
                 x.join();
             } catch (InterruptedException e) {
-                logger.error("Can't join thread " + x.getName() + " in " + this.getClass().getSimpleName(), e);
+                logger.error(MessageFormat.format("Can not join thread {0} in {1}", x.getName(), this.getClass().getSimpleName()), e);
             }
         });
     }

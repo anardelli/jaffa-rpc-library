@@ -25,6 +25,9 @@ import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
 import kafka.zookeeper.ZooKeeperClient;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.KeeperException;
 import org.json.simple.parser.ParseException;
@@ -49,28 +52,43 @@ import java.util.concurrent.CountDownLatch;
 public class TransportService {
 
     // Known producer and consumer properties initialized in static context
-    public static final Properties producerProps = new Properties();
-    public static final Properties consumerProps = new Properties();
+    @Getter
+    private static final Properties producerProps = new Properties();
+    @Getter
+    private static final Properties consumerProps = new Properties();
     // Mapping from primitives to associated wrappers
-    public static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
+    private static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
     // ZooKeeper client for checking topic existence and broker count
-    public static KafkaZkClient zkClient;
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static KafkaZkClient zkClient;
     // Current number of brokers in ZooKeeper cluster
-    public static int brokersCount = 0;
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static int brokersCount = 0;
     // Topic names for server async topics: <class name>-<module.id>-server-async
-    public static Set<String> serverAsyncTopics;
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static Set<String> serverAsyncTopics;
     // Topic names for client async topics: <class name>-<module.id>-client-async
-    public static Set<String> clientAsyncTopics;
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static Set<String> clientAsyncTopics;
     // Topic names for server sync topics: <class name>-<module.id>-server-sync
-    public static Set<String> serverSyncTopics;
-
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static Set<String> serverSyncTopics;
+    // Topic names for client sync topics: <class name>-<module.id>-client-sync
+    @Getter
+    @Setter(AccessLevel.PRIVATE)
+    private static Set<String> clientSyncTopics;
     // Initialized API implementations stored in a map, key - target service class, object - service instance
     private static final Map<Class<?>, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for topic creation
+    @Setter(AccessLevel.PRIVATE)
     private static AdminZkClient adminZkClient;
-    // Topic names for client sync topics: <class name>-<module.id>-client-sync
-    private static Set<String> clientSyncTopics;
+
 
     static {
         if(Utils.getTransportProtocol().equals(Protocol.KAFKA)){
@@ -168,7 +186,7 @@ public class TransportService {
             // If target Method return type is Void - return class Void as a stub
             if (targetMethod.getReturnType().equals(Void.TYPE)) return Void.TYPE;
             else return result;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             // Exception occurred during target method invocation, save it
             return e.getCause();
         }
@@ -239,14 +257,14 @@ public class TransportService {
         Protocol protocol = Utils.getTransportProtocol();
         if (protocol.equals(Protocol.KAFKA)) {
             ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
-            zkClient = new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM);
-            adminZkClient = new AdminZkClient(zkClient);
-            brokersCount = zkClient.getAllBrokersInCluster().size();
+            TransportService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
+            TransportService.setAdminZkClient(new AdminZkClient(zkClient));
+            TransportService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
             logger.info("Kafka brokers: {}", brokersCount);
-            serverAsyncTopics = createTopics("server-async");
-            clientAsyncTopics = createTopics("client-async");
-            serverSyncTopics = createTopics("server-sync");
-            clientSyncTopics = createTopics("client-sync");
+            TransportService.setServerAsyncTopics(createTopics("server-async"));
+            TransportService.setClientAsyncTopics(createTopics("client-async"));
+            TransportService.setServerSyncTopics(createTopics("server-sync"));
+            TransportService.setClientSyncTopics(createTopics("client-sync"));
         }
     }
 
@@ -274,10 +292,10 @@ public class TransportService {
                     throw new IllegalArgumentException(String.format("Class %s does not extend Api interface!", server.getName()));
                 try {
                     // API implementation must have default constructor
-                    if (server.getConstructor() == null)
-                        throw new IllegalArgumentException(String.format("Class %s does not have default constructor!", server.getName()));
+                    server.getConstructor();
                 } catch (NoSuchMethodException e) {
                     logger.error("General error during endpoint initialization", e);
+                    throw new IllegalArgumentException(String.format("Class %s does not have default constructor!", server.getName()));
                 }
                 apiImpls.add(serverInterface);
             }
@@ -307,6 +325,7 @@ public class TransportService {
         Transport subsystem initialization starts here
      */
     @PostConstruct
+    @SuppressWarnings("unused")
     private void init() {
         try {
             // Measure startup time
@@ -391,7 +410,7 @@ public class TransportService {
             // Start finalizer
             FinalizationWorker.startFinalizer();
             logger.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             logger.error("Exception during transport library startup:", e);
             throw new TransportSystemException(e);
         }

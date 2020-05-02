@@ -2,6 +2,7 @@ package com.transport.lib.kafka.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.transport.lib.TransportService;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.CallbackContainer;
@@ -27,9 +28,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import static com.transport.lib.TransportService.clientAsyncTopics;
-import static com.transport.lib.TransportService.consumerProps;
-
 /*
     Class responsible for receiving async responses using Kafka
  */
@@ -47,14 +45,14 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
     @Override
     public void run() {
         // New group.id per consumer group
-        consumerProps.put("group.id", UUID.randomUUID().toString());
+        TransportService.getConsumerProps().put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             // Consumer waiting for async responses (CallbackContainer) from server
-            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(TransportService.getConsumerProps());
             // New Kryo instance per thread
             Kryo kryo = new Kryo();
             // Subscribe to known client topics
-            consumer.subscribe(clientAsyncTopics, new RebalanceListener());
+            consumer.subscribe(TransportService.getClientAsyncTopics(), new RebalanceListener());
             countDownLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
                 // Wait data for 100 ms if no new records available after last committed

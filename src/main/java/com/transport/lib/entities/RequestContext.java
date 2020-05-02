@@ -1,10 +1,13 @@
 package com.transport.lib.entities;
 
 import com.transport.lib.security.SecurityTicket;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /*
     Utility class for setting invocation metadata like client's module.id and security ticket in ThreadLocal variables
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestContext {
 
     // Client's module.id

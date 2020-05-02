@@ -1,5 +1,6 @@
 package com.transport.lib.kafka;
 
+import com.transport.lib.TransportService;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.request.RequestUtils;
 import com.transport.lib.request.Sender;
@@ -17,8 +18,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-import static com.transport.lib.TransportService.getRequiredOption;
-import static com.transport.lib.TransportService.producerProps;
 import static java.time.temporal.ChronoUnit.MINUTES;
 
 public class KafkaRequestSender extends Sender {
@@ -28,12 +27,12 @@ public class KafkaRequestSender extends Sender {
     private static final ConcurrentLinkedQueue<KafkaConsumer<String, byte[]>> consumers = new ConcurrentLinkedQueue<>();
     private static final Logger logger = LoggerFactory.getLogger(KafkaRequestSender.class);
     // One producer per Request - we need to optimize it
-    private final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+    private final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(TransportService.getProducerProps());
 
     // Initialize Consumer object pool
     public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+        consumerProps.put("bootstrap.servers", TransportService.getRequiredOption("bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");

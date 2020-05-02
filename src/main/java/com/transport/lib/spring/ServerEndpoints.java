@@ -9,7 +9,7 @@ import lombok.Getter;
 public class ServerEndpoints {
 
     // User-provided list of server-side API implementations
-    private Class<?>[] endpoints;
+    private final Class<?>[] endpoints;
 
     // Vararg constructor (lombok can't generate it)
     public ServerEndpoints(Class<?>... endpoints) {

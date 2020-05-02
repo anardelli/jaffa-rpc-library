@@ -1,11 +1,13 @@
 package com.transport.lib.request;
 
+import com.transport.lib.TransportService;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportNoRouteException;
 import com.transport.lib.zookeeper.Utils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-import static com.transport.lib.TransportService.zkClient;
-
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestUtils {
     /*
         Returns server-side topic name for synchronous and asynchronous requests
@@ -29,7 +31,7 @@ public class RequestUtils {
         }
         String topicName = serviceInterface + "-" + availableModuleId + "-server" + (sync ? "-sync" : "-async");
         // if necessary topic does not exist for some reason - throw "transport no route" exception
-        if (!zkClient.topicExists(topicName))
+        if (!TransportService.getZkClient().topicExists(topicName))
             throw new TransportNoRouteException(serviceInterface, availableModuleId);
         else
             return topicName;

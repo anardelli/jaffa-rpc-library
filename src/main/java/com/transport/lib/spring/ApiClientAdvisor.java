@@ -4,6 +4,7 @@ import com.transport.lib.annotations.ApiClient;
 import com.transport.lib.entities.Command;
 import com.transport.lib.request.RequestImpl;
 import com.transport.lib.security.TicketProvider;
+import lombok.EqualsAndHashCode;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -21,13 +22,14 @@ import java.lang.reflect.Method;
     AOP advisor to intercept method invocations on @ApiClient transport proxies
  */
 @Component
+@EqualsAndHashCode(callSuper = false)
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
 
     private final transient MethodInterceptor interceptor;
     private final transient StaticMethodMatcherPointcut pointcut = new ApiClientAnnotationOnClassOrInheritedInterfacePointcut();
 
     @Autowired
-    private ApplicationContext context;
+    private transient ApplicationContext context;
 
     public ApiClientAdvisor() {
         super();

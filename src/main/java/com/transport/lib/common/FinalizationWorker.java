@@ -3,6 +3,8 @@ package com.transport.lib.common;
 import com.transport.lib.entities.Command;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportSystemException;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
     Class responsible for passing "Transport execution timeout" to Callback implementations
     after timeout occurred during async remote method invocation
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FinalizationWorker {
 
     // Many threads add Command from Request to this map, then finalizer periodically query it

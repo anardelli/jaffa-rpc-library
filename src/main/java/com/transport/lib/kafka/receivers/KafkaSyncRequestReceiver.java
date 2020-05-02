@@ -3,6 +3,7 @@ package com.transport.lib.kafka.receivers;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.transport.lib.TransportService;
 import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
@@ -27,8 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-import static com.transport.lib.TransportService.*;
-
 /*
     Class responsible for receiving sync requests using Kafka
  */
@@ -45,14 +44,14 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
     @Override
     public void run() {
         // Each RequestReceiver represents new group of consumers in Kafka
-        consumerProps.put("group.id", UUID.randomUUID().toString());
+        TransportService.getConsumerProps().put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             // Each thread has consumer for receiving Requests
-            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+            KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(TransportService.getConsumerProps());
             // And producer for sending invocation results or CallbackContainers (for async calls)
-            KafkaProducer<String, byte[]> producer = new KafkaProducer<>(producerProps);
+            KafkaProducer<String, byte[]> producer = new KafkaProducer<>(TransportService.getProducerProps());
             // Then we subscribe to known server topics and waiting for requests
-            consumer.subscribe(serverSyncTopics, new RebalanceListener());
+            consumer.subscribe(TransportService.getServerSyncTopics(), new RebalanceListener());
             // New Kryo instance per thread
             Kryo kryo = new Kryo();
             // Here we consider receiver thread as started
@@ -76,15 +75,15 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
                         // Invoke target method and receive result
-                        Object result = invoke(command);
+                        Object result = TransportService.invoke(command);
                         // Prepare for result marshalling
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                         Output output = new Output(bOutput);
                         // Marshall result
-                        kryo.writeClassAndObject(output, getResult(result));
+                        kryo.writeClassAndObject(output, TransportService.getResult(result));
                         output.close();
                         // Prepare record with result. Here we construct topic name on the fly
-                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + TransportService.getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
                         // Send record and ignore returned RecordMetadata
                         producer.send(resultPackage).get();
                         // Commit original request's message
