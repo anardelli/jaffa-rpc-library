@@ -10,12 +10,13 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
+import com.transport.lib.http.receivers.HttpAsyncResponseReceiver;
 import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.kafka.receivers.KafkaAsyncRequestReceiver;
 import com.transport.lib.kafka.receivers.KafkaAsyncResponseReceiver;
 import com.transport.lib.kafka.receivers.KafkaReceiver;
 import com.transport.lib.kafka.receivers.KafkaSyncRequestReceiver;
-import com.transport.lib.http.receivers.*;
 import com.transport.lib.spring.ClientEndpoints;
 import com.transport.lib.spring.ServerEndpoints;
 import com.transport.lib.zeromq.receivers.ZMQAsyncAndSyncRequestReceiver;
@@ -28,11 +29,10 @@ import kafka.zookeeper.ZooKeeperClient;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.KeeperException;
 import org.json.simple.parser.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -49,6 +49,7 @@ import java.util.concurrent.CountDownLatch;
 /*
     Class responsible for initialization of transport subsystem
  */
+@Slf4j
 public class TransportService {
 
     // Known producer and consumer properties initialized in static context
@@ -58,7 +59,8 @@ public class TransportService {
     private static final Properties consumerProps = new Properties();
     // Mapping from primitives to associated wrappers
     private static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
-    private static final Logger logger = LoggerFactory.getLogger(TransportService.class);
+    // Initialized API implementations stored in a map, key - target service class, object - service instance
+    private static final Map<Class<?>, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for checking topic existence and broker count
     @Getter
     @Setter(AccessLevel.PRIVATE)
@@ -83,15 +85,13 @@ public class TransportService {
     @Getter
     @Setter(AccessLevel.PRIVATE)
     private static Set<String> clientSyncTopics;
-    // Initialized API implementations stored in a map, key - target service class, object - service instance
-    private static final Map<Class<?>, Object> wrappedServices = new HashMap<>();
     // ZooKeeper client for topic creation
     @Setter(AccessLevel.PRIVATE)
     private static AdminZkClient adminZkClient;
 
 
     static {
-        if(Utils.getTransportProtocol().equals(Protocol.KAFKA)){
+        if (Utils.getTransportProtocol().equals(Protocol.KAFKA)) {
             consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
             consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
@@ -113,17 +113,15 @@ public class TransportService {
         primitiveToWrappers.put(void.class, Void.class);
     }
 
-    // User-provided set of API implementations as array of Classes
-    @Autowired
-    private ServerEndpoints serverEndpoints;
-
-    // User-provided set of API client interfaces
-    @Autowired
-    private ClientEndpoints clientEndpoints;
-
     private final List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
     private final List<Closeable> zmqReceivers = new ArrayList<>();
     private final List<Thread> receiverThreads = new ArrayList<>();
+    // User-provided set of API implementations as array of Classes
+    @Autowired
+    private ServerEndpoints serverEndpoints;
+    // User-provided set of API client interfaces
+    @Autowired
+    private ClientEndpoints clientEndpoints;
 
     /*
         Get required JVM option or throw IllegalArgumentException
@@ -236,7 +234,7 @@ public class TransportService {
         Map<Class<?>, Class<?>> apiImpls = new HashMap<>();
         // Take user provided list of server endpoints that must be started
         for (Class<?> server : serverEndpoints.getEndpoints()) {
-            logger.info("Server endpoint: {}", server.getName());
+            log.info("Server endpoint: {}", server.getName());
             // Add to target map
             apiImpls.put(server, server.getInterfaces()[0]);
         }
@@ -260,7 +258,7 @@ public class TransportService {
             TransportService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
             TransportService.setAdminZkClient(new AdminZkClient(zkClient));
             TransportService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
-            logger.info("Kafka brokers: {}", brokersCount);
+            log.info("Kafka brokers: {}", brokersCount);
             TransportService.setServerAsyncTopics(createTopics("server-async"));
             TransportService.setClientAsyncTopics(createTopics("client-async"));
             TransportService.setServerSyncTopics(createTopics("server-sync"));
@@ -294,7 +292,7 @@ public class TransportService {
                     // API implementation must have default constructor
                     server.getConstructor();
                 } catch (NoSuchMethodException e) {
-                    logger.error("General error during endpoint initialization", e);
+                    log.error("General error during endpoint initialization", e);
                     throw new IllegalArgumentException(String.format("Class %s does not have default constructor!", server.getName()));
                 }
                 apiImpls.add(serverInterface);
@@ -403,15 +401,15 @@ public class TransportService {
             // Publish services in ZeroMQ
             registerServices();
             // Wait for Kafka cluster to be rebalanced
-            if(protocol.equals(Protocol.KAFKA)) {
+            if (protocol.equals(Protocol.KAFKA)) {
                 RebalanceListener.waitForRebalance();
-                logger.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
+                log.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
             }
             // Start finalizer
             FinalizationWorker.startFinalizer();
-            logger.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
+            log.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
         } catch (Exception e) {
-            logger.error("Exception during transport library startup:", e);
+            log.error("Exception during transport library startup:", e);
             throw new TransportSystemException(e);
         }
     }
@@ -420,13 +418,13 @@ public class TransportService {
         Shutting down transport subsystem
      */
     public void close() {
-        logger.info("Close started");
+        log.info("Close started");
 
         // Shut down Kafka consumers and associated threads
         this.kafkaReceivers.forEach(KafkaReceiver::close);
-        logger.info("Kafka receivers closed");
+        log.info("Kafka receivers closed");
         KafkaRequestSender.shutDownConsumers();
-        logger.info("Kafka sync response consumers closed");
+        log.info("Kafka sync response consumers closed");
         // Unregister all server endpoints first
         try {
             for (String service : Utils.services) {
@@ -435,30 +433,30 @@ public class TransportService {
             }
             Utils.conn.close();
         } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
-            logger.error("Unable to unregister services from ZooKeeper cluster", e);
+            log.error("Unable to unregister services from ZooKeeper cluster", e);
             throw new TransportSystemException(e);
         }
-        logger.info("Services were unregistered");
+        log.info("Services were unregistered");
         // Shut down ZeroMQ receivers and associated threads
         this.zmqReceivers.forEach(a -> {
             try {
                 a.close();
             } catch (IOException e) {
-                logger.error("Unable to shut down ZeroMQ receivers", e);
+                log.error("Unable to shut down ZeroMQ receivers", e);
                 throw new TransportSystemException(e);
             }
         });
-        logger.info("All ZMQ sockets were closed");
+        log.info("All ZMQ sockets were closed");
         // Kill all threads
         for (Thread thread : this.receiverThreads) {
             do {
                 thread.interrupt();
             } while (thread.getState() != Thread.State.TERMINATED);
         }
-        logger.info("All receiver threads stopped");
+        log.info("All receiver threads stopped");
         // Stop finalizer threads
         FinalizationWorker.stopFinalizer();
-        logger.info("Finalizer was stopped");
-        logger.info("Transport shutdown completed");
+        log.info("Finalizer was stopped");
+        log.info("Transport shutdown completed");
     }
 }

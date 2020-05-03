@@ -11,6 +11,7 @@ import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -18,8 +19,6 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -30,22 +29,20 @@ import java.util.concurrent.Executors;
 
 import static com.transport.lib.TransportService.*;
 
+@Slf4j
 public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpAsyncAndSyncRequestReceiver.class);
-
+    public static final CloseableHttpClient client;
     // HTTP async requests are processed by 3 receiver threads
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
-
-    private HttpServer server;
-
-    public static final CloseableHttpClient client;
 
     static {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
         connManager.setMaxTotal(200);
         client = HttpClients.custom().setConnectionManager(connManager).build();
     }
+
+    private HttpServer server;
 
     @Override
     public void run() {
@@ -56,10 +53,10 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             server.setExecutor(Executors.newFixedThreadPool(9));
             server.start();
         } catch (IOException httpServerStartupException) {
-            logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
+            log.error("Error during HTTP request receiver startup:", httpServerStartupException);
             throw new TransportSystemException(httpServerStartupException);
         }
-        logger.info("{} started", this.getClass().getSimpleName());
+        log.info("{} started", this.getClass().getSimpleName());
     }
 
     @Override
@@ -67,10 +64,10 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
         server.stop(2);
         try {
             client.close();
-        }catch (IOException e){
-            logger.error("Error while closing HTTP client", e);
+        } catch (IOException e) {
+            log.error("Error while closing HTTP client", e);
         }
-        logger.info("HTTP request receiver stopped");
+        log.info("HTTP request receiver stopped");
     }
 
     private class HttpRequestHandler implements HttpHandler {
@@ -117,7 +114,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
                         }
                     } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
-                        logger.error("Error while receiving async request");
+                        log.error("Error while receiving async request");
                         throw new TransportExecutionException(e);
                     }
                 };

@@ -8,8 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.UnknownHostException;
 import java.util.UUID;
@@ -21,9 +20,8 @@ import java.util.UUID;
 @Setter
 @Getter
 @ToString
+@Slf4j
 public class Command {
-
-    private static Logger logger = LoggerFactory.getLogger(Command.class);
 
     // Fully-qualified target class name
     private String serviceClass;
@@ -51,12 +49,12 @@ public class Command {
 
     public void setMetadata() {
         try {
-            if(Utils.getTransportProtocol().equals(Protocol.ZMQ))
+            if (Utils.getTransportProtocol().equals(Protocol.ZMQ))
                 this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
-            if(Utils.getTransportProtocol().equals(Protocol.HTTP))
+            if (Utils.getTransportProtocol().equals(Protocol.HTTP))
                 this.callBackZMQ = Utils.getHttpCallbackStringAddress();
         } catch (UnknownHostException e) {
-            logger.error("Error during metadata setting", e);
+            log.error("Error during metadata setting", e);
             throw new TransportSystemException(e);
         }
         this.sourceModuleId = TransportService.getRequiredOption("module.id");

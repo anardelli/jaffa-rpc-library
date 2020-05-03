@@ -3,13 +3,11 @@ package com.transport.lib.zeromq;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.request.Sender;
 import com.transport.lib.zookeeper.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.zeromq.ZMQ;
 
+@Slf4j
 public class ZeroMqRequestSender extends Sender {
-
-    private static final Logger logger = LoggerFactory.getLogger(ZeroMqRequestSender.class);
 
     @Override
     public byte[] executeSync(byte[] message) {
@@ -30,7 +28,7 @@ public class ZeroMqRequestSender extends Sender {
         byte[] response = socket.recv(0);
         // Close socket and context
         Utils.closeSocketAndContext(socket, context);
-        logger.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
+        log.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         return response;
     }
 
@@ -48,6 +46,6 @@ public class ZeroMqRequestSender extends Sender {
         // Wait for "OK" message from server that means request was received and correctly deserialized
         socket.recv(0);
         Utils.closeSocketAndContext(socket, context);
-        logger.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
+        log.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
     }
 }

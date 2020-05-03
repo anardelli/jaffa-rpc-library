@@ -10,8 +10,7 @@ import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
@@ -25,9 +24,8 @@ import java.net.UnknownHostException;
 /*
     Class responsible for receiving asynchronous responses using ZeroMQ
  */
+@Slf4j
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncResponseReceiver.class);
 
     private ZMQ.Context context;
     private ZMQ.Socket socket;
@@ -39,7 +37,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
-            logger.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
+            log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }
         // New Kryo instance per thread
@@ -69,20 +67,20 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                     }
                     AdminServer.addMetric(command);
                 } else {
-                    logger.warn("Response {} already expired", callbackContainer.getKey());
+                    log.warn("Response {} already expired", callbackContainer.getKey());
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {
-                if(!recvTerminationException.getMessage().contains("156384765")) {
-                    logger.error("General ZMQ exception", recvTerminationException);
+                if (!recvTerminationException.getMessage().contains("156384765")) {
+                    log.error("General ZMQ exception", recvTerminationException);
                     throw new TransportSystemException(recvTerminationException);
                 }
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
-                logger.error("ZMQ callback execution exception", callbackExecutionException);
+                log.error("ZMQ callback execution exception", callbackExecutionException);
                 throw new TransportExecutionException(callbackExecutionException);
             }
         }
 
-        logger.info("{} terminated", this.getClass().getSimpleName());
+        log.info("{} terminated", this.getClass().getSimpleName());
     }
 
     @Override

@@ -10,14 +10,13 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.ui.AdminServer;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InterruptException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -31,9 +30,8 @@ import java.util.concurrent.CountDownLatch;
 /*
     Class responsible for receiving async responses using Kafka
  */
+@Slf4j
 public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnable {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaAsyncResponseReceiver.class);
 
     // Used for waiting receiver thread startup
     private final CountDownLatch countDownLatch;
@@ -59,7 +57,8 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                 ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());
                 try {
                     records = consumer.poll(Duration.ofMillis(100));
-                }catch (InterruptException ignore){}
+                } catch (InterruptException ignore) {
+                }
                 // Process CallbackContainers
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
@@ -88,21 +87,22 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                             AdminServer.addMetric(command);
                         } else {
                             // Server failed to respond in time and invocation was already finalized with "Transport execution timeout"
-                            logger.warn("Response {} already expired", callbackContainer.getKey());
+                            log.warn("Response {} already expired", callbackContainer.getKey());
                         }
                         // Manually commit offsets for processed responses
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
                     } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | InvocationTargetException | IllegalAccessException executionException) {
-                        logger.error("Error during receiving callback", executionException);
+                        log.error("Error during receiving callback", executionException);
                         throw new TransportExecutionException(executionException);
                     }
                 }
             }
             try {
                 consumer.close();
-            }catch (InterruptException ignore){}
+            } catch (InterruptException ignore) {
+            }
         };
         startThreadsAndWait(consumerThread);
     }

@@ -6,10 +6,9 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.zookeeper.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.QueueUtils;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -24,33 +23,24 @@ import java.net.ServerSocket;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 
+@Slf4j
 @Component
 public class AdminServer {
 
-    @Getter
-    @AllArgsConstructor
-    public static class ResponseMetric{
-        private final long time;
-        private final long duration;
-    }
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminServer.class);
-
-    private HttpServer server;
-
     // Keep last 1000 responses
     public static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
+    private HttpServer server;
 
-    public static void addMetric(Command command){
+    public static void addMetric(Command command) {
         long executionDuration = System.currentTimeMillis() - command.getRequestTime();
-        logger.info(">>>>>> Executed request {} in {} ms", command.getRqUid(), executionDuration);
+        log.info(">>>>>> Executed request {} in {} ms", command.getRqUid(), executionDuration);
         responses.add(new ResponseMetric(command.getRequestTime(), executionDuration));
     }
 
     private void respondWithFile(HttpExchange exchange, String fileName) throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         InputStream is = classloader.getResourceAsStream(fileName);
-        if(is == null) throw new IOException("No such file in resources: " + fileName);
+        if (is == null) throw new IOException("No such file in resources: " + fileName);
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nRead;
         byte[] data = new byte[16384];
@@ -91,19 +81,19 @@ public class AdminServer {
                     respondWithFile(exchange, "vis.min.css");
                 } else if ("/vis.min.js".equals(path)) {
                     respondWithFile(exchange, "vis.min.js");
-                } else if("/protocol".equals(path)){
+                } else if ("/protocol".equals(path)) {
                     respondWithString(exchange, Utils.getTransportProtocol().getFullName());
                 } else if ("/response".equals(path)) {
                     int count = 0;
                     StringBuilder builder = new StringBuilder();
                     ResponseMetric metric;
-                    do{
+                    do {
                         metric = responses.poll();
-                        if(metric != null){
+                        if (metric != null) {
                             count++;
                             builder.append(metric.getTime()).append(':').append(metric.getDuration()).append(';');
                         }
-                    } while(metric != null && count < 30);
+                    } while (metric != null && count < 30);
                     respondWithString(exchange, builder.toString());
                 } else {
                     respondWithString(exchange, "OK");
@@ -111,9 +101,9 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            logger.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
+            log.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
         } catch (IOException httpServerStartupException) {
-            logger.error("Exception during admin HTTP server startup", httpServerStartupException);
+            log.error("Exception during admin HTTP server startup", httpServerStartupException);
         }
     }
 
@@ -122,5 +112,12 @@ public class AdminServer {
         if (server != null) {
             server.stop(2);
         }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ResponseMetric {
+        private final long time;
+        private final long duration;
     }
 }

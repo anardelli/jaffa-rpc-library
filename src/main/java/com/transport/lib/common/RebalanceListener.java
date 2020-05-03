@@ -1,9 +1,8 @@
 package com.transport.lib.common;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -11,13 +10,13 @@ import java.util.Collection;
     Class responsible for counting time since last partitions assignment or revocation
     Both events are considered as "instability" so transport context will wait for 500 since last such event
  */
+@Slf4j
 public class RebalanceListener implements ConsumerRebalanceListener {
 
     // Used only for displaying time for rebalance
     public static volatile long firstRebalance = 0L;
     // Used in TransportService.waitForRebalance() for waiting cluster stability
     public static volatile long lastRebalance = 0L;
-    private static final Logger logger = LoggerFactory.getLogger(RebalanceListener.class);
 
     /*
         Wait for Kafka cluster to be rebalanced
@@ -47,14 +46,13 @@ public class RebalanceListener implements ConsumerRebalanceListener {
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
         lastRebalance = System.currentTimeMillis();
         if (firstRebalance == 0L) firstRebalance = lastRebalance;
-        logger.info("onPartitionsRevoked");
+        log.info("onPartitionsRevoked {}", partitions);
     }
 
     @Override
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         lastRebalance = System.currentTimeMillis();
         if (firstRebalance == 0L) firstRebalance = lastRebalance;
-        logger.info("onPartitionsAssigned");
+        log.info("onPartitionsAssigned {}", partitions);
     }
-
 }

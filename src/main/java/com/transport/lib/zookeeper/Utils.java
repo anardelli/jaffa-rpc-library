@@ -3,6 +3,7 @@ package com.transport.lib.zookeeper;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportNoRouteException;
 import com.transport.lib.exception.TransportSystemException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -11,8 +12,6 @@ import org.apache.zookeeper.data.Stat;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 
 import java.io.IOException;
@@ -21,10 +20,10 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
+@Slf4j
 public class Utils {
 
     public static final List<String> services = new ArrayList<>();
-    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
     public static ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
@@ -38,7 +37,7 @@ public class Utils {
             ShutdownHook shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } catch (IOException | InterruptedException e) {
-            logger.error("Can not connect to ZooKeeper cluster", e);
+            log.error("Can not connect to ZooKeeper cluster", e);
             throw new TransportSystemException(e);
         }
     }
@@ -52,13 +51,13 @@ public class Utils {
         try {
             stat = isZNodeExists("/" + service);
         } catch (KeeperException | InterruptedException e) {
-            logger.error("Can not connect to ZooKeeper cluster", e);
+            log.error("Can not connect to ZooKeeper cluster", e);
             throw new TransportSystemException(e);
         }
         if (stat != null) {
             try {
-                String host =  getHostsForService("/" + service, moduleId, protocol)[0];
-                if(protocol.equals(Protocol.HTTP)){
+                String host = getHostsForService("/" + service, moduleId, protocol)[0];
+                if (protocol.equals(Protocol.HTTP)) {
                     host = getHttpPrefix() + host;
                 }
                 return host;
@@ -68,7 +67,7 @@ public class Utils {
         } else throw new TransportNoRouteException(service);
     }
 
-    private static String getHttpPrefix(){
+    private static String getHttpPrefix() {
         return (Boolean.parseBoolean(System.getProperty("http.ssl.enabled", "false")) ? "https" : "http") + "://";
     }
 
@@ -116,7 +115,7 @@ public class Utils {
                 return hosts.get(0);
             }
         } catch (KeeperException | InterruptedException | ParseException e) {
-            logger.error("Error while getting avaiable module.id:", e);
+            log.error("Error while getting avaiable module.id:", e);
             throw new TransportNoRouteException(service, protocol.getShortName());
         }
     }
@@ -133,9 +132,9 @@ public class Utils {
                 create("/" + service, protocol);
             }
             services.add("/" + service);
-            logger.info("Registered service: {}", service);
+            log.info("Registered service: {}", service);
         } catch (KeeperException | InterruptedException | UnknownHostException | ParseException e) {
-            logger.error("Can not register services in ZooKeeper", e);
+            log.error("Can not register services in ZooKeeper", e);
             throw new TransportSystemException(e);
         }
     }
@@ -229,7 +228,7 @@ public class Utils {
     }
 
     public static InetSocketAddress getHttpBindAddress() throws UnknownHostException {
-        return new InetSocketAddress(InetAddress.getLocalHost(),  getServicePort());
+        return new InetSocketAddress(InetAddress.getLocalHost(), getServicePort());
     }
 
     /*

@@ -13,8 +13,8 @@ import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -22,30 +22,29 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 
+@Slf4j
 public class HttpAsyncResponseReceiver implements Runnable, Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(HttpAsyncResponseReceiver.class);
 
     private HttpServer server;
 
     @Override
     public void run() {
         try {
-            server = HttpServer.create(Utils.getHttpCallbackBindAddress(),0);
+            server = HttpServer.create(Utils.getHttpCallbackBindAddress(), 0);
             server.createContext("/response", new HttpRequestHandler());
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
         } catch (IOException httpServerStartupException) {
-            logger.error("Error during HTTP request receiver startup:", httpServerStartupException);
+            log.error("Error during HTTP request receiver startup:", httpServerStartupException);
             throw new TransportSystemException(httpServerStartupException);
         }
-        logger.info("{} started", this.getClass().getSimpleName());
+        log.info("{} started", this.getClass().getSimpleName());
     }
 
     @Override
     public void close() {
         server.stop(2);
-        logger.info("HTTP async response receiver stopped");
+        log.info("HTTP async response receiver stopped");
     }
 
     private class HttpRequestHandler implements HttpHandler {
@@ -77,7 +76,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                     }
                     AdminServer.addMetric(command);
                 } else {
-                    logger.warn("Response {} already expired", callbackContainer.getKey());
+                    log.warn("Response {} already expired", callbackContainer.getKey());
                 }
                 String response = "OK";
                 request.sendResponseHeaders(200, response.getBytes().length);
@@ -86,7 +85,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 os.close();
                 request.close();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
-                logger.error("ZMQ callback execution exception", callbackExecutionException);
+                log.error("ZMQ callback execution exception", callbackExecutionException);
                 throw new TransportExecutionException(callbackExecutionException);
             }
 

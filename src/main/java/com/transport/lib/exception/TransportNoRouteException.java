@@ -4,6 +4,7 @@ import com.transport.lib.entities.Protocol;
 
 public class TransportNoRouteException extends RuntimeException {
     private static final String MESSAGE_PREFIX = "No route for service: ";
+
     public TransportNoRouteException(String service, String moduleId) {
         super(MESSAGE_PREFIX + service + (moduleId != null ? (" and module.id " + moduleId) : ""));
     }

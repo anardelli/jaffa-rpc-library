@@ -1,8 +1,7 @@
 package com.transport.lib.kafka.receivers;
 
 import com.transport.lib.TransportService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
 import java.text.MessageFormat;
@@ -11,9 +10,8 @@ import java.util.ArrayList;
 /*
     Class responsible for managing threads used by Kafka...Receivers
  */
+@Slf4j
 public abstract class KafkaReceiver implements Closeable, Runnable {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaReceiver.class);
 
     /*
         Thread pool for Kafka message receivers one of the following types:
@@ -36,7 +34,7 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
             try {
                 x.join();
             } catch (InterruptedException e) {
-                logger.error(MessageFormat.format("Can not join thread {0} in {1}", x.getName(), this.getClass().getSimpleName()), e);
+                log.error(MessageFormat.format("Can not join thread {0} in {1}", x.getName(), this.getClass().getSimpleName()), e);
             }
         });
     }
@@ -49,8 +47,8 @@ public abstract class KafkaReceiver implements Closeable, Runnable {
             do {
                 thread.interrupt();
             } while (thread.getState() != Thread.State.TERMINATED);
-            logger.info("Thread {} from {} terminated", thread.getName(), this.getClass().getSimpleName());
+            log.info("Thread {} from {} terminated", thread.getName(), this.getClass().getSimpleName());
         }
-        logger.info("{} terminated", this.getClass().getSimpleName());
+        log.info("{} terminated", this.getClass().getSimpleName());
     }
 }

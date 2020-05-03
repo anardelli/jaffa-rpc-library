@@ -8,6 +8,7 @@ import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportSystemException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -16,8 +17,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InterruptException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,9 +30,8 @@ import java.util.concurrent.ExecutionException;
 /*
     Class responsible for receiving sync requests using Kafka
  */
+@Slf4j
 public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaSyncRequestReceiver.class);
 
     private final CountDownLatch countDownLatch;
 
@@ -62,7 +60,8 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                 ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());
                 try {
                     records = consumer.poll(Duration.ofMillis(100));
-                }catch (InterruptException ignore){}
+                } catch (InterruptException ignore) {
+                }
                 // Process requests
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
@@ -91,7 +90,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
                     } catch (ExecutionException | InterruptedException executionException) {
-                        logger.error("Target method execution exception", executionException);
+                        log.error("Target method execution exception", executionException);
                         throw new TransportSystemException(executionException);
                     }
                 }
@@ -99,7 +98,8 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
             try {
                 consumer.close();
                 producer.close();
-            }catch (InterruptException ignore){}
+            } catch (InterruptException ignore) {
+            }
         };
         // Start receiver threads
         startThreadsAndWait(consumerThread);

@@ -8,8 +8,7 @@ import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
@@ -26,9 +25,8 @@ import static com.transport.lib.TransportService.*;
 /*
     Class responsible for receiving synchronous and asynchronous requests using ZeroMQ
  */
+@Slf4j
 public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(ZMQAsyncAndSyncRequestReceiver.class);
 
     // ZeroMQ async requests are processed by 3 receiver threads
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
@@ -44,7 +42,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             socket = context.socket(ZMQ.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         } catch (UnknownHostException zmqStartupException) {
-            logger.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
+            log.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }
 
@@ -85,7 +83,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             socketAsync.send(bOutput.toByteArray());
                             Utils.closeSocketAndContext(socketAsync, contextAsync);
                         } catch (ClassNotFoundException | NoSuchMethodException e) {
-                            logger.error("Error while receiving async request");
+                            log.error("Error while receiving async request");
                             throw new TransportExecutionException(e);
                         }
                     };
@@ -106,13 +104,13 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     socket.send(bOutput.toByteArray());
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {
-                if(!recvTerminationException.getMessage().contains("156384765")){
-                    logger.error("General ZMQ exception", recvTerminationException);
+                if (!recvTerminationException.getMessage().contains("156384765")) {
+                    log.error("General ZMQ exception", recvTerminationException);
                     throw new TransportSystemException(recvTerminationException);
                 }
             }
         }
-        logger.info("{} terminated", this.getClass().getSimpleName());
+        log.info("{} terminated", this.getClass().getSimpleName());
     }
 
     @Override

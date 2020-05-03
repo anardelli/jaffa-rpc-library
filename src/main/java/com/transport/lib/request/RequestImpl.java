@@ -16,8 +16,7 @@ import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -25,20 +24,18 @@ import java.io.ByteArrayOutputStream;
 /*
     Class responsible for making synchronous and asynchronous requests
  */
+@Slf4j
 public class RequestImpl<T> implements Request<T> {
 
-    private static final Logger logger = LoggerFactory.getLogger(RequestImpl.class);
-
-    // Time period in milliseconds during which we wait for answer from server
-    private long timeout = -1;
-    // Target module.id
-    private String moduleId;
     // Target command
     private final Command command;
     // New Kryo instance per thread
     private final Kryo kryo = new Kryo();
-
     private final Sender sender;
+    // Time period in milliseconds during which we wait for answer from server
+    private long timeout = -1;
+    // Target module.id
+    private String moduleId;
 
     public RequestImpl(Command command) {
         this.command = command;
@@ -128,7 +125,7 @@ public class RequestImpl<T> implements Request<T> {
         // Add command to background finalization thread
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
-        logger.debug("Async command {} added to finalization queue", command);
+        log.debug("Async command {} added to finalization queue", command);
         // Add Command to finalization queue before request execution to avoid race between adding to queue and receiving response
         FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
         // Send Request using Kafka or ZeroMQ

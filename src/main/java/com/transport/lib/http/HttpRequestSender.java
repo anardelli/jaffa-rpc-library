@@ -6,23 +6,21 @@ import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
 import com.transport.lib.request.Sender;
 import com.transport.lib.zookeeper.Utils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.entity.ByteArrayEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 
+@Slf4j
 public class HttpRequestSender extends Sender {
-
-    private static final Logger logger = LoggerFactory.getLogger(HttpRequestSender.class);
 
     @Override
     public byte[] executeSync(byte[] message) {
@@ -38,7 +36,7 @@ public class HttpRequestSender extends Sender {
             CloseableHttpResponse httpResponse;
             try {
                 httpResponse = HttpAsyncAndSyncRequestReceiver.client.execute(httpPost);
-            }catch (ConnectTimeoutException | SocketTimeoutException e){
+            } catch (ConnectTimeoutException | SocketTimeoutException e) {
                 throw new TransportExecutionTimeoutException();
             }
             int response = httpResponse.getStatusLine().getStatusCode();
@@ -58,7 +56,7 @@ public class HttpRequestSender extends Sender {
             httpResponse.close();
             return byteArray;
         } catch (IOException e) {
-            logger.error("Error while sending sync HTTP request", e);
+            log.error("Error while sending sync HTTP request", e);
             throw new TransportExecutionException(e);
         }
     }
@@ -76,7 +74,7 @@ public class HttpRequestSender extends Sender {
                 throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
             }
         } catch (IOException e) {
-            logger.error("Error while sending async HTTP request", e);
+            log.error("Error while sending async HTTP request", e);
             throw new TransportExecutionException(e);
         }
     }
