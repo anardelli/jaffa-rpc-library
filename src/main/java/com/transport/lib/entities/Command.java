@@ -46,6 +46,7 @@ public class Command {
     // For async calls: moment in the future after which Callback will receive "Transport execution timeout"
     private long asyncExpireTime;
     private long requestTime;
+    private long localRequestTime;
 
     public void setMetadata() {
         try {

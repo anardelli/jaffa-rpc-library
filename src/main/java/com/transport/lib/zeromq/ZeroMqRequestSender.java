@@ -4,6 +4,7 @@ import com.transport.lib.entities.Protocol;
 import com.transport.lib.request.Sender;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
+import org.zeromq.SocketType;
 import org.zeromq.ZMQ;
 
 @Slf4j
@@ -15,7 +16,7 @@ public class ZeroMqRequestSender extends Sender {
         // New ZeroMQ context with 1 thread
         ZMQ.Context context = ZMQ.context(1);
         // Open socket
-        ZMQ.Socket socket = context.socket(ZMQ.REQ);
+        ZMQ.Socket socket = context.socket(SocketType.REQ);
         // Get target server host:port
         socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
         // Send Command to server
@@ -38,7 +39,7 @@ public class ZeroMqRequestSender extends Sender {
         // New ZeroMQ context with 1 thread
         ZMQ.Context context = ZMQ.context(1);
         // Open socket
-        ZMQ.Socket socket = context.socket(ZMQ.REQ);
+        ZMQ.Socket socket = context.socket(SocketType.REQ);
         // Get target server host:port
         socket.connect("tcp://" + Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ));
         // Send Command to server

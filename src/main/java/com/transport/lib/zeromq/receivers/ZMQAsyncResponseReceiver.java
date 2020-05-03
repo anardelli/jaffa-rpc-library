@@ -11,6 +11,7 @@ import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
+import org.zeromq.SocketType;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
@@ -34,7 +35,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
     public void run() {
         try {
             context = ZMQ.context(1);
-            socket = context.socket(ZMQ.REP);
+            socket = context.socket(SocketType.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
             log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);

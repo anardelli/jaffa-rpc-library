@@ -9,6 +9,7 @@ import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
+import org.zeromq.SocketType;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
@@ -39,7 +40,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
         try {
             context = ZMQ.context(1);
-            socket = context.socket(ZMQ.REP);
+            socket = context.socket(SocketType.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         } catch (UnknownHostException zmqStartupException) {
             log.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
@@ -77,7 +78,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             output.close();
                             // Connect to client
                             ZMQ.Context contextAsync = ZMQ.context(1);
-                            ZMQ.Socket socketAsync = contextAsync.socket(ZMQ.REQ);
+                            ZMQ.Socket socketAsync = contextAsync.socket(SocketType.REQ);
                             socketAsync.connect("tcp://" + command.getCallBackZMQ());
                             // And send response
                             socketAsync.send(bOutput.toByteArray());

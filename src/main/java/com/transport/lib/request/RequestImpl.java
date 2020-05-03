@@ -85,6 +85,7 @@ public class RequestImpl<T> implements Request<T> {
     public T executeSync() {
         initSender();
         command.setRequestTime(System.currentTimeMillis());
+        command.setLocalRequestTime(System.nanoTime());
         // Serialize command-request
         byte[] out = marshallCommand(command);
         // Response from server, if null - transport timeout occurred
@@ -122,6 +123,7 @@ public class RequestImpl<T> implements Request<T> {
         // Set user-provided unique callback key
         command.setCallbackKey(key);
         command.setRequestTime(System.currentTimeMillis());
+        command.setLocalRequestTime(System.nanoTime());
         // Add command to background finalization thread
         // that will throw "Transport execution timeout" on callback class after timeout expiration or 60 minutes if timeout was not set
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));

@@ -31,7 +31,7 @@ public class AdminServer {
     private HttpServer server;
 
     public static void addMetric(Command command) {
-        long executionDuration = System.currentTimeMillis() - command.getRequestTime();
+        double executionDuration = (System.nanoTime() - command.getLocalRequestTime()) / 1000000.0;
         log.info(">>>>>> Executed request {} in {} ms", command.getRqUid(), executionDuration);
         responses.add(new ResponseMetric(command.getRequestTime(), executionDuration));
     }
@@ -117,6 +117,6 @@ public class AdminServer {
     @AllArgsConstructor
     public static class ResponseMetric {
         private final long time;
-        private final long duration;
+        private final double duration;
     }
 }
