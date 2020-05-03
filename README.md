@@ -35,9 +35,9 @@ Dashboard URL is logged at startup like this:
 <img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka_sync.png" width="900"/>  
 
 #### Asynchronous RPC  
-<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http_async.png" width="900"/>  
-<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq_async.png" width="900"/>  
-<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka_async.png" width="900"/>  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/http_async.PNG" width="900"/>  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/zmq_async.PNG" width="900"/>  
+<img src="https://raw.githubusercontent.com/dredwardhyde/transport-library/master/kafka_async.PNG" width="900"/>  
 
 ## How to use
 
