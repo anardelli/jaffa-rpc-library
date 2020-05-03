@@ -39,7 +39,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
     public void run() {
 
         try {
-            context = ZMQ.context(1);
+            context = ZMQ.context(10);
             socket = context.socket(SocketType.REP);
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         } catch (UnknownHostException zmqStartupException) {
@@ -77,12 +77,11 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             kryo.writeObject(output, constructCallbackContainer(command, result));
                             output.close();
                             // Connect to client
-                            ZMQ.Context contextAsync = ZMQ.context(1);
-                            ZMQ.Socket socketAsync = contextAsync.socket(SocketType.REQ);
+                            ZMQ.Socket socketAsync = context.socket(SocketType.REQ);
                             socketAsync.connect("tcp://" + command.getCallBackZMQ());
                             // And send response
                             socketAsync.send(bOutput.toByteArray());
-                            Utils.closeSocketAndContext(socketAsync, contextAsync);
+                            socketAsync.close();
                         } catch (ClassNotFoundException | NoSuchMethodException e) {
                             log.error("Error while receiving async request");
                             throw new TransportExecutionException(e);

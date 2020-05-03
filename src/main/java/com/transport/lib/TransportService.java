@@ -19,6 +19,7 @@ import com.transport.lib.kafka.receivers.KafkaReceiver;
 import com.transport.lib.kafka.receivers.KafkaSyncRequestReceiver;
 import com.transport.lib.spring.ClientEndpoints;
 import com.transport.lib.spring.ServerEndpoints;
+import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zeromq.receivers.ZMQAsyncAndSyncRequestReceiver;
 import com.transport.lib.zeromq.receivers.ZMQAsyncResponseReceiver;
 import com.transport.lib.zookeeper.Utils;
@@ -34,6 +35,7 @@ import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.KeeperException;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.zeromq.ZMQ;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -447,6 +449,14 @@ public class TransportService {
                 throw new TransportSystemException(e);
             }
         });
+
+        ZMQ.Context context = ZeroMqRequestSender.context;
+        if (!context.isClosed()) {
+            context.close();
+            if (!context.isTerminated())
+                context.term();
+        }
+
         log.info("All ZMQ sockets were closed");
         // Kill all threads
         for (Thread thread : this.receiverThreads) {

@@ -34,7 +34,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
     @Override
     public void run() {
         try {
-            context = ZMQ.context(1);
+            context = ZMQ.context(10);
             socket = context.socket(SocketType.REP);
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
