@@ -41,7 +41,7 @@ Dashboard URL is logged at startup like this:
 
 ## How to use
 
-You create interface with ```@Api```annotation, for example:
+You create an interface with ```@Api```annotation, for example:
 
 ```java
 @Api
@@ -168,7 +168,7 @@ public class MainConfig {
 }
 ```
 
-NOTE: Number of partitions for library's topics is equal to broker's count.
+NOTE: Number of partitions for library's topics is equal to the number of Kafka brokers.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
 #### Available options
