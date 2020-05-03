@@ -72,7 +72,7 @@ public class AdminServer {
     @PostConstruct
     public void init() {
         try {
-            server = HttpServer.create(new InetSocketAddress(InetAddress.getLocalHost(), getFreePort()), 0);
+            server = HttpServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
             server.createContext("/", (HttpExchange exchange) -> {
                 String path = exchange.getRequestURI().getPath();
                 if ("/admin".equals(path)) {

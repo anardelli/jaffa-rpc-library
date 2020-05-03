@@ -425,16 +425,17 @@ public class TransportService {
         log.info("Kafka receivers closed");
         KafkaRequestSender.shutDownConsumers();
         log.info("Kafka sync response consumers closed");
-        // Unregister all server endpoints first
-        try {
-            for (String service : Utils.services) {
-                Utils.delete(service, Protocol.ZMQ);
-                Utils.delete(service, Protocol.KAFKA);
+        if(Utils.conn != null){
+            // Unregister all server endpoints first
+            try {
+                for (String service : Utils.services) {
+                    Utils.delete(service, Protocol.ZMQ);
+                    Utils.delete(service, Protocol.KAFKA);
+                }
+                Utils.conn.close();
+            } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
+                log.error("Unable to unregister services from ZooKeeper cluster, probably it was done earlier");
             }
-            Utils.conn.close();
-        } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
-            log.error("Unable to unregister services from ZooKeeper cluster", e);
-            throw new TransportSystemException(e);
         }
         log.info("Services were unregistered");
         // Shut down ZeroMQ receivers and associated threads

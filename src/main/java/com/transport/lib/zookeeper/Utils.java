@@ -24,7 +24,7 @@ import java.util.List;
 public class Utils {
 
     public static final List<String> services = new ArrayList<>();
-    public static ZooKeeperConnection conn;
+    public static volatile ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
     /*
@@ -211,6 +211,7 @@ public class Utils {
             jArray.remove(local);
             zk.setData(service, jArray.toJSONString().getBytes(), zk.exists(service, true).getVersion());
         }
+        log.info("Service {} for protocol {} was unregistered", service, protocol.getFullName());
     }
 
     /*
@@ -228,7 +229,7 @@ public class Utils {
     }
 
     public static InetSocketAddress getHttpBindAddress() throws UnknownHostException {
-        return new InetSocketAddress(InetAddress.getLocalHost(), getServicePort());
+        return new InetSocketAddress(Utils.getLocalHost(), getServicePort());
     }
 
     /*
@@ -242,7 +243,7 @@ public class Utils {
         Returns HTTP connection string for receiving async responses from server
      */
     public static InetSocketAddress getHttpCallbackBindAddress() throws UnknownHostException {
-        return new InetSocketAddress(InetAddress.getLocalHost(), getCallbackPort());
+        return new InetSocketAddress(Utils.getLocalHost(), getCallbackPort());
     }
 
     /*
@@ -250,6 +251,14 @@ public class Utils {
      */
     public static String getHttpCallbackStringAddress() throws UnknownHostException {
         return getHttpPrefix() + getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
+    }
+
+    public static String getLocalHost(){
+        try {
+            return getLocalHostLANAddress().getHostAddress();
+        }catch (UnknownHostException e){
+            throw new TransportSystemException(e);
+        }
     }
 
     /*
@@ -311,6 +320,7 @@ class ShutdownHook extends Thread {
                 Utils.delete(service, Protocol.ZMQ);
             }
             Utils.conn.close();
+            Utils.conn = null;
         } catch (KeeperException | InterruptedException | ParseException | IOException e) {
             throw new TransportSystemException(e);
         }
