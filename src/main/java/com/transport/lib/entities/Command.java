@@ -1,17 +1,10 @@
 package com.transport.lib.entities;
 
-import com.transport.lib.TransportService;
-import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.security.SecurityTicket;
-import com.transport.lib.zookeeper.Utils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-
-import java.net.UnknownHostException;
-import java.util.UUID;
 
 /*
     Class-container for passing all required information about remote method invocation
@@ -20,7 +13,6 @@ import java.util.UUID;
 @Setter
 @Getter
 @ToString
-@Slf4j
 public class Command {
 
     // Fully-qualified target class name
@@ -47,18 +39,4 @@ public class Command {
     private long asyncExpireTime;
     private long requestTime;
     private long localRequestTime;
-
-    public void setMetadata() {
-        try {
-            if (Utils.getTransportProtocol().equals(Protocol.ZMQ))
-                this.callBackZMQ = Utils.getZeroMQCallbackBindAddress();
-            if (Utils.getTransportProtocol().equals(Protocol.HTTP))
-                this.callBackZMQ = Utils.getHttpCallbackStringAddress();
-        } catch (UnknownHostException e) {
-            log.error("Error during metadata setting", e);
-            throw new TransportSystemException(e);
-        }
-        this.sourceModuleId = TransportService.getRequiredOption("module.id");
-        this.rqUid = UUID.randomUUID().toString();
-    }
 }

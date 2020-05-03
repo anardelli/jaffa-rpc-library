@@ -1,10 +1,15 @@
 package com.transport.lib.spring;
 
+import com.transport.lib.TransportService;
 import com.transport.lib.annotations.ApiClient;
 import com.transport.lib.entities.Command;
+import com.transport.lib.entities.Protocol;
+import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.request.RequestImpl;
 import com.transport.lib.security.TicketProvider;
+import com.transport.lib.zookeeper.Utils;
 import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -17,10 +22,13 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
+import java.util.UUID;
 
 /*
     AOP advisor to intercept method invocations on @ApiClient transport proxies
  */
+@Slf4j
 @Component
 @EqualsAndHashCode(callSuper = false)
 public class ApiClientAdvisor extends AbstractPointcutAdvisor {
@@ -37,7 +45,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
         this.interceptor = (MethodInvocation invocation) -> {
             Command command = new Command();
             // Prepare metadata like callBackZMQ, sourceModuleId, rqUid
-            command.setMetadata();
+            setMetadata(command);
             // Class with package which method we want to execute
             command.setServiceClass(invocation.getMethod().getDeclaringClass().getInterfaces()[0].getName());
             // Checking for TicketProvider implementation
@@ -64,6 +72,20 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             // And here new Request is ready
             return new RequestImpl<>(command);
         };
+    }
+
+    public void setMetadata(Command command) {
+        try {
+            if (Utils.getTransportProtocol().equals(Protocol.ZMQ))
+                command.setCallBackZMQ(Utils.getZeroMQCallbackBindAddress());
+            if (Utils.getTransportProtocol().equals(Protocol.HTTP))
+                command.setCallBackZMQ(Utils.getHttpCallbackStringAddress());
+        } catch (UnknownHostException e) {
+            log.error("Error during metadata setting", e);
+            throw new TransportSystemException(e);
+        }
+        command.setSourceModuleId(TransportService.getRequiredOption("module.id"));
+        command.setRqUid(UUID.randomUUID().toString());
     }
 
     @Override
