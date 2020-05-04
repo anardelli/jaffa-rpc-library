@@ -1,41 +1,42 @@
 package com.transport.test;
 
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.junit.*;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = {MainConfig.class}, loader = AnnotationConfigContextLoader.class)
 public class ServerTest {
-    
-    public static void main(String[] args) {
 
+    @Autowired
+    private PersonServiceTransport personService;
+
+    @Autowired
+    private ClientServiceTransport clientService;
+
+    @BeforeClass
+    public static void before() {
         log.info("================ TEST SERVER STARTING ================");
-
         System.setProperty("zookeeper.connection", "localhost:2181");
         System.setProperty("http.service.port", "4543");
         System.setProperty("http.callback.port", "4343");
         System.setProperty("zmq.service.port", "4843");
         System.setProperty("zmq.callback.port", "4943");
         System.setProperty("module.id", "test.server");
-        System.setProperty("transport.protocol", "http");
+        System.setProperty("transport.protocol", "zmq");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
+    }
 
-        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-        ctx.register(MainConfig.class);
-        ctx.refresh();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(ctx::close));
-
-        PersonServiceTransport personService = ctx.getBean(PersonServiceTransport.class);
-        ClientServiceTransport clientService = ctx.getBean(ClientServiceTransport.class);
-
-        try {
-            Thread.sleep(5_000);
-        } catch (Exception ignore) {
-        }
+    @Test
+    public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
         Person person = personService.get(id).onModule("test.server").executeSync();
@@ -55,30 +56,46 @@ public class ServerTest {
             personService.testError().onModule("test.server").executeSync();
         } catch (Throwable e) {
             log.error("Exception during sync call:", e);
+            Assert.assertTrue(e.getMessage().contains("very bad in"));
         }
         personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
+    }
 
-//        // 1 hour load test
-//        Runnable runnable = () -> {
-//            long startTime = System.currentTimeMillis();
-//            while (!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)) {
-//                // Sync call
-//                clientService.lol3("test3").onModule("test.server").executeSync();
-//                // Async call
-//                clientService.lol3("test3").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
-//                try {
-//                    Thread.sleep((int) (Math.random() * 100));
-//                } catch (InterruptedException exception) {
-//                    exception.printStackTrace();
-//                }
-//            }
-//        };
-//        try {
-//            Thread thread = new Thread(runnable);
-//            thread.start();
-//            thread.join();
-//        } catch (Exception ignore) {
-//        }
-        log.info("================ TEST SERVER STARTED ================");
+    @Test
+    @Ignore
+    public void stage2() {
+        // 1 hour load test
+        final boolean sync = true;
+        Runnable runnable = () -> {
+            long startTime = System.currentTimeMillis();
+            while (!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)) {
+                if (sync) {
+                    // Sync call
+                    clientService.lol3("test3").onModule("test.server").executeSync();
+                } else {
+                    // Async call
+                    clientService.lol3("test3").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
+                }
+                try {
+                    Thread.sleep((int) (Math.random() * 100));
+                } catch (InterruptedException exception) {
+                    exception.printStackTrace();
+                }
+            }
+        };
+        try {
+            Thread thread = new Thread(runnable);
+            thread.start();
+            thread.join();
+        } catch (Exception ignore) {
+        }
+    }
+
+    @AfterClass
+    public static void after() {
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (Exception ignore) {
+        }
     }
 }
