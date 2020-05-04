@@ -16,6 +16,7 @@ public class PersonServiceImpl implements PersonService {
 
     private final AtomicInteger idProvider = new AtomicInteger(1);
 
+    @Override
     public int add(String name, String email, Address address) {
         log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
@@ -28,6 +29,7 @@ public class PersonServiceImpl implements PersonService {
         return p.getId();
     }
 
+    @Override
     public Person get(final Integer id) {
         log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
@@ -39,20 +41,29 @@ public class PersonServiceImpl implements PersonService {
         return null;
     }
 
+    @Override
     public void lol() {
         log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
         log.info("Lol");
     }
 
+    @Override
     public void lol2(String message) {
         log.info(message);
     }
 
+    @Override
     public String getName() {
         return null;
     }
 
+    @Override
+    public String getHeavy(String heavy) {
+        return heavy;
+    }
+
+    @Override
     public Person testError() {
         throw new RuntimeException("very bad in " + System.getProperty("module.id"));
     }

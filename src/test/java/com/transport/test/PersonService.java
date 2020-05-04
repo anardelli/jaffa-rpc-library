@@ -21,6 +21,8 @@ public interface PersonService {
 
     public String getName();
 
+    public String getHeavy(String heavy);
+
     public Person testError();
 
 }

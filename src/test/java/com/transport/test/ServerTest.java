@@ -1,6 +1,7 @@
 package com.transport.test;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,11 +32,12 @@ public class ServerTest {
         System.setProperty("zmq.service.port", "4843");
         System.setProperty("zmq.callback.port", "4943");
         System.setProperty("module.id", "test.server");
-        System.setProperty("transport.protocol", "zmq");
+        System.setProperty("transport.protocol", "http");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }
 
     @Test
+    @Ignore
     public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
@@ -62,16 +64,20 @@ public class ServerTest {
     }
 
     @Test
-    @Ignore
     public void stage2() {
         // 1 hour load test
         final boolean sync = true;
+        final boolean heavy = true;
         Runnable runnable = () -> {
             long startTime = System.currentTimeMillis();
             while (!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)) {
                 if (sync) {
-                    // Sync call
-                    clientService.lol3("test3").onModule("test.server").executeSync();
+                    if(heavy){
+                        personService.getHeavy(RandomStringUtils.randomAlphabetic(250_000)).onModule("test.server").executeSync();
+                    }else {
+                        // Sync call
+                        clientService.lol3("test3").onModule("test.server").executeSync();
+                    }
                 } else {
                     // Async call
                     clientService.lol3("test3").onModule("test.server").withTimeout(10_000).executeAsync(UUID.randomUUID().toString(), ServiceCallback.class);
