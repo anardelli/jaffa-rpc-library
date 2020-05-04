@@ -62,6 +62,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
     @Override
     public void close() {
         server.stop(2);
+        service.shutdown();
         try {
             client.close();
         } catch (IOException e) {
