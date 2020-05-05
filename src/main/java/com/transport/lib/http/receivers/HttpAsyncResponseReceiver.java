@@ -51,19 +51,13 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
 
         @Override
         public void handle(HttpExchange request) throws IOException {
-            // New Kryo instance per thread
             Kryo kryo = new Kryo();
             try {
-                // Receive raw bytes
                 Input input = new Input(request.getRequestBody());
-                // Unmarshal bytes to CallbackContainer
                 CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
-                // Get target callback class
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
-                // If request is still valid
                 Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
                 if (command != null) {
-                    // Send result to callback by invoking appropriate method
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                         method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
@@ -88,7 +82,6 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 log.error("ZMQ callback execution exception", callbackExecutionException);
                 throw new TransportExecutionException(callbackExecutionException);
             }
-
         }
     }
 }

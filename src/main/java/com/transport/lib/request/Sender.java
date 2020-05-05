@@ -7,12 +7,8 @@ import lombok.Setter;
 @Setter
 @Getter
 public abstract class Sender {
-
-    // Time period in milliseconds during which we wait for answer from server
     protected long timeout = -1;
-    // Target module.id
     protected String moduleId;
-    // Target command
     protected Command command;
 
     public abstract byte[] executeSync(byte[] message);

@@ -28,9 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-/*
-    Class responsible for receiving async requests using Kafka
- */
 @Slf4j
 public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable {
 
@@ -42,52 +39,32 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
 
     @Override
     public void run() {
-        // Each RequestReceiver represents new group of consumers in Kafka
         TransportService.getConsumerProps().put("group.id", UUID.randomUUID().toString());
-        // Start <number of brokers> consumers
         Runnable consumerThread = () -> {
-            // Each thread has consumer for receiving Requests
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(TransportService.getConsumerProps());
-            // And producer for sending invocation results or CallbackContainers (for async calls)
             KafkaProducer<String, byte[]> producer = new KafkaProducer<>(TransportService.getProducerProps());
-            // New Kryo instance per thread
             Kryo kryo = new Kryo();
-            // Then we subscribe to known server topics and waiting for requests
             consumer.subscribe(TransportService.getServerAsyncTopics(), new RebalanceListener());
-            // Here we consider receiver thread as started
             countDownLatch.countDown();
-            // Waiting and processing requests
             while (!Thread.currentThread().isInterrupted()) {
-                // Wait data for 100 ms if no new records available after last committed
                 ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());
                 try {
                     records = consumer.poll(Duration.ofMillis(100));
                 } catch (InterruptException ignore) {
                 }
-                // Process requests
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        // Each request is represented by Command instance
                         Input input = new Input(new ByteArrayInputStream(record.value()));
-                        // Deserialize Command from byte[]
                         Command command = kryo.readObject(input, Command.class);
-                        // Target method will be executed in current Thread, so set service metadata
-                        // like client's module.id and SecurityTicket token in ThreadLocal variables
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
-                        // Invoke target method and receive result
                         Object result = TransportService.invoke(command);
-                        // Marshall result as CallbackContainer
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                         Output output = new Output(bOutput);
-                        // Construct CallbackContainer and marshall it to output stream
                         kryo.writeObject(output, TransportService.constructCallbackContainer(command, result));
                         output.close();
-                        // Prepare record with result. Here we construct topic name on the fly
                         ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
-                        // Send record and ignore returned RecordMetadata
                         producer.send(resultPackage).get();
-                        // Commit original request's message
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
                         consumer.commitSync(commitData);
@@ -106,7 +83,6 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
             } catch (InterruptException ignore) {
             }
         };
-        // Start receiver threads
         startThreadsAndWait(consumerThread);
     }
 }

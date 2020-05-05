@@ -2,11 +2,7 @@ package com.transport.lib.request;
 
 import com.transport.lib.callbacks.Callback;
 
-/*
-    Represents abstract request
- */
 public interface Request<T> {
-
     Request<T> withTimeout(long timeout);
 
     T executeSync();

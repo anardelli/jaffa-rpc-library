@@ -27,9 +27,6 @@ public class Utils {
     public static volatile ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
-    /*
-        Connects to ZooKeeper cluster
-     */
     public static void connect(String url) {
         try {
             conn = new ZooKeeperConnection();
@@ -42,9 +39,6 @@ public class Utils {
         }
     }
 
-    /*
-        Returns first available host for specified service, module.id and protocol or throws TransportNoRouteException if no available
-     */
     public static String getHostForService(String service, String moduleId, Protocol protocol) {
         service = service.replace("Transport", "");
         Stat stat = null;
@@ -71,9 +65,6 @@ public class Utils {
         return (Boolean.parseBoolean(System.getProperty("http.ssl.enabled", "false")) ? "https" : "http") + "://";
     }
 
-    /*
-        Returns all available hosts for specified service, module.id and protocol or throws TransportNoRouteException if no available
-     */
     private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -95,9 +86,6 @@ public class Utils {
         }
     }
 
-    /*
-        Returns active module.id for specified service name and protocol or throws TransportNoRouteException if no available
-     */
     public static String getModuleForService(String service, Protocol protocol) {
         try {
             byte[] zkData = zk.getData("/" + service, false, null);
@@ -120,9 +108,6 @@ public class Utils {
         }
     }
 
-    /*
-        Registers service with specified name and protocol in ZooKeeper cluster
-     */
     public static void registerService(String service, Protocol protocol) {
         try {
             Stat stat = isZNodeExists("/" + service);
@@ -139,16 +124,10 @@ public class Utils {
         }
     }
 
-    /*
-        Returns should we use Kafka or ZeroMQ
-     */
     public static Protocol getTransportProtocol() {
         return Protocol.getByName(System.getProperty("transport.protocol"));
     }
 
-    /*
-        Returns user-provided service port or default if not
-     */
     private static int getServicePort() {
         int defaultPort = 4242;
         try {
@@ -158,9 +137,6 @@ public class Utils {
         }
     }
 
-    /*
-        Returns user-provided callback port or default if not
-     */
     private static int getCallbackPort() {
         int defaultPort = 4342;
         try {
@@ -170,9 +146,6 @@ public class Utils {
         }
     }
 
-    /*
-        Creates service metadata information in ZooKeeper cluster
-     */
     @SuppressWarnings("unchecked")
     private static void create(String service, Protocol protocol) throws KeeperException, InterruptedException, UnknownHostException {
         JSONArray ja = new JSONArray();
@@ -180,16 +153,10 @@ public class Utils {
         zk.create(service, ja.toJSONString().getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
 
-    /*
-        Check if znode with specified string exists in ZooKeeper cluster
-     */
     private static Stat isZNodeExists(String service) throws KeeperException, InterruptedException {
         return zk.exists(service, true);
     }
 
-    /*
-        Updates service metadata information in ZooKeeper cluster
-     */
     private static void update(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -200,9 +167,6 @@ public class Utils {
         }
     }
 
-    /*
-        Unpublishes service in ZooKeeper cluster
-     */
     public static void delete(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -214,16 +178,10 @@ public class Utils {
         log.info("Service {} for protocol {} was unregistered", service, protocol.getFullName());
     }
 
-    /*
-        Returns string for registration/publishing service in ZooKeeper cluster
-     */
     private static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getShortName();
     }
 
-    /*
-        Returns ZeroMQ connection string for receiving sync and async requests from client
-     */
     public static String getZeroMQBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort();
     }
@@ -232,38 +190,26 @@ public class Utils {
         return new InetSocketAddress(Utils.getLocalHost(), getServicePort());
     }
 
-    /*
-        Returns ZeroMQ connection string for receiving async responses from server
-     */
     public static String getZeroMQCallbackBindAddress() throws UnknownHostException {
         return getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
-    /*
-        Returns HTTP connection string for receiving async responses from server
-     */
     public static InetSocketAddress getHttpCallbackBindAddress() throws UnknownHostException {
         return new InetSocketAddress(Utils.getLocalHost(), getCallbackPort());
     }
 
-    /*
-        Returns HTTP connection string for receiving async responses from server
-     */
     public static String getHttpCallbackStringAddress() throws UnknownHostException {
         return getHttpPrefix() + getLocalHostLANAddress().getHostAddress() + ":" + getCallbackPort();
     }
 
-    public static String getLocalHost(){
+    public static String getLocalHost() {
         try {
             return getLocalHostLANAddress().getHostAddress();
-        }catch (UnknownHostException e){
+        } catch (UnknownHostException e) {
             throw new TransportSystemException(e);
         }
     }
 
-    /*
-        Returns local hostname
-     */
     private static InetAddress getLocalHostLANAddress() throws UnknownHostException {
         try {
             InetAddress candidateAddress = null;
@@ -295,9 +241,6 @@ public class Utils {
         }
     }
 
-    /*
-        Utility method for shutting down ZeroMQ socket and context
-     */
     public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context) {
         socket.close();
         if (!context.isClosed()) {
@@ -308,9 +251,6 @@ public class Utils {
     }
 }
 
-/*
-    We need to unpublish all services if JVM is shutting down
- */
 class ShutdownHook extends Thread {
     @Override
     public void run() {

@@ -3,9 +3,6 @@ package com.transport.lib.entities;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/*
-    Enum represents all supported transport protocols - Kafka and ZeroMQ
- */
 @AllArgsConstructor
 @Getter
 public enum Protocol {
@@ -15,10 +12,7 @@ public enum Protocol {
     HTTP("http", "HTTP/1.1"),
     RABBIT("rabbit", "RabbitMQ");
 
-    // Short protocol name used for service registration in ZooKeeper
     private final String shortName;
-
-    // Full protocol name used in UI
     private final String fullName;
 
     public static Protocol getByName(String name) {

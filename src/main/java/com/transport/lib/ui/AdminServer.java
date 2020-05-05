@@ -26,8 +26,7 @@ import java.util.concurrent.Executors;
 @Component
 public class AdminServer {
 
-    // Keep last 1000 responses
-    public static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
+    private static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
     private HttpServer server;
 
     public static void addMetric(Command command) {

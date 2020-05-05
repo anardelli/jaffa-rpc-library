@@ -33,7 +33,6 @@ import static com.transport.lib.TransportService.*;
 public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     public static final CloseableHttpClient client;
-    // HTTP async requests are processed by 3 receiver threads
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
     static {
@@ -75,12 +74,9 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
         @Override
         public void handle(HttpExchange request) throws IOException {
-            // New Kryo instance per thread
             Kryo kryo = new Kryo();
-            // Unmarshal message to Command object
             Input input = new Input(request.getRequestBody());
             final Command command = kryo.readObject(input, Command.class);
-            // If it is async request - answer with "OK" message before target method invocation
             if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                 String response = "OK";
                 request.sendResponseHeaders(200, response.getBytes().length);
@@ -89,20 +85,14 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 os.close();
                 request.close();
             }
-            // If it is async request - start target method invocation in separate thread
             if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                 Runnable runnable = () -> {
                     try {
-                        // Target method will be executed in current Thread, so set service metadata
-                        // like client's module.id and SecurityTicket token in ThreadLocal variables
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
-                        // Invoke target method and receive result
                         Object result = invoke(command);
-                        // Marshall result as CallbackContainer
                         ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                         Output output = new Output(bOutput);
-                        // Construct CallbackContainer and marshall it to output stream
                         kryo.writeObject(output, constructCallbackContainer(command, result));
                         output.close();
                         HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
@@ -121,15 +111,11 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 };
                 service.execute(runnable);
             } else {
-                // Target method will be executed in current Thread, so set service metadata
-                // like client's module.id and SecurityTicket token in ThreadLocal variables
                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                 RequestContext.setSecurityTicket(command.getTicket());
-                // Invoke target method and receive result
                 Object result = invoke(command);
                 ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
                 Output output = new Output(bOutput);
-                // Marshall result
                 kryo.writeClassAndObject(output, getResult(result));
                 output.close();
                 byte[] response = bOutput.toByteArray();
@@ -141,5 +127,4 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             }
         }
     }
-
 }

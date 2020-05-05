@@ -22,9 +22,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.UnknownHostException;
 
-/*
-    Class responsible for receiving asynchronous responses using ZeroMQ
- */
 @Slf4j
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
@@ -41,21 +38,15 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }
-        // New Kryo instance per thread
         Kryo kryo = new Kryo();
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                // Receive raw bytes
                 byte[] bytes = socket.recv();
                 Input input = new Input(new ByteArrayInputStream(bytes));
-                // Unmarshal bytes to CallbackContainer
                 CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
-                // Get target callback class
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
-                // If request is still valid
                 Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
                 if (command != null) {
-                    // Send result to callback by invoking appropriate method
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
                         method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
@@ -80,7 +71,6 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                 throw new TransportExecutionException(callbackExecutionException);
             }
         }
-
         log.info("{} terminated", this.getClass().getSimpleName());
     }
 
