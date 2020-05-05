@@ -17,6 +17,9 @@ import com.transport.lib.kafka.receivers.KafkaAsyncRequestReceiver;
 import com.transport.lib.kafka.receivers.KafkaAsyncResponseReceiver;
 import com.transport.lib.kafka.receivers.KafkaReceiver;
 import com.transport.lib.kafka.receivers.KafkaSyncRequestReceiver;
+import com.transport.lib.rabbitmq.RabbitMQRequestSender;
+import com.transport.lib.rabbitmq.receivers.RabbitMQAsyncAndSyncRequestReceiver;
+import com.transport.lib.rabbitmq.receivers.RabbitMQAsyncResponseReceiver;
 import com.transport.lib.spring.ClientEndpoints;
 import com.transport.lib.spring.ServerEndpoints;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
@@ -34,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.KeeperException;
 import org.json.simple.parser.ParseException;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -209,10 +213,13 @@ public class TransportService {
         if (protocol.equals(Protocol.RABBIT)) {
             TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbitmq.host"), Integer.parseInt(getRequiredOption("rabbitmq.port"))));
             TransportService.setAdminRabbitMQ(new RabbitAdmin(TransportService.connectionFactory));
-            TransportService.setServerAsyncTopics(createRabbitMQQueues("server-async"));
-            TransportService.setClientAsyncTopics(createRabbitMQQueues("client-async"));
-            TransportService.setServerSyncTopics(createRabbitMQQueues("server-sync"));
-            TransportService.setClientSyncTopics(createRabbitMQQueues("client-sync"));
+            TransportService.adminRabbitMQ.declareExchange(new DirectExchange(getRequiredOption("module.id"), true, false));
+            if (TransportService.adminRabbitMQ.getQueueInfo("server") == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("server"));
+            }
+            if (TransportService.adminRabbitMQ.getQueueInfo("client") == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("client"));
+            }
         }
     }
 
@@ -254,14 +261,6 @@ public class TransportService {
                 adminZkClient.createTopic(topic, brokersCount, 1, new Properties(), RackAwareMode.Disabled$.MODULE$);
             else if (!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get() + "").equals(brokersCount))
                 throw new IllegalStateException("Topic " + topic + " has wrong config");
-        });
-        return topicsCreated;
-    }
-
-    private Set<String> createRabbitMQQueues(String type) throws ClassNotFoundException {
-        Set<String> topicsCreated = getTopicNames(type);
-        topicsCreated.forEach(topic -> {
-            if (adminRabbitMQ.getQueueInfo(topic) == null) adminRabbitMQ.declareQueue(new Queue(topic));
         });
         return topicsCreated;
     }
@@ -319,6 +318,19 @@ public class TransportService {
                         this.receiverThreads.add(new Thread(httpAsyncResponseReceiver));
                     }
                     break;
+                case RABBIT:
+                    if (serverEndpoints.getEndpoints().length != 0) {
+                        RabbitMQAsyncAndSyncRequestReceiver rabbitMQAsyncAndSyncRequestReceiver = new RabbitMQAsyncAndSyncRequestReceiver();
+                        this.zmqReceivers.add(rabbitMQAsyncAndSyncRequestReceiver);
+                        this.receiverThreads.add(new Thread(rabbitMQAsyncAndSyncRequestReceiver));
+                    }
+                    if (clientEndpoints.getEndpoints().length != 0) {
+                        RabbitMQAsyncResponseReceiver rabbitMQAsyncResponseReceiver = new RabbitMQAsyncResponseReceiver();
+                        this.zmqReceivers.add(rabbitMQAsyncResponseReceiver);
+                        this.receiverThreads.add(new Thread(rabbitMQAsyncResponseReceiver));
+                    }
+                    RabbitMQRequestSender.init();
+                    break;
                 default:
                     throw new TransportSystemException("No known protocol defined");
             }
@@ -369,6 +381,7 @@ public class TransportService {
             if (!context.isTerminated())
                 context.term();
         }
+        RabbitMQRequestSender.close();
         log.info("All ZMQ sockets were closed");
         for (Thread thread : this.receiverThreads) {
             do {

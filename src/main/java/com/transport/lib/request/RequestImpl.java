@@ -13,6 +13,7 @@ import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.http.HttpRequestSender;
 import com.transport.lib.kafka.KafkaRequestSender;
+import com.transport.lib.rabbitmq.RabbitMQRequestSender;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
@@ -42,6 +43,9 @@ public class RequestImpl<T> implements Request<T> {
                 break;
             case HTTP:
                 sender = new HttpRequestSender();
+                break;
+            case RABBIT:
+                sender = new RabbitMQRequestSender();
                 break;
             default:
                 throw new TransportSystemException(TransportSystemException.NO_PROTOCOL_DEFINED);

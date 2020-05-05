@@ -17,6 +17,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
@@ -29,7 +31,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
     private static final ExecutorService responseService = Executors.newFixedThreadPool(3);
     private static final ExecutorService requestService = Executors.newFixedThreadPool(3);
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String ROUTING_KEY = TransportService.getRequiredOption("module.id");
+    private static final String SERVER_ROUTING_KEY = "server";
     private Connection connection;
     private Channel serverChannel;
     private Channel clientChannel;
@@ -40,7 +42,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
             connection = TransportService.getConnectionFactory().createConnection();
             serverChannel = connection.createChannel(false);
             clientChannel = connection.createChannel(false);
-            serverChannel.exchangeBind(queue, EXCHANGE_NAME, "server");
+            serverChannel.queueBind(SERVER_ROUTING_KEY, EXCHANGE_NAME, SERVER_ROUTING_KEY);
             Consumer consumer = new DefaultConsumer(serverChannel) {
                 @Override
                 public void handleDelivery(
@@ -64,10 +66,13 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 kryo.writeObject(output, constructCallbackContainer(command, result));
                                                 output.close();
                                                 byte[] response = bOutput.toByteArray();
-                                                clientChannel.basicPublish(command.getSourceModuleId(), "client", null, response);
+                                                Map<String, Object> headers = new HashMap<>();
+                                                headers.put("communication-type", "async");
+                                                AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+                                                clientChannel.basicPublish(command.getSourceModuleId(), "client", props, response);
                                                 serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                             } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
-                                                log.error("Error while receiving async request");
+                                                log.error("Error while receiving async request", e);
                                                 throw new TransportExecutionException(e);
                                             }
                                         };
@@ -82,7 +87,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         output.close();
                                         byte[] response = bOutput.toByteArray();
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
-                                        clientChannel.basicPublish(EXCHANGE_NAME, "client", props, response);
+                                        clientChannel.basicPublish(command.getSourceModuleId(), "client", props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                     }
                                 } catch (IOException ioException) {
@@ -93,13 +98,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                     );
                 }
             };
-
-            for (String queue : TransportService.getServerAsyncTopics()) {
-                serverChannel.basicConsume(queue, consumer);
-            }
-            for (String queue : TransportService.getServerSyncTopics()) {
-                serverChannel.basicConsume(queue, consumer);
-            }
+            serverChannel.basicConsume(SERVER_ROUTING_KEY, consumer);
         } catch (AmqpException | IOException amqpException) {
             log.error("Error during RabbitMQ request receiver startup:", amqpException);
             throw new TransportSystemException(amqpException);

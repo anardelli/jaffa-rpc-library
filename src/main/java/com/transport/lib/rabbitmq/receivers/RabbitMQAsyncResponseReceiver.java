@@ -2,14 +2,12 @@ package com.transport.lib.rabbitmq.receivers;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.rabbitmq.client.*;
 import com.transport.lib.TransportService;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
-import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.ui.AdminServer;
@@ -18,19 +16,16 @@ import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeoutException;
 
-import static com.transport.lib.TransportService.*;
-
 @Slf4j
 public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String ROUTING_KEY = TransportService.getRequiredOption("module.id");
+    private static final String CLIENT_ROUTING_KEY = "client";
     private Connection connection;
     private Channel clientChannel;
 
@@ -39,20 +34,17 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
         try {
             connection = TransportService.getConnectionFactory().createConnection();
             clientChannel = connection.createChannel(false);
-            for (String queue : TransportService.getClientSyncTopics()) {
-                clientChannel.queueBind(queue, EXCHANGE_NAME, ROUTING_KEY);
-            }
-            for (String queue : TransportService.getClientAsyncTopics()) {
-                clientChannel.queueBind(queue, EXCHANGE_NAME, ROUTING_KEY);
-            }
+            clientChannel.queueBind(CLIENT_ROUTING_KEY, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
             Consumer consumer = new DefaultConsumer(clientChannel) {
                 @Override
                 public void handleDelivery(
-                    String consumerTag,
-                    Envelope envelope,
-                    AMQP.BasicProperties properties,
-                    final byte[] body) {
+                        String consumerTag,
+                        Envelope envelope,
+                        AMQP.BasicProperties properties,
+                        final byte[] body) {
+                    Object type = properties.getHeaders().get("communication-type");
                     Kryo kryo = new Kryo();
+                    if (type == null || !"async".equals(String.valueOf(type))) return;
                     try {
                         Input input = new Input(new ByteArrayInputStream(body));
                         CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
@@ -83,14 +75,8 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                     }
                 }
             };
-
-            for (String queue : TransportService.getServerAsyncTopics()) {
-                clientChannel.basicConsume(queue, consumer);
-            }
-            for (String queue : TransportService.getServerSyncTopics()) {
-                clientChannel.basicConsume(queue, consumer);
-            }
-        }catch (AmqpException | IOException ioException){
+            clientChannel.basicConsume(CLIENT_ROUTING_KEY, consumer);
+        } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
             throw new TransportSystemException(ioException);
         }

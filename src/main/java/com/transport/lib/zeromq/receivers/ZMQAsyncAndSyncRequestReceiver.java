@@ -65,7 +65,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             socketAsync.send(bOutput.toByteArray());
                             socketAsync.close();
                         } catch (ClassNotFoundException | NoSuchMethodException e) {
-                            log.error("Error while receiving async request");
+                            log.error("Error while receiving async request", e);
                             throw new TransportExecutionException(e);
                         }
                     };
