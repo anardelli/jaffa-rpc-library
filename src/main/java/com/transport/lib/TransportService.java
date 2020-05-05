@@ -84,6 +84,7 @@ public class TransportService {
     @Setter(AccessLevel.PRIVATE)
     private static RabbitAdmin adminRabbitMQ;
     @Setter(AccessLevel.PRIVATE)
+    @Getter(AccessLevel.PUBLIC)
     private static ConnectionFactory connectionFactory;
 
     static {
