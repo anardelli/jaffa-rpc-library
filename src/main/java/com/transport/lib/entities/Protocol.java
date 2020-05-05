@@ -12,7 +12,8 @@ public enum Protocol {
 
     KAFKA("kafka", "Apache Kafka"),
     ZMQ("zmq", "ZeroMQ"),
-    HTTP("http", "HTTP/1.1");
+    HTTP("http", "HTTP/1.1"),
+    RABBIT("rabbit", "RabbitMQ");
 
     // Short protocol name used for service registration in ZooKeeper
     private final String shortName;

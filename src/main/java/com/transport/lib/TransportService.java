@@ -266,6 +266,9 @@ public class TransportService {
             TransportService.setServerSyncTopics(createTopics("server-sync"));
             TransportService.setClientSyncTopics(createTopics("client-sync"));
         }
+        if(protocol.equals(Protocol.RABBIT)){
+
+        }
     }
 
     /*

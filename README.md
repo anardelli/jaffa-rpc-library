@@ -182,6 +182,11 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (optional, default port is 4342)  
   **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (optional, default port is 4342)  
   **-Dmodule.id**             - unique name of server in ZooKeeper cluster **(required)**  
-  **-Dtransport.protocol**    - could be 'zmq', 'kafka' or 'http' **(required)**  
-  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)  
+  **-Dtransport.protocol**    - could be 'zmq', 'kafka', 'http' or 'rabbit' **(required)**  
+  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)
+  
+  WIP:
+  **-Drabbitmq.host**         - RabbitMQ server host **(required for RabbitMQ protocol)**  
+  **-Drabbitmq.port**         - RabbitMQ server port **(required for RabbitMQ protocol)**  
+
 
