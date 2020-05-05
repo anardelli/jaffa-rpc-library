@@ -1,6 +1,7 @@
 package com.transport.lib.rabbitmq;
 
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.GetResponse;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.zookeeper.Utils;
@@ -25,7 +26,27 @@ public class RabbitMQRequestSender extends Sender {
 
     @Override
     public byte[] executeSync(byte[] message) {
-        //TODO Implement synchronous RPC call via RabbitMQ
+        try {
+            if (moduleId != null && !moduleId.isEmpty()) {
+                clientChannel.basicPublish(command.getSourceModuleId(), "client", null, message);
+            }else{
+                String transportInterface = command.getServiceClass();
+                String serviceInterface = transportInterface.replaceFirst("Transport", "");
+                String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
+                clientChannel.basicPublish(moduleId, "client", null, message);
+            }
+            long start = System.currentTimeMillis();
+            while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
+                GetResponse response = clientChannel.basicGet("client", false);
+                if(command.getRqUid().equals(response.getProps().getCorrelationId())){
+                    clientChannel.basicAck(response.getEnvelope().getDeliveryTag(), false);
+                    return response.getBody();
+                }
+            }
+        }catch (IOException ioException){
+            log.error("Error while sending sync RabbitMQ request", ioException);
+            throw new TransportExecutionException(ioException);
+        }
         return null;
     }
 
