@@ -1,8 +1,8 @@
 package com.transport.test;
 
+import com.transport.lib.configuration.TransportConfig;
 import com.transport.lib.spring.ClientEndpoints;
 import com.transport.lib.spring.ServerEndpoints;
-import com.transport.lib.configuration.TransportConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;

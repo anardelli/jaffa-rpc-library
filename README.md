@@ -187,8 +187,8 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   
 ## Work in progress:
 ### RabbitMQ support:  
-  **-Drabbitmq.host**         - RabbitMQ server host **(required for RabbitMQ protocol)**  
-  **-Drabbitmq.port**         - RabbitMQ server port **(required for RabbitMQ protocol)**  
+  **-Drabbit.host**         - RabbitMQ server host **(required for RabbitMQ protocol)**  
+  **-Drabbit.port**         - RabbitMQ server port **(required for RabbitMQ protocol)**  
   **-Dtransport.protocol**    - +='rabbit'  
   
 ### gRPC support

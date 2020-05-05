@@ -5,24 +5,24 @@ import com.transport.lib.annotations.Api;
 @Api
 public interface PersonService {
 
-    public static final String TEST = "TEST";
+    String TEST = "TEST";
 
-    public static void lol3() {
+    static void lol3() {
         System.out.println("lol3");
     }
 
-    public int add(String name, String email, Address address);
+    int add(String name, String email, Address address);
 
-    public Person get(Integer id);
+    Person get(Integer id);
 
-    public void lol();
+    void lol();
 
-    public void lol2(String message);
+    void lol2(String message);
 
-    public String getName();
+    String getName();
 
-    public String getHeavy(String heavy);
+    String getHeavy(String heavy);
 
-    public Person testError();
+    Person testError();
 
 }

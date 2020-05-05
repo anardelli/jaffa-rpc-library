@@ -42,9 +42,10 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                         Envelope envelope,
                         AMQP.BasicProperties properties,
                         final byte[] body) {
+                    if(properties.getHeaders() == null) return;
                     Object type = properties.getHeaders().get("communication-type");
-                    Kryo kryo = new Kryo();
                     if (type == null || !"async".equals(String.valueOf(type))) return;
+                    Kryo kryo = new Kryo();
                     try {
                         Input input = new Input(new ByteArrayInputStream(body));
                         CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);

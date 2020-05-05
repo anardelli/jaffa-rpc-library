@@ -15,7 +15,7 @@ import java.util.UUID;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {MainConfig.class}, loader = AnnotationConfigContextLoader.class)
 public class MainTest {
-    
+
     @Autowired
     private PersonServiceTransport personService;
 

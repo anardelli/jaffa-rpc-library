@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ApiServer
 public class PersonServiceImpl implements PersonService {
-    
+
     private final List<Person> people = new ArrayList<>();
 
     private final AtomicInteger idProvider = new AtomicInteger(1);

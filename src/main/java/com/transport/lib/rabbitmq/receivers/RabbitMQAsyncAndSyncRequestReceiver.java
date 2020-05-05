@@ -55,6 +55,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                 try {
                                     Input input = new Input(new ByteArrayInputStream(body));
                                     final Command command = kryo.readObject(input, Command.class);
+                                    log.info("Request received {} in RabbitMQ", command.getRqUid());
                                     if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                                         Runnable runnable = () -> {
                                             try {
@@ -70,7 +71,9 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 headers.put("communication-type", "async");
                                                 AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
                                                 clientChannel.basicPublish(command.getSourceModuleId(), "client", props, response);
+                                                log.info("Async response was sent {} in RabbitMQ", command.getCallbackKey());
                                                 serverChannel.basicAck(envelope.getDeliveryTag(), false);
+                                                log.info("Ack async was sent {} in RabbitMQ", envelope.getDeliveryTag());
                                             } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                                                 log.error("Error while receiving async request", e);
                                                 throw new TransportExecutionException(e);
@@ -88,7 +91,9 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         byte[] response = bOutput.toByteArray();
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
                                         clientChannel.basicPublish(command.getSourceModuleId(), "client", props, response);
+                                        log.info("Sync response was sent {} in RabbitMQ", command.getRqUid());
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);
+                                        log.info("Ack sync was sent {} in RabbitMQ", envelope.getDeliveryTag());
                                     }
                                 } catch (IOException ioException) {
                                     log.error("General RabbitMQ exception", ioException);

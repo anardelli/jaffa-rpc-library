@@ -211,7 +211,7 @@ public class TransportService {
             TransportService.setClientSyncTopics(createKafkaTopics("client-sync"));
         }
         if (protocol.equals(Protocol.RABBIT)) {
-            TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbitmq.host"), Integer.parseInt(getRequiredOption("rabbitmq.port"))));
+            TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbit.host"), Integer.parseInt(getRequiredOption("rabbit.port"))));
             TransportService.setAdminRabbitMQ(new RabbitAdmin(TransportService.connectionFactory));
             TransportService.adminRabbitMQ.declareExchange(new DirectExchange(getRequiredOption("module.id"), true, false));
             if (TransportService.adminRabbitMQ.getQueueInfo("server") == null) {
