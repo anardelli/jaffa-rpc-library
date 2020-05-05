@@ -34,6 +34,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.KeeperException;
 import org.json.simple.parser.ParseException;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.zeromq.ZMQ;
 
@@ -91,6 +95,11 @@ public class TransportService {
     @Setter(AccessLevel.PRIVATE)
     private static AdminZkClient adminZkClient;
 
+    @Setter(AccessLevel.PRIVATE)
+    private static RabbitAdmin adminRabbitMQ;
+
+    @Setter(AccessLevel.PRIVATE)
+    private static ConnectionFactory connectionFactory;
 
     static {
         if (Utils.getTransportProtocol().equals(Protocol.KAFKA)) {
@@ -261,22 +270,23 @@ public class TransportService {
             TransportService.setAdminZkClient(new AdminZkClient(zkClient));
             TransportService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
             log.info("Kafka brokers: {}", brokersCount);
-            TransportService.setServerAsyncTopics(createTopics("server-async"));
-            TransportService.setClientAsyncTopics(createTopics("client-async"));
-            TransportService.setServerSyncTopics(createTopics("server-sync"));
-            TransportService.setClientSyncTopics(createTopics("client-sync"));
+            TransportService.setServerAsyncTopics(createKafkaTopics("server-async"));
+            TransportService.setClientAsyncTopics(createKafkaTopics("client-async"));
+            TransportService.setServerSyncTopics(createKafkaTopics("server-sync"));
+            TransportService.setClientSyncTopics(createKafkaTopics("client-sync"));
         }
         if(protocol.equals(Protocol.RABBIT)){
-
+            TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbitmq.host"),Integer.parseInt(getRequiredOption("rabbitmq.port"))));
+            TransportService.setAdminRabbitMQ(new RabbitAdmin(TransportService.connectionFactory));
+            TransportService.setServerAsyncTopics(createRabbitMQQueues("server-async"));
+            TransportService.setClientAsyncTopics(createRabbitMQQueues("client-async"));
+            TransportService.setServerSyncTopics(createRabbitMQQueues("server-sync"));
+            TransportService.setClientSyncTopics(createRabbitMQQueues("client-sync"));
         }
     }
 
-    /*
-        Create necessary topics in Kafka cluster
-        type - parameter that acts as both suffix of topic' name and type
-     */
-    private Set<String> createTopics(String type) throws ClassNotFoundException {
-        // Topics that were created
+    private Set<String> getTopicNames(String type) throws ClassNotFoundException{
+        // Topics that will be created
         Set<String> topicsCreated = new HashSet<>();
         Set<Class<?>> apiImpls = new HashSet<>();
         // First, we need to construct list of classes - server and client endpoints that must be initialized
@@ -313,6 +323,15 @@ public class TransportService {
         }
         // Construct topic names
         apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type));
+        return topicsCreated;
+    }
+
+    /*
+        Create necessary topics in Kafka cluster
+        type - parameter that acts as both suffix of topic' name and type
+     */
+    private Set<String> createKafkaTopics(String type) throws ClassNotFoundException {
+        Set<String> topicsCreated = getTopicNames(type);
         // And create topics if not exist
         topicsCreated.forEach(topic -> {
             if (!zkClient.topicExists(topic))
@@ -320,6 +339,20 @@ public class TransportService {
             else if (!Integer.valueOf(zkClient.getTopicPartitionCount(topic).get() + "").equals(brokersCount))
                 // If topic exists but has wrong number of partitions
                 throw new IllegalStateException("Topic " + topic + " has wrong config");
+        });
+        return topicsCreated;
+    }
+
+
+    /*
+        Create necessary topics in Kafka cluster
+        type - parameter that acts as both suffix of topic' name and type
+     */
+    private Set<String> createRabbitMQQueues(String type) throws ClassNotFoundException {
+        Set<String> topicsCreated = getTopicNames(type);
+        // And create topics if not exist
+        topicsCreated.forEach(topic -> {
+            if (adminRabbitMQ.getQueueInfo(topic) == null) adminRabbitMQ.declareQueue(new Queue(topic));
         });
         return topicsCreated;
     }
