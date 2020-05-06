@@ -258,6 +258,8 @@ class ShutdownHook extends Thread {
             for (String service : Utils.services) {
                 Utils.delete(service, Protocol.KAFKA);
                 Utils.delete(service, Protocol.ZMQ);
+                Utils.delete(service, Protocol.HTTP);
+                Utils.delete(service, Protocol.RABBIT);
             }
             Utils.conn.close();
             Utils.conn = null;

@@ -217,8 +217,11 @@ public class TransportService {
             if (TransportService.adminRabbitMQ.getQueueInfo("server") == null) {
                 TransportService.adminRabbitMQ.declareQueue(new Queue("server"));
             }
-            if (TransportService.adminRabbitMQ.getQueueInfo("client") == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("client"));
+            if (TransportService.adminRabbitMQ.getQueueInfo("client-sync") == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("client-sync"));
+            }
+            if (TransportService.adminRabbitMQ.getQueueInfo("client-async") == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("client-async"));
             }
         }
     }

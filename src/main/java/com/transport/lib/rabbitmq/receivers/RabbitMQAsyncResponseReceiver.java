@@ -25,7 +25,8 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ROUTING_KEY = "client";
+    private static final String CLIENT_ROUTING_KEY = "client-async";
+    private static final String CLIENT_ASYNC_QUEUE_NAME = "client-async";
     private Connection connection;
     private Channel clientChannel;
 
@@ -34,7 +35,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
         try {
             connection = TransportService.getConnectionFactory().createConnection();
             clientChannel = connection.createChannel(false);
-            clientChannel.queueBind(CLIENT_ROUTING_KEY, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
+            clientChannel.queueBind(CLIENT_ASYNC_QUEUE_NAME, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
             Consumer consumer = new DefaultConsumer(clientChannel) {
                 @Override
                 public void handleDelivery(

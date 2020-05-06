@@ -23,13 +23,14 @@ public class RabbitMQRequestSender extends Sender {
     private static Connection connection;
     private static Channel clientChannel;
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ROUTING_KEY = "client";
+    private static final String CLIENT_ROUTING_KEY = "client-sync";
+    private static final String CLIENT_SYNC_QUEUE_NAME = "client-sync";
     private static final Map<String, Callback> requests = new ConcurrentHashMap<>();
     public static void init() {
         try {
             connection = TransportService.getConnectionFactory().createConnection();
             clientChannel = connection.createChannel(false);
-            clientChannel.queueBind(CLIENT_ROUTING_KEY, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
+            clientChannel.queueBind(CLIENT_SYNC_QUEUE_NAME, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
             Consumer consumer = new DefaultConsumer(clientChannel) {
                 @Override
                 public void handleDelivery(
@@ -37,12 +38,10 @@ public class RabbitMQRequestSender extends Sender {
                         Envelope envelope,
                         AMQP.BasicProperties properties,
                         final byte[] body) throws IOException {
-                    log.info("Message received {}", properties);
                     if(properties != null && properties.getCorrelationId()!= null){
                         Callback callback = requests.remove(properties.getCorrelationId());
                         if(callback != null) {
                             callback.call(body);
-                            log.info("Received sync response in thread {}", Thread.currentThread().getName());
                             clientChannel.basicAck(envelope.getDeliveryTag(), false);
                         }
                     }
@@ -68,7 +67,6 @@ public class RabbitMQRequestSender extends Sender {
         try {
             final AtomicReference<byte[]> atomicReference = new AtomicReference<>();
             requests.put(command.getRqUid(), atomicReference::set);
-            log.info("Request was sent from thread {}", Thread.currentThread().getName());
             if (moduleId != null && !moduleId.isEmpty()) {
                 clientChannel.basicPublish(command.getSourceModuleId(), "server", null, message);
             } else {
@@ -82,7 +80,6 @@ public class RabbitMQRequestSender extends Sender {
             while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
                 byte[] result = atomicReference.get();
                 if(result != null){
-                    log.info("Response received in thread {}", Thread.currentThread().getName());
                     return result;
                 }
             }
