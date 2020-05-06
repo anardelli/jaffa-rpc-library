@@ -131,7 +131,7 @@ Integer id = personService.add("Test name", "test@mail.com", null)
 // Async call on module with moduleId = main.server and timeout = 10s
 personService.get(id)
              .onModule("main.server")
-             .withTimeout(10_000)
+             .withTimeout(TimeUnit.MILLISECONDS.toMillis(10000))
              .executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
 
 // Async callback implementation example
