@@ -39,6 +39,7 @@ public class ServerTest {
     }
 
     @Test
+    @Ignore
     public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
@@ -65,11 +66,10 @@ public class ServerTest {
     }
 
     @Test
-    @Ignore
     public void stage2() {
         // 1 hour load test
-        final boolean sync = true;
-        final boolean heavy = true;
+        final boolean sync = false;
+        final boolean heavy = false;
         Runnable runnable = () -> {
             long startTime = System.currentTimeMillis();
             while (!Thread.currentThread().isInterrupted() && (System.currentTimeMillis() - startTime) < (60 * 60 * 1000)) {
