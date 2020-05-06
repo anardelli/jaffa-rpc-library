@@ -7,7 +7,7 @@ Key features:
 - One interface could have multiple server implementations - 
   client choose required by specifying target module.id
 - Request-scoped timeout for both sync/async calls
-- 3 protocols:
+- 4 protocols:
   - ZeroMQ
     - Unlimited message size
     - Low latency
@@ -18,6 +18,10 @@ Key features:
   - HTTP
     - Low latency
     - High throughput
+  - RabbitMQ
+    - Low latency
+    - High throughput
+    - Persistence
 - User could specify custom security provider (see example below)
 
 ## Latency
