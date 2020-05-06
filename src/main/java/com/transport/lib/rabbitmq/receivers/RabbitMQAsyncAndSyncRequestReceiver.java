@@ -31,7 +31,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
     private static final ExecutorService responseService = Executors.newFixedThreadPool(3);
     private static final ExecutorService requestService = Executors.newFixedThreadPool(3);
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String SERVER_ROUTING_KEY = "server";
+    private static final String SERVER_ROUTING_KEY = "server" +  TransportService.getRequiredOption("module.id");
     private Connection connection;
     private Channel serverChannel;
     private Channel clientChannel;
@@ -69,7 +69,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 Map<String, Object> headers = new HashMap<>();
                                                 headers.put("communication-type", "async");
                                                 AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-                                                clientChannel.basicPublish(command.getSourceModuleId(), "client-async", props, response);
+                                                clientChannel.basicPublish(command.getSourceModuleId(), "client-async" + command.getSourceModuleId(), props, response);
                                                 serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                             } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                                                 log.error("Error while receiving async request", e);
@@ -87,7 +87,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         output.close();
                                         byte[] response = bOutput.toByteArray();
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
-                                        clientChannel.basicPublish(command.getSourceModuleId(), "client-sync", props, response);
+                                        clientChannel.basicPublish(command.getSourceModuleId(), "client-sync" + command.getSourceModuleId(), props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                     }
                                 } catch (IOException ioException) {

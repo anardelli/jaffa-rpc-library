@@ -214,14 +214,14 @@ public class TransportService {
             TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbit.host"), Integer.parseInt(getRequiredOption("rabbit.port"))));
             TransportService.setAdminRabbitMQ(new RabbitAdmin(TransportService.connectionFactory));
             TransportService.adminRabbitMQ.declareExchange(new DirectExchange(getRequiredOption("module.id"), true, false));
-            if (TransportService.adminRabbitMQ.getQueueInfo("server") == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("server"));
+            if (TransportService.adminRabbitMQ.getQueueInfo("server" + getRequiredOption("module.id")) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("server" + getRequiredOption("module.id")));
             }
-            if (TransportService.adminRabbitMQ.getQueueInfo("client-sync") == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("client-sync"));
+            if (TransportService.adminRabbitMQ.getQueueInfo("client-sync" + getRequiredOption("module.id")) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("client-sync" + getRequiredOption("module.id")));
             }
-            if (TransportService.adminRabbitMQ.getQueueInfo("client-async") == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("client-async"));
+            if (TransportService.adminRabbitMQ.getQueueInfo("client-async" + getRequiredOption("module.id")) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue("client-async" + getRequiredOption("module.id")));
             }
         }
     }

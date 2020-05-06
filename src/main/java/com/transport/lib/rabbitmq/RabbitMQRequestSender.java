@@ -23,8 +23,8 @@ public class RabbitMQRequestSender extends Sender {
     private static Connection connection;
     private static Channel clientChannel;
     private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ROUTING_KEY = "client-sync";
-    private static final String CLIENT_SYNC_QUEUE_NAME = "client-sync";
+    private static final String CLIENT_ROUTING_KEY = "client-sync" + TransportService.getRequiredOption("module.id");
+    private static final String CLIENT_SYNC_QUEUE_NAME = "client-sync" + TransportService.getRequiredOption("module.id");
     private static final Map<String, Callback> requests = new ConcurrentHashMap<>();
     public static void init() {
         try {
@@ -68,14 +68,13 @@ public class RabbitMQRequestSender extends Sender {
             final AtomicReference<byte[]> atomicReference = new AtomicReference<>();
             requests.put(command.getRqUid(), atomicReference::set);
             if (moduleId != null && !moduleId.isEmpty()) {
-                clientChannel.basicPublish(command.getSourceModuleId(), "server", null, message);
+                clientChannel.basicPublish(command.getSourceModuleId(), "server" + moduleId, null, message);
             } else {
                 String transportInterface = command.getServiceClass();
                 String serviceInterface = transportInterface.replaceFirst("Transport", "");
                 String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
-                clientChannel.basicPublish(moduleId, "server", null, message);
+                clientChannel.basicPublish(moduleId, "server" + moduleId, null, message);
             }
-
             long start = System.currentTimeMillis();
             while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
                 byte[] result = atomicReference.get();
@@ -95,12 +94,12 @@ public class RabbitMQRequestSender extends Sender {
     public void executeAsync(byte[] message) {
         try {
             if (moduleId != null && !moduleId.isEmpty()) {
-                clientChannel.basicPublish(command.getSourceModuleId(), "server", null, message);
+                clientChannel.basicPublish(command.getSourceModuleId(), "server" + moduleId, null, message);
             } else {
                 String transportInterface = command.getServiceClass();
                 String serviceInterface = transportInterface.replaceFirst("Transport", "");
                 String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
-                clientChannel.basicPublish(moduleId, "server", null, message);
+                clientChannel.basicPublish(moduleId, "server" + moduleId, null, message);
             }
         } catch (IOException e) {
             log.error("Error while sending async RabbitMQ request", e);
