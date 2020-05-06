@@ -103,7 +103,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                     );
                 }
             };
-            serverChannel.basicConsume(SERVER_ROUTING_KEY, consumer);
+            serverChannel.basicConsume(SERVER_ROUTING_KEY, false, consumer);
         } catch (AmqpException | IOException amqpException) {
             log.error("Error during RabbitMQ request receiver startup:", amqpException);
             throw new TransportSystemException(amqpException);

@@ -1,27 +1,58 @@
 package com.transport.lib.rabbitmq;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.GetResponse;
+import com.rabbitmq.client.*;
 import com.transport.lib.TransportService;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportExecutionException;
+import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.request.Sender;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class RabbitMQRequestSender extends Sender {
 
     private static Connection connection;
     private static Channel clientChannel;
-
+    private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
+    private static final String CLIENT_ROUTING_KEY = "client";
+    private static final Map<String, Callback> requests = new ConcurrentHashMap<>();
     public static void init() {
-        connection = TransportService.getConnectionFactory().createConnection();
-        clientChannel = connection.createChannel(false);
+        try {
+            connection = TransportService.getConnectionFactory().createConnection();
+            clientChannel = connection.createChannel(false);
+            clientChannel.queueBind(CLIENT_ROUTING_KEY, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
+            Consumer consumer = new DefaultConsumer(clientChannel) {
+                @Override
+                public void handleDelivery(
+                        String consumerTag,
+                        Envelope envelope,
+                        AMQP.BasicProperties properties,
+                        final byte[] body) throws IOException {
+                    log.info("Message received {}", properties);
+                    if(properties != null && properties.getCorrelationId()!= null){
+                        Callback callback = requests.remove(properties.getCorrelationId());
+                        if(callback != null) {
+                            callback.call(body);
+                            log.info("Received sync response in thread {}", Thread.currentThread().getName());
+                            clientChannel.basicAck(envelope.getDeliveryTag(), false);
+                        }
+                    }
+                }
+            };
+            clientChannel.basicConsume(CLIENT_ROUTING_KEY, false, consumer);
+        } catch (AmqpException | IOException ioException) {
+            log.error("Error during RabbitMQ response receiver startup:", ioException);
+            throw new TransportSystemException(ioException);
+        }
     }
 
     public static void close() {
@@ -35,6 +66,9 @@ public class RabbitMQRequestSender extends Sender {
     @Override
     public byte[] executeSync(byte[] message) {
         try {
+            final AtomicReference<byte[]> atomicReference = new AtomicReference<>();
+            requests.put(command.getRqUid(), atomicReference::set);
+            log.info("Request was sent from thread {}", Thread.currentThread().getName());
             if (moduleId != null && !moduleId.isEmpty()) {
                 clientChannel.basicPublish(command.getSourceModuleId(), "server", null, message);
             } else {
@@ -43,19 +77,16 @@ public class RabbitMQRequestSender extends Sender {
                 String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
                 clientChannel.basicPublish(moduleId, "server", null, message);
             }
+
             long start = System.currentTimeMillis();
             while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
-                GetResponse response = clientChannel.basicGet("client", false);
-                if(response != null) log.info(String.valueOf(response));
-                if (response != null
-                        && response.getProps() != null
-                        && response.getProps().getCorrelationId() != null
-                        && command.getRqUid().equals(response.getProps().getCorrelationId())) {
-                    clientChannel.basicAck(response.getEnvelope().getDeliveryTag(), false);
-                    log.info("Headers: {}", response.getProps());
-                    return response.getBody();
+                byte[] result = atomicReference.get();
+                if(result != null){
+                    log.info("Response received in thread {}", Thread.currentThread().getName());
+                    return result;
                 }
             }
+            requests.remove(command.getRqUid());
         } catch (IOException ioException) {
             log.error("Error while sending sync RabbitMQ request", ioException);
             throw new TransportExecutionException(ioException);
@@ -78,5 +109,9 @@ public class RabbitMQRequestSender extends Sender {
             log.error("Error while sending async RabbitMQ request", e);
             throw new TransportExecutionException(e);
         }
+    }
+
+    private abstract interface Callback {
+        void call(byte[] body);
     }
 }

@@ -76,7 +76,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                     }
                 }
             };
-            clientChannel.basicConsume(CLIENT_ROUTING_KEY, consumer);
+            clientChannel.basicConsume(CLIENT_ROUTING_KEY, false, consumer);
         } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
             throw new TransportSystemException(ioException);

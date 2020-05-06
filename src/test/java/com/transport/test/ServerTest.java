@@ -32,12 +32,13 @@ public class ServerTest {
         System.setProperty("zmq.service.port", "4843");
         System.setProperty("zmq.callback.port", "4943");
         System.setProperty("module.id", "test.server");
-        System.setProperty("transport.protocol", "http");
+        System.setProperty("rabbit.host", "localhost");
+        System.setProperty("rabbit.port", "5672");
+        System.setProperty("transport.protocol", "rabbit");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }
 
     @Test
-    @Ignore
     public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
@@ -64,6 +65,7 @@ public class ServerTest {
     }
 
     @Test
+    @Ignore
     public void stage2() {
         // 1 hour load test
         final boolean sync = true;
