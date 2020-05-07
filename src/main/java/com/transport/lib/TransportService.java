@@ -213,15 +213,15 @@ public class TransportService {
         if (protocol.equals(Protocol.RABBIT)) {
             TransportService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbit.host"), Integer.parseInt(getRequiredOption("rabbit.port"))));
             TransportService.setAdminRabbitMQ(new RabbitAdmin(TransportService.connectionFactory));
-            TransportService.adminRabbitMQ.declareExchange(new DirectExchange(getRequiredOption("module.id"), true, false));
-            if (TransportService.adminRabbitMQ.getQueueInfo("server" + getRequiredOption("module.id")) == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("server" + getRequiredOption("module.id")));
+            TransportService.adminRabbitMQ.declareExchange(new DirectExchange(RabbitMQRequestSender.EXCHANGE_NAME, true, false));
+            if (TransportService.adminRabbitMQ.getQueueInfo(RabbitMQRequestSender.SERVER) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue(RabbitMQRequestSender.SERVER));
             }
-            if (TransportService.adminRabbitMQ.getQueueInfo("client-sync" + getRequiredOption("module.id")) == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("client-sync" + getRequiredOption("module.id")));
+            if (TransportService.adminRabbitMQ.getQueueInfo(RabbitMQRequestSender.CLIENT_ASYNC_NAME) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue(RabbitMQRequestSender.CLIENT_ASYNC_NAME));
             }
-            if (TransportService.adminRabbitMQ.getQueueInfo("client-async" + getRequiredOption("module.id")) == null) {
-                TransportService.adminRabbitMQ.declareQueue(new Queue("client-async" + getRequiredOption("module.id")));
+            if (TransportService.adminRabbitMQ.getQueueInfo(RabbitMQRequestSender.CLIENT_SYNC_NAME) == null) {
+                TransportService.adminRabbitMQ.declareQueue(new Queue(RabbitMQRequestSender.CLIENT_SYNC_NAME));
             }
         }
     }

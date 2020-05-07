@@ -9,6 +9,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.rabbitmq.RabbitMQRequestSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -30,8 +31,6 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
 
     private static final ExecutorService responseService = Executors.newFixedThreadPool(3);
     private static final ExecutorService requestService = Executors.newFixedThreadPool(3);
-    private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String SERVER_ROUTING_KEY = "server" +  TransportService.getRequiredOption("module.id");
     private Connection connection;
     private Channel serverChannel;
     private Channel clientChannel;
@@ -42,7 +41,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
             connection = TransportService.getConnectionFactory().createConnection();
             serverChannel = connection.createChannel(false);
             clientChannel = connection.createChannel(false);
-            serverChannel.queueBind(SERVER_ROUTING_KEY, EXCHANGE_NAME, SERVER_ROUTING_KEY);
+            serverChannel.queueBind(RabbitMQRequestSender.SERVER, RabbitMQRequestSender.EXCHANGE_NAME, RabbitMQRequestSender.SERVER);
             Consumer consumer = new DefaultConsumer(serverChannel) {
                 @Override
                 public void handleDelivery(
@@ -98,7 +97,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                     );
                 }
             };
-            serverChannel.basicConsume(SERVER_ROUTING_KEY, false, consumer);
+            serverChannel.basicConsume(RabbitMQRequestSender.SERVER, false, consumer);
         } catch (AmqpException | IOException amqpException) {
             log.error("Error during RabbitMQ request receiver startup:", amqpException);
             throw new TransportSystemException(amqpException);

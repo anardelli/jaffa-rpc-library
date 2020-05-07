@@ -10,6 +10,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.rabbitmq.RabbitMQRequestSender;
 import com.transport.lib.ui.AdminServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
@@ -24,9 +25,6 @@ import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
-    private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ROUTING_KEY = "client-async" + TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ASYNC_QUEUE_NAME = "client-async" + TransportService.getRequiredOption("module.id");
     private Connection connection;
     private Channel clientChannel;
 
@@ -35,7 +33,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
         try {
             connection = TransportService.getConnectionFactory().createConnection();
             clientChannel = connection.createChannel(false);
-            clientChannel.queueBind(CLIENT_ASYNC_QUEUE_NAME, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
+            clientChannel.queueBind(RabbitMQRequestSender.CLIENT_ASYNC_NAME, RabbitMQRequestSender.EXCHANGE_NAME, RabbitMQRequestSender.CLIENT_ASYNC_NAME);
             Consumer consumer = new DefaultConsumer(clientChannel) {
                 @Override
                 public void handleDelivery(
@@ -43,7 +41,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                         Envelope envelope,
                         AMQP.BasicProperties properties,
                         final byte[] body) {
-                    if(properties.getHeaders() == null) return;
+                    if (properties.getHeaders() == null) return;
                     Object type = properties.getHeaders().get("communication-type");
                     if (type == null || !"async".equals(String.valueOf(type))) return;
                     Kryo kryo = new Kryo();
@@ -77,7 +75,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                     }
                 }
             };
-            clientChannel.basicConsume(CLIENT_ROUTING_KEY, false, consumer);
+            clientChannel.basicConsume(RabbitMQRequestSender.CLIENT_ASYNC_NAME, false, consumer);
         } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
             throw new TransportSystemException(ioException);

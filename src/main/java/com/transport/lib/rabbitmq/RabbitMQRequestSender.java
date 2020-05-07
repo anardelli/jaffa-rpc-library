@@ -20,17 +20,20 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class RabbitMQRequestSender extends Sender {
 
+    private static final String NAME_PREFIX = TransportService.getRequiredOption("module.id");
+    public static final String EXCHANGE_NAME = NAME_PREFIX;
+    public static final String CLIENT_SYNC_NAME = NAME_PREFIX + "-client-sync";
+    public static final String CLIENT_ASYNC_NAME = NAME_PREFIX + "-client-async";
+    public static final String SERVER = NAME_PREFIX + "-server";
+    private static final Map<String, Callback> requests = new ConcurrentHashMap<>();
     private static Connection connection;
     private static Channel clientChannel;
-    private static final String EXCHANGE_NAME = TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_ROUTING_KEY = "client-sync" + TransportService.getRequiredOption("module.id");
-    private static final String CLIENT_SYNC_QUEUE_NAME = "client-sync" + TransportService.getRequiredOption("module.id");
-    private static final Map<String, Callback> requests = new ConcurrentHashMap<>();
+
     public static void init() {
         try {
             connection = TransportService.getConnectionFactory().createConnection();
             clientChannel = connection.createChannel(false);
-            clientChannel.queueBind(CLIENT_SYNC_QUEUE_NAME, EXCHANGE_NAME, CLIENT_ROUTING_KEY);
+            clientChannel.queueBind(CLIENT_SYNC_NAME, EXCHANGE_NAME, CLIENT_SYNC_NAME);
             Consumer consumer = new DefaultConsumer(clientChannel) {
                 @Override
                 public void handleDelivery(
@@ -38,16 +41,16 @@ public class RabbitMQRequestSender extends Sender {
                         Envelope envelope,
                         AMQP.BasicProperties properties,
                         final byte[] body) throws IOException {
-                    if(properties != null && properties.getCorrelationId()!= null){
+                    if (properties != null && properties.getCorrelationId() != null) {
                         Callback callback = requests.remove(properties.getCorrelationId());
-                        if(callback != null) {
+                        if (callback != null) {
                             callback.call(body);
                             clientChannel.basicAck(envelope.getDeliveryTag(), false);
                         }
                     }
                 }
             };
-            clientChannel.basicConsume(CLIENT_ROUTING_KEY, false, consumer);
+            clientChannel.basicConsume(CLIENT_SYNC_NAME, false, consumer);
         } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
             throw new TransportSystemException(ioException);
@@ -67,18 +70,11 @@ public class RabbitMQRequestSender extends Sender {
         try {
             final AtomicReference<byte[]> atomicReference = new AtomicReference<>();
             requests.put(command.getRqUid(), atomicReference::set);
-            if (moduleId != null && !moduleId.isEmpty()) {
-                clientChannel.basicPublish(command.getSourceModuleId(), "server" + moduleId, null, message);
-            } else {
-                String transportInterface = command.getServiceClass();
-                String serviceInterface = transportInterface.replaceFirst("Transport", "");
-                String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
-                clientChannel.basicPublish(moduleId, "server" + moduleId, null, message);
-            }
+            sendSync(message);
             long start = System.currentTimeMillis();
             while (!((timeout != -1 && System.currentTimeMillis() - start > timeout) || (System.currentTimeMillis() - start > (1000 * 60 * 60)))) {
                 byte[] result = atomicReference.get();
-                if(result != null){
+                if (result != null) {
                     return result;
                 }
             }
@@ -90,24 +86,27 @@ public class RabbitMQRequestSender extends Sender {
         return null;
     }
 
+    private void sendSync(byte[] message) throws IOException {
+        String targetModuleId;
+        if (moduleId != null && !moduleId.isEmpty()) {
+            targetModuleId = moduleId;
+        } else {
+            targetModuleId = Utils.getModuleForService(command.getServiceClass().replaceFirst("Transport", ""), Protocol.RABBIT);
+        }
+        clientChannel.basicPublish(targetModuleId, targetModuleId + "-server", null, message);
+    }
+
     @Override
     public void executeAsync(byte[] message) {
         try {
-            if (moduleId != null && !moduleId.isEmpty()) {
-                clientChannel.basicPublish(command.getSourceModuleId(), "server" + moduleId, null, message);
-            } else {
-                String transportInterface = command.getServiceClass();
-                String serviceInterface = transportInterface.replaceFirst("Transport", "");
-                String moduleId = Utils.getModuleForService(serviceInterface, Protocol.RABBIT);
-                clientChannel.basicPublish(moduleId, "server" + moduleId, null, message);
-            }
+            sendSync(message);
         } catch (IOException e) {
             log.error("Error while sending async RabbitMQ request", e);
             throw new TransportExecutionException(e);
         }
     }
 
-    private abstract interface Callback {
+    private interface Callback {
         void call(byte[] body);
     }
 }
