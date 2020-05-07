@@ -66,6 +66,7 @@ public class RabbitMQRequestSender extends Sender {
     }
 
     @Override
+    @SuppressWarnings("squid:S1168")
     public byte[] executeSync(byte[] message) {
         try {
             final AtomicReference<byte[]> atomicReference = new AtomicReference<>();

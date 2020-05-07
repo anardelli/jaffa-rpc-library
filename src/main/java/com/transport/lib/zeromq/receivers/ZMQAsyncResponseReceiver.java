@@ -45,7 +45,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                 Input input = new Input(new ByteArrayInputStream(bytes));
                 CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
-                Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
+                Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                 if (command != null) {
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);

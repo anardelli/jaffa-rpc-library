@@ -103,7 +103,7 @@ public class RequestImpl<T> implements Request<T> {
         command.setLocalRequestTime(System.nanoTime());
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
         log.debug("Async command {} added to finalization queue", command);
-        FinalizationWorker.eventsToConsume.put(command.getCallbackKey(), command);
+        FinalizationWorker.getEventsToConsume().put(command.getCallbackKey(), command);
         sender.executeAsync(marshallCommand(command));
     }
 }

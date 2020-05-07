@@ -4,6 +4,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
 import com.transport.lib.exception.TransportSystemException;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +18,8 @@ import java.util.concurrent.CountDownLatch;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FinalizationWorker {
 
-    public static final ConcurrentMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
+    @Getter
+    private static final ConcurrentMap<String, Command> eventsToConsume = new ConcurrentHashMap<>();
     private static final CountDownLatch countDownLatch = new CountDownLatch(1);
     private static final Thread finalizer = new Thread(() -> {
         log.info("Finalizer thread started");
@@ -47,6 +49,7 @@ public class FinalizationWorker {
         log.info("Finalizer thread stopped");
     });
 
+    @SuppressWarnings("squid:S2142")
     public static void startFinalizer() {
         finalizer.start();
         try {

@@ -55,7 +55,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                         Input input = new Input(new ByteArrayInputStream(record.value()));
                         CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
                         Class<?> callbackClass = Class.forName(callbackContainer.getListener());
-                        Command command = FinalizationWorker.eventsToConsume.remove(callbackContainer.getKey());
+                        Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                         if (command != null) {
                             if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                 Method method = callbackClass.getMethod("onError", String.class, Throwable.class);

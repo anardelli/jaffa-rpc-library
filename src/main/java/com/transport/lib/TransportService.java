@@ -57,6 +57,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 @Slf4j
+@SuppressWarnings("squid:S2142")
 public class TransportService {
 
     @Getter
@@ -196,6 +197,7 @@ public class TransportService {
         }
     }
 
+    @SuppressWarnings("squid:S2583")
     private void prepareServiceRegistration() throws ClassNotFoundException {
         Utils.connect(getRequiredOption("zookeeper.connection"));
         Protocol protocol = Utils.getTransportProtocol();

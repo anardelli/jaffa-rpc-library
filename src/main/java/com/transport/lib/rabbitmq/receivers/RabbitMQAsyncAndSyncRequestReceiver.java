@@ -68,7 +68,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 Map<String, Object> headers = new HashMap<>();
                                                 headers.put("communication-type", "async");
                                                 AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-                                                clientChannel.basicPublish(command.getSourceModuleId(), "client-async" + command.getSourceModuleId(), props, response);
+                                                clientChannel.basicPublish(command.getSourceModuleId(), command.getSourceModuleId() + "-client-async", props, response);
                                                 serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                             } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                                                 log.error("Error while receiving async request", e);
@@ -86,7 +86,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         output.close();
                                         byte[] response = bOutput.toByteArray();
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
-                                        clientChannel.basicPublish(command.getSourceModuleId(), "client-sync" + command.getSourceModuleId(), props, response);
+                                        clientChannel.basicPublish(command.getSourceModuleId(), command.getSourceModuleId() + "-client-sync", props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                     }
                                 } catch (IOException ioException) {
