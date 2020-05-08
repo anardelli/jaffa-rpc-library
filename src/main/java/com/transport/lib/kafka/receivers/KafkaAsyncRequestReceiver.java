@@ -9,6 +9,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -63,7 +64,7 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                         Output output = new Output(bOutput);
                         kryo.writeObject(output, TransportService.constructCallbackContainer(command, result));
                         output.close();
-                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));

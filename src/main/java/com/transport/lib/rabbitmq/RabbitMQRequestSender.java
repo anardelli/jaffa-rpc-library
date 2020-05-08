@@ -92,7 +92,7 @@ public class RabbitMQRequestSender extends Sender {
         if (moduleId != null && !moduleId.isEmpty()) {
             targetModuleId = moduleId;
         } else {
-            targetModuleId = Utils.getModuleForService(command.getServiceClass().replaceFirst("Transport", ""), Protocol.RABBIT);
+            targetModuleId = Utils.getModuleForService(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()), Protocol.RABBIT);
         }
         clientChannel.basicPublish(targetModuleId, targetModuleId + "-server", null, message);
     }

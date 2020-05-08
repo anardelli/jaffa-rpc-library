@@ -39,8 +39,12 @@ public class Utils {
         }
     }
 
+    public static String getServiceInterfaceNameFromClient(String clientName) {
+        return clientName.replace("Transport", "");
+    }
+
     public static String getHostForService(String service, String moduleId, Protocol protocol) {
-        service = service.replace("Transport", "");
+        service = Utils.getServiceInterfaceNameFromClient(service);
         Stat stat = null;
         try {
             stat = isZNodeExists("/" + service);
@@ -167,6 +171,12 @@ public class Utils {
         }
     }
 
+    public static void deleteAllRegistrations(String service) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
+        for (Protocol protocol : Protocol.values()) {
+            delete(service, protocol);
+        }
+    }
+
     public static void delete(String service, Protocol protocol) throws KeeperException, InterruptedException, ParseException, UnknownHostException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
@@ -256,10 +266,7 @@ class ShutdownHook extends Thread {
     public void run() {
         try {
             for (String service : Utils.services) {
-                Utils.delete(service, Protocol.KAFKA);
-                Utils.delete(service, Protocol.ZMQ);
-                Utils.delete(service, Protocol.HTTP);
-                Utils.delete(service, Protocol.RABBIT);
+                Utils.deleteAllRegistrations(service);
             }
             Utils.conn.close();
             Utils.conn = null;

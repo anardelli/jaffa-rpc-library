@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestUtils {
     public static String getTopicForService(String service, String moduleId, boolean sync) {
-        String serviceInterface = service.replace("Transport", "");
+        String serviceInterface = Utils.getServiceInterfaceNameFromClient(service);
         String availableModuleId = moduleId;
         if (moduleId != null) {
             Utils.getHostForService(serviceInterface, moduleId, Protocol.KAFKA);

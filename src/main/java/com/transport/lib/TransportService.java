@@ -131,7 +131,7 @@ public class TransportService {
     }
 
     private static Object getTargetService(Command command) throws ClassNotFoundException {
-        return wrappedServices.get(Class.forName(command.getServiceClass().replace("Transport", "")));
+        return wrappedServices.get(Class.forName(Utils.getServiceInterfaceNameFromClient(command.getServiceClass())));
     }
 
     private static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
@@ -252,7 +252,7 @@ public class TransportService {
             for (Class<?> client : clientEndpoints.getEndpoints()) {
                 if (!client.isAnnotationPresent(ApiClient.class))
                     throw new IllegalArgumentException("Class " + client.getName() + " does has ApiClient annotation!");
-                apiImpls.add(Class.forName(client.getName().replace("Transport", "")));
+                apiImpls.add(Class.forName(Utils.getServiceInterfaceNameFromClient(client.getName())));
             }
         }
         apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type));
@@ -363,10 +363,7 @@ public class TransportService {
         if (Utils.conn != null) {
             try {
                 for (String service : Utils.services) {
-                    Utils.delete(service, Protocol.ZMQ);
-                    Utils.delete(service, Protocol.KAFKA);
-                    Utils.delete(service, Protocol.HTTP);
-                    Utils.delete(service, Protocol.RABBIT);
+                    Utils.deleteAllRegistrations(service);
                 }
                 Utils.conn.close();
             } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {

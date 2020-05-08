@@ -8,6 +8,7 @@ import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -62,7 +63,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                         Output output = new Output(bOutput);
                         kryo.writeClassAndObject(output, TransportService.getResult(result));
                         output.close();
-                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(command.getServiceClass().replace("Transport", "") + "-" + TransportService.getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + TransportService.getRequiredOption("module.id") + "-client-sync", command.getRqUid(), bOutput.toByteArray());
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
