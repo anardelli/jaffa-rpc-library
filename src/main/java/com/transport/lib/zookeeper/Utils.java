@@ -40,7 +40,7 @@ public class Utils {
     }
 
     public static String getServiceInterfaceNameFromClient(String clientName) {
-        return clientName.replace("Transport", "");
+        return clientName.replaceAll("Client$", "");
     }
 
     public static String getHostForService(String service, String moduleId, Protocol protocol) {

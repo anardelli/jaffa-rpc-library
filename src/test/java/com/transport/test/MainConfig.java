@@ -20,6 +20,6 @@ public class MainConfig {
 
     @Bean
     ClientEndpoints clientEndpoints() {
-        return new ClientEndpoints(ClientServiceTransport.class, PersonServiceTransport.class);
+        return new ClientEndpoints(ClientServiceClient.class, PersonServiceClient.class);
     }
 }

@@ -17,10 +17,10 @@ import java.util.UUID;
 public class MainTest {
 
     @Autowired
-    private PersonServiceTransport personService;
+    private PersonServiceClient personService;
 
     @Autowired
-    private ClientServiceTransport clientService;
+    private ClientServiceClient clientService;
 
     @Test
     public void testMethods() {

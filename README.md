@@ -92,7 +92,7 @@ This plugin ignores all the static and default methods, all fields:
 
 ```java
 @ApiClient(ticketProvider = TicketProviderImpl.class)
-public interface PersonServiceTransport {
+public interface PersonServiceClient {
     public Request<Integer> add(String name, String email, Address address);
     public Request<Person> get(Integer id);
     public Request<Void> lol();
@@ -120,7 +120,7 @@ Next, you could inject this transport interface using @Autowire:
 
 ```java
 @Autowired
-com.transport.test.PersonServiceTransport personService;
+com.transport.test.PersonServiceClient personService;
 
 // Sync call on any implementation with 10s timeout:
 Integer id = personService.add("Test name", "test@mail.com", null)
@@ -174,7 +174,7 @@ public class MainConfig {
     // Specify required client endpoints (must be empty if none exists)
     @Bean
     ClientEndpoints clientEndpoints(){ 
-        return new ClientEndpoints(ClientServiceTransport.class, PersonServiceTransport.class); 
+        return new ClientEndpoints(ClientServiceClient.class, PersonServiceClient.class); 
     }
 }
 ```

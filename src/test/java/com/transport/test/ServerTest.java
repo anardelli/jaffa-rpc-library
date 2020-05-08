@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit;
 public class ServerTest {
 
     @Autowired
-    private PersonServiceTransport personService;
+    private PersonServiceClient personService;
 
     @Autowired
-    private ClientServiceTransport clientService;
+    private ClientServiceClient clientService;
 
     @BeforeClass
     public static void before() {
