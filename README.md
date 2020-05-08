@@ -57,10 +57,10 @@ You create an interface with ```@Api```annotation, for example:
 ```java
 @Api
 public interface PersonService {
-    public static final String TEST = "TEST";
-    public static void lol3() {
+    public static final String TEST = "TEST"; // will be ignored
+    public static void lol3() { // will be ignored
         System.out.println("lol3");
-    }
+    } // will be ignored
     public int add(String name, String email, Address address);
     public Person get(Integer id);
     public void lol();
@@ -77,11 +77,11 @@ Server-side implementation:
 public class PersonServiceImpl implements PersonService{
     // Methods
     // ...
-    public void lol(){
+    public void lol(){ // Normal invocation
         RequestContext.getSourceModuleId(); // client module.id available on server side
-        RequestContext.getTicket(); // and security ticket too
+        RequestContext.getTicket(); // and security ticket too (if it was provided by client)
     }
-    public Person testError() {
+    public Person testError() { // Invocation thrown exception
         throw new RuntimeException("Exception in " + System.getProperty("module.id"));
     }
 }
@@ -120,16 +120,16 @@ Next, you could inject this transport interface using @Autowire:
 
 ```java
 @Autowired
-com.transport.test.PersonServiceClient personService;
+com.transport.test.PersonServiceClient personServiceClient;
 
 // Sync call on any implementation with 10s timeout:
-Integer id = personService.add("Test name", "test@mail.com", null)
+Integer id = personServiceClient.add("Test name", "test@mail.com", null)
                           .withTimeout(TimeUnit.MILLISECONDS.toMillis(15000))
                           .onModule("test.server")
                           .executeSync();
 
 // Async call on module with moduleId = main.server and timeout = 10s
-personService.get(id)
+personServiceClient.get(id)
              .onModule("main.server")
              .withTimeout(TimeUnit.MILLISECONDS.toMillis(10000))
              .executeAsync(UUID.randomUUID().toString(), PersonCallback.class);
@@ -156,6 +156,13 @@ public class PersonCallback implements Callback<Person> {
 }
 
 ```
+
+## Exceptions  
+
+```TransportExecutionException```   - will be thrown if any exception occurred during sending request or receiving response  
+```TransportSystemException```      - will be thrown if any exception related to resource availability occurred  
+```TransportNoRouteException```     - will be thrown if request could not be send (required module.id is not available now)  
+```TransportExecutionTimeoutException```   - will be thrown if response was not received until timeout (specified by client or 1 hour as default)  
 
 ## Configuration
 
