@@ -159,10 +159,10 @@ public class PersonCallback implements Callback<Person> {
 
 ## Exceptions  
 
-```TransportExecutionException```   - will be thrown if any exception occurred during sending request or receiving response  
-```TransportSystemException```      - will be thrown if any exception related to resource availability occurred  
-```TransportNoRouteException```     - will be thrown if request could not be send (required module.id is not available now)  
-```TransportExecutionTimeoutException```   - will be thrown if response was not received until timeout (specified by client or 1 hour as default)  
+```TransportExecutionException```   - will be thrown if any exception occurred **during sending request or receiving response**  
+```TransportSystemException```      - will be thrown if any exception **related to system resource availability (ZooKeeper/Kafka/RabbitMQ/OS)** occurred  
+```TransportNoRouteException```     - will be thrown if request could not be send (**required module.id is not available now**)  
+```TransportExecutionTimeoutException```   - will be thrown if response was not received until timeout (**specified by client or 1 hour as default**)  
 
 ## Configuration
 
