@@ -3,9 +3,11 @@ package com.transport.lib.entities;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.io.Serializable;
+
 @AllArgsConstructor
 @Getter
-public enum Protocol {
+public enum Protocol implements Serializable {
 
     KAFKA("kafka", "Apache Kafka"),
     ZMQ("zmq", "ZeroMQ"),

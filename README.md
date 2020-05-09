@@ -200,7 +200,8 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)  
   **-Drabbit.host**           - RabbitMQ server host (optional, only when transport protocol is RabbitMQ)  
   **-Drabbit.port**           - RabbitMQ server port (optional, only when transport protocol is RabbitMQ)  
-  **-Dtransport.serializer**  - Serialization provider, for now only 'kryo' is available  
+  **-Dtransport.serializer**  - 'kryo' and 'java' serialization providers are available.  
+                                Java serialization requires all entities to be ```Serializable```
   
 ## Work in progress:  
 ### gRPC support

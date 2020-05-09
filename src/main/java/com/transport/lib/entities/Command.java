@@ -6,11 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serializable;
+
 @NoArgsConstructor
 @Setter
 @Getter
 @ToString
-public class Command {
+public class Command implements Serializable {
     private String serviceClass;
     private String methodName;
     private String[] methodArgs;

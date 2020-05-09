@@ -16,7 +16,10 @@ public class Serializer {
         String currentSerializer = System.getProperty("transport.serializer", "kryo");
         switch (currentSerializer){
             case "kryo":
-                ctx = KryoPoolSerializer.newKryoContextFactory();
+                ctx = new KryoPoolSerializer();
+                break;
+            case "java":
+                ctx = new JavaSerializer();
                 break;
             default:
                 log.error("No known serializer defined");

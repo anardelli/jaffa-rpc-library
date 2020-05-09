@@ -11,12 +11,8 @@ class KryoPoolSerializer implements SerializationContext {
     private static final int DEFAULT_BUFFER = 1024 * 100;
     private final KryoPool pool;
 
-    private KryoPoolSerializer() {
+    public KryoPoolSerializer() {
         pool = new KryoPool.Builder(Kryo::new).softReferences().build();
-    }
-
-    public static SerializationContext newKryoContextFactory() {
-        return new KryoPoolSerializer();
     }
 
     @Override
