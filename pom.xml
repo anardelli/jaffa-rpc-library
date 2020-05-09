@@ -7,6 +7,7 @@
     <groupId>com.edwardhyde</groupId>
     <artifactId>jaffa-rpc-library</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>Jaffa RPC Library</name>
 
     <properties>
         <java.version>1.8</java.version>
