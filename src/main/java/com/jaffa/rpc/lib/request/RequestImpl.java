@@ -27,7 +27,7 @@ public class RequestImpl<T> implements Request<T> {
 
     public RequestImpl(Command command) {
         this.command = command;
-        Protocol protocol = Utils.getTransportProtocol();
+        Protocol protocol = Utils.getRpcProtocol();
         switch (protocol) {
             case ZMQ:
                 sender = new ZeroMqRequestSender();

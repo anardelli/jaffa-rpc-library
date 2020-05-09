@@ -93,7 +93,7 @@ public class JaffaService {
     private static ConnectionFactory connectionFactory;
 
     static {
-        if (Utils.getTransportProtocol().equals(Protocol.KAFKA)) {
+        if (Utils.getRpcProtocol().equals(Protocol.KAFKA)) {
             consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
             consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
@@ -193,14 +193,14 @@ public class JaffaService {
         }
         for (Map.Entry<Class<?>, Class<?>> apiImpl : apiImpls.entrySet()) {
             wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().getDeclaredConstructor().newInstance());
-            Utils.registerService(apiImpl.getValue().getName(), Utils.getTransportProtocol());
+            Utils.registerService(apiImpl.getValue().getName(), Utils.getRpcProtocol());
         }
     }
 
     @SuppressWarnings("squid:S2583")
     private void prepareServiceRegistration() throws ClassNotFoundException {
         Utils.connect(getRequiredOption("zookeeper.connection"));
-        Protocol protocol = Utils.getTransportProtocol();
+        Protocol protocol = Utils.getRpcProtocol();
         if (protocol.equals(Protocol.KAFKA)) {
             ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
             JaffaService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
@@ -278,7 +278,7 @@ public class JaffaService {
             prepareServiceRegistration();
             CountDownLatch started = null;
             int expectedThreadCount = 0;
-            Protocol protocol = Utils.getTransportProtocol();
+            Protocol protocol = Utils.getRpcProtocol();
             switch (protocol) {
                 case KAFKA:
                     if (!clientSyncTopics.isEmpty() && !clientAsyncTopics.isEmpty()) expectedThreadCount += 2;

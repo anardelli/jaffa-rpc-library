@@ -74,7 +74,7 @@ public class AdminServer {
                 } else if ("/vis.min.js".equals(path)) {
                     respondWithFile(exchange, "vis.min.js");
                 } else if ("/protocol".equals(path)) {
-                    respondWithString(exchange, Utils.getTransportProtocol().getFullName());
+                    respondWithString(exchange, Utils.getRpcProtocol().getFullName());
                 } else if ("/response".equals(path)) {
                     int count = 0;
                     StringBuilder builder = new StringBuilder();

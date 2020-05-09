@@ -128,14 +128,14 @@ public class Utils {
         }
     }
 
-    public static Protocol getTransportProtocol() {
+    public static Protocol getRpcProtocol() {
         return Protocol.getByName(System.getProperty("jaffa.rpc.protocol"));
     }
 
     private static int getServicePort() {
         int defaultPort = 4242;
         try {
-            return Integer.parseInt(System.getProperty(getTransportProtocol().getShortName() + ".service.port", String.valueOf(defaultPort)));
+            return Integer.parseInt(System.getProperty(getRpcProtocol().getShortName() + ".service.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
             return defaultPort;
         }
@@ -144,7 +144,7 @@ public class Utils {
     private static int getCallbackPort() {
         int defaultPort = 4342;
         try {
-            return Integer.parseInt(System.getProperty(getTransportProtocol().getShortName() + ".callback.port", String.valueOf(defaultPort)));
+            return Integer.parseInt(System.getProperty(getRpcProtocol().getShortName() + ".callback.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
             return defaultPort;
         }
