@@ -236,6 +236,14 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>jaffa.rpc.serializer</td>
     <td>Serialization providers available: 'kryo' (default) and 'java'. Java serialization requires all entities to be Serializable. Same serialization provider must be used clusterwide.</td>
   </tr>
+  <tr>
+    <td>jaffa.admin.keystore</td>
+    <td>Path to JKS keystore that will be used to configure HTTPS server for admin console</td>
+  </tr>
+  <tr>
+    <td>jaffa.admin.storepass</td>
+    <td>Password to keystore provided by previous option</td>
+  </tr>
   </table>  
   
 ## Work in progress:  
