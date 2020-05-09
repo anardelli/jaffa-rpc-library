@@ -36,6 +36,7 @@ public class ServerTest {
         System.setProperty("rabbit.port", "5672");
         System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
         System.setProperty("jaffa.admin.storepass", "simulator1");
+        System.setProperty("jaffa.admin.use.https", "true");
         System.setProperty("jaffa.rpc.serializer", "kryo");
         System.setProperty("jaffa.rpc.protocol", "http");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");

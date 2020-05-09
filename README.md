@@ -244,6 +244,10 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>jaffa.admin.storepass</td>
     <td>Password to keystore provided by previous option</td>
   </tr>
+  <tr>
+    <td>jaffa.admin.use.https</td>
+    <td>Use HTTPS or HTTP for admin console, HTTP is default</td>
+  </tr>
   </table>  
   
 ## Work in progress:  

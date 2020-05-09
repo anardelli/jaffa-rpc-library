@@ -3,10 +3,7 @@ package com.jaffa.rpc.lib.ui;
 import com.google.common.io.ByteStreams;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.zookeeper.Utils;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpsConfigurator;
-import com.sun.net.httpserver.HttpsParameters;
-import com.sun.net.httpserver.HttpsServer;
+import com.sun.net.httpserver.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +30,7 @@ import java.util.concurrent.Executors;
 public class AdminServer {
 
     private static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
-    private HttpsServer server;
+    private HttpServer server;
 
     public static void addMetric(Command command) {
         double executionDuration = (System.nanoTime() - command.getLocalRequestTime()) / 1000000.0;
@@ -70,35 +67,39 @@ public class AdminServer {
     @PostConstruct
     public void init() {
         try {
-            server = HttpsServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
-
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            KeyStore ks = KeyStore.getInstance("PKCS12");
-            char[] storepass = System.getProperty("jaffa.admin.storepass").toCharArray();
-            FileInputStream fis = new FileInputStream(System.getProperty("jaffa.admin.keystore"));
-            ks.load(fis, storepass);
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-            kmf.init(ks, storepass);
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-            tmf.init(ks);
-            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-            server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
-                @Override
-                public void configure(HttpsParameters params) {
-                    try {
-                        SSLContext c = SSLContext.getDefault();
-                        SSLEngine engine = c.createSSLEngine();
-                        params.setNeedClientAuth(true);
-                        params.setCipherSuites(engine.getEnabledCipherSuites());
-                        params.setProtocols(engine.getEnabledProtocols());
-                        SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();
-                        params.setSSLParameters(defaultSSLParameters);
-                    } catch (Exception ex) {
-                        log.error("Failed to create Jaffa HTTPS server", ex);
+            boolean useHttps = Boolean.parseBoolean(System.getProperty("jaffa.admin.use.https", "false"));
+            if(useHttps){
+                HttpsServer httpsServer = HttpsServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                KeyStore ks = KeyStore.getInstance("PKCS12");
+                char[] storepass = System.getProperty("jaffa.admin.storepass").toCharArray();
+                FileInputStream fis = new FileInputStream(System.getProperty("jaffa.admin.keystore"));
+                ks.load(fis, storepass);
+                KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+                kmf.init(ks, storepass);
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+                tmf.init(ks);
+                sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+                httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+                    @Override
+                    public void configure(HttpsParameters params) {
+                        try {
+                            SSLContext c = SSLContext.getDefault();
+                            SSLEngine engine = c.createSSLEngine();
+                            params.setNeedClientAuth(true);
+                            params.setCipherSuites(engine.getEnabledCipherSuites());
+                            params.setProtocols(engine.getEnabledProtocols());
+                            SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();
+                            params.setSSLParameters(defaultSSLParameters);
+                        } catch (Exception ex) {
+                            log.error("Failed to create Jaffa HTTPS server", ex);
+                        }
                     }
-                }
-            });
-
+                });
+                server = httpsServer;
+            } else {
+                server = HttpServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
+            }
             server.createContext("/", (HttpExchange exchange) -> {
                 String path = exchange.getRequestURI().getPath();
                 if ("/admin".equals(path)) {
@@ -127,7 +128,7 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            log.info("Jaffa RPC console started at {}", "https://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
+            log.info("Jaffa RPC console started at {}", (useHttps ? "https://" : "http://") + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
         } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException | KeyManagementException | UnrecoverableKeyException httpServerStartupException) {
             log.error("Exception during admin HTTP server startup", httpServerStartupException);
         }
