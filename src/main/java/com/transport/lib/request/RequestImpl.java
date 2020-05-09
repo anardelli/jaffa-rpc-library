@@ -11,7 +11,7 @@ import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.http.HttpRequestSender;
 import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.rabbitmq.RabbitMQRequestSender;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
@@ -67,20 +67,16 @@ public class RequestImpl<T> implements Request<T> {
         initSender();
         command.setRequestTime(System.currentTimeMillis());
         command.setLocalRequestTime(System.nanoTime());
-        byte[] out = marshallCommand(command);
+        byte[] out = Serializer.getCtx().serialize(command);
         byte[] response = sender.executeSync(out);
         if (response == null) {
             throw new TransportExecutionTimeoutException();
         }
-        Object result = KryoPoolSerializer.serializer.deserializeWithClass(response);
+        Object result = Serializer.getCtx().deserializeWithClass(response);
         AdminServer.addMetric(command);
         if (result instanceof ExceptionHolder)
             throw new TransportExecutionException(((ExceptionHolder) result).getStackTrace());
         return (T) result;
-    }
-
-    private byte[] marshallCommand(Command command) {
-        return KryoPoolSerializer.serializer.serialize(command);
     }
 
     public void executeAsync(String key, Class<? extends Callback<T>> listener) {
@@ -92,6 +88,6 @@ public class RequestImpl<T> implements Request<T> {
         command.setAsyncExpireTime(System.currentTimeMillis() + (timeout != -1 ? timeout : 1000 * 60 * 60));
         log.debug("Async command {} added to finalization queue", command);
         FinalizationWorker.getEventsToConsume().put(command.getCallbackKey(), command);
-        sender.executeAsync(marshallCommand(command));
+        sender.executeAsync(Serializer.getCtx().serialize(command));
     }
 }

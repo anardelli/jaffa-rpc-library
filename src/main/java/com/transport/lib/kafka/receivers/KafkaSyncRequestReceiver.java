@@ -5,7 +5,7 @@ import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportSystemException;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -49,11 +49,11 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                 }
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        Command command = KryoPoolSerializer.serializer.deserialize(record.value(), Command.class);
+                        Command command = Serializer.getCtx().deserialize(record.value(), Command.class);
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
                         Object result = TransportService.invoke(command);
-                        byte[] serializedResponse = KryoPoolSerializer.serializer.serializeWithClass(TransportService.getResult(result));
+                        byte[] serializedResponse = Serializer.getCtx().serializeWithClass(TransportService.getResult(result));
                         ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + TransportService.getRequiredOption("module.id") + "-client-sync", command.getRqUid(), serializedResponse);
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();

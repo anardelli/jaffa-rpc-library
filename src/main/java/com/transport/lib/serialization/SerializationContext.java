@@ -1,6 +1,6 @@
 package com.transport.lib.serialization;
 
-public interface KryoContext {
+public interface SerializationContext {
 
     byte[] serialize(Object obj);
 

@@ -8,7 +8,7 @@ import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.rabbitmq.RabbitMQRequestSender;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -48,7 +48,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                         final byte[] body) {
                     requestService.execute(() -> {
                                 try {
-                                    final Command command = KryoPoolSerializer.serializer.deserialize(body, Command.class);
+                                    final Command command = Serializer.getCtx().deserialize(body, Command.class);
                                     if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                                         Runnable runnable = () -> {
                                             try {
@@ -56,7 +56,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 RequestContext.setSecurityTicket(command.getTicket());
                                                 Object result = invoke(command);
                                                 CallbackContainer callbackContainer = constructCallbackContainer(command, result);
-                                                byte[] response = KryoPoolSerializer.serializer.serialize(callbackContainer);
+                                                byte[] response = Serializer.getCtx().serialize(callbackContainer);
                                                 Map<String, Object> headers = new HashMap<>();
                                                 headers.put("communication-type", "async");
                                                 AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
@@ -72,7 +72,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                                         RequestContext.setSecurityTicket(command.getTicket());
                                         Object result = invoke(command);
-                                        byte[] response = KryoPoolSerializer.serializer.serializeWithClass(getResult(result));
+                                        byte[] response = Serializer.getCtx().serializeWithClass(getResult(result));
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
                                         clientChannel.basicPublish(command.getSourceModuleId(), command.getSourceModuleId() + "-client-sync", props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);

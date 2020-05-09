@@ -34,6 +34,7 @@ public class ServerTest {
         System.setProperty("module.id", "test.server");
         System.setProperty("rabbit.host", "localhost");
         System.setProperty("rabbit.port", "5672");
+        System.setProperty("transport.serializer", "kryo");
         System.setProperty("transport.protocol", "rabbit");
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }

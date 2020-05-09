@@ -4,7 +4,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.zeromq.SocketType;
@@ -40,7 +40,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] bytes = socket.recv();
-                final Command command = KryoPoolSerializer.serializer.deserialize(bytes, Command.class);
+                final Command command = Serializer.getCtx().deserialize(bytes, Command.class);
                 if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                     socket.send("OK");
                 }
@@ -50,7 +50,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             RequestContext.setSourceModuleId(command.getSourceModuleId());
                             RequestContext.setSecurityTicket(command.getTicket());
                             Object result = invoke(command);
-                            byte[] serializedResponse = KryoPoolSerializer.serializer.serialize(constructCallbackContainer(command, result));
+                            byte[] serializedResponse = Serializer.getCtx().serialize(constructCallbackContainer(command, result));
                             ZMQ.Socket socketAsync = context.socket(SocketType.REQ);
                             socketAsync.connect("tcp://" + command.getCallBackZMQ());
                             socketAsync.send(serializedResponse);
@@ -65,7 +65,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     RequestContext.setSourceModuleId(command.getSourceModuleId());
                     RequestContext.setSecurityTicket(command.getTicket());
                     Object result = invoke(command);
-                    byte[] serializedResponse = KryoPoolSerializer.serializer.serializeWithClass(getResult(result));
+                    byte[] serializedResponse = Serializer.getCtx().serializeWithClass(getResult(result));
                     socket.send(serializedResponse);
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {

@@ -8,7 +8,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
@@ -72,7 +72,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
         @Override
         public void handle(HttpExchange request) throws IOException {
-            final Command command = KryoPoolSerializer.serializer.deserialize(ByteStreams.toByteArray(request.getRequestBody()), Command.class);
+            final Command command = Serializer.getCtx().deserialize(ByteStreams.toByteArray(request.getRequestBody()), Command.class);
             if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                 String response = "OK";
                 request.sendResponseHeaders(200, response.getBytes().length);
@@ -87,7 +87,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
                         Object result = invoke(command);
-                        byte[] serializedResponse = KryoPoolSerializer.serializer.serialize(constructCallbackContainer(command, result));
+                        byte[] serializedResponse = Serializer.getCtx().serialize(constructCallbackContainer(command, result));
                         HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
                         HttpEntity postParams = new ByteArrayEntity(serializedResponse);
                         httpPost.setEntity(postParams);
@@ -107,7 +107,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                 RequestContext.setSecurityTicket(command.getTicket());
                 Object result = invoke(command);
-                byte[] response = KryoPoolSerializer.serializer.serializeWithClass(getResult(result));
+                byte[] response = Serializer.getCtx().serializeWithClass(getResult(result));
                 request.sendResponseHeaders(200, response.length);
                 OutputStream os = request.getResponseBody();
                 os.write(response);

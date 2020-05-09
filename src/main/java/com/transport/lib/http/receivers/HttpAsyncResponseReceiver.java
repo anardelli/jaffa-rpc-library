@@ -10,7 +10,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +52,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
         @Override
         public void handle(HttpExchange request) throws IOException {
             try {
-                CallbackContainer callbackContainer = KryoPoolSerializer.serializer.deserialize(ByteStreams.toByteArray(request.getRequestBody()), CallbackContainer.class);
+                CallbackContainer callbackContainer = Serializer.getCtx().deserialize(ByteStreams.toByteArray(request.getRequestBody()), CallbackContainer.class);
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                 Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                 if (command != null) {

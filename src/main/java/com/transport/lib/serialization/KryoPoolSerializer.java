@@ -7,8 +7,7 @@ import com.esotericsoftware.kryo.pool.KryoPool;
 
 import java.io.ByteArrayOutputStream;
 
-public class KryoPoolSerializer implements KryoContext {
-    public static final KryoContext serializer = newKryoContextFactory();
+class KryoPoolSerializer implements SerializationContext {
     private static final int DEFAULT_BUFFER = 1024 * 100;
     private final KryoPool pool;
 
@@ -16,7 +15,7 @@ public class KryoPoolSerializer implements KryoContext {
         pool = new KryoPool.Builder(Kryo::new).softReferences().build();
     }
 
-    public static KryoContext newKryoContextFactory() {
+    public static SerializationContext newKryoContextFactory() {
         return new KryoPoolSerializer();
     }
 

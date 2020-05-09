@@ -7,7 +7,7 @@ import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
-import com.transport.lib.serialization.KryoPoolSerializer;
+import com.transport.lib.serialization.Serializer;
 import com.transport.lib.ui.AdminServer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -49,7 +49,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                 }
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        CallbackContainer callbackContainer = KryoPoolSerializer.serializer.deserialize(record.value(), CallbackContainer.class);
+                        CallbackContainer callbackContainer = Serializer.getCtx().deserialize(record.value(), CallbackContainer.class);
                         Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                         Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                         if (command != null) {
