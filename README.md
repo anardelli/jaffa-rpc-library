@@ -238,7 +238,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </tr>
   <tr>
     <td>jaffa.admin.keystore</td>
-    <td>Path to JKS keystore that will be used to configure HTTPS server for admin console</td>
+    <td>Path to PKCS12 keystore that will be used to configure HTTPS server for admin console</td>
   </tr>
   <tr>
     <td>jaffa.admin.storepass</td>

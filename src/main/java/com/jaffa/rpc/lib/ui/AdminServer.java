@@ -73,7 +73,7 @@ public class AdminServer {
             server = HttpsServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            KeyStore ks = KeyStore.getInstance("JKS");
+            KeyStore ks = KeyStore.getInstance("PKCS12");
             char[] storepass = System.getProperty("jaffa.admin.storepass").toCharArray();
             FileInputStream fis = new FileInputStream(System.getProperty("jaffa.admin.keystore"));
             ks.load(fis, storepass);
