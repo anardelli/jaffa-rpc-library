@@ -1,4 +1,4 @@
-## Transport library
+## Jaffa RPC library
 
 Library provides communication between applications running on different JVMs using interface method calls.  
 
@@ -116,11 +116,11 @@ public class TicketProviderImpl implements TicketProvider {
 }
 ```
 
-Next, you could inject this transport interface using @Autowire:
+Next, you could inject this RPC interface using @Autowire:
 
 ```java
 @Autowired
-com.transport.test.PersonServiceClient personServiceClient;
+com.jaffa.rpc.test.PersonServiceClient personServiceClient;
 
 // Sync call on any implementation with 10s timeout:
 Integer id = personServiceClient.add("Test name", "test@mail.com", null)
@@ -169,7 +169,7 @@ public class PersonCallback implements Callback<Person> {
 ```java
 @Configuration
 @ComponentScan
-@Import(TransportConfig.class) // Import transport configuration
+@Import(TransportConfig.class) // Import Jaffa library configuration
 public class MainConfig {
 
     // Specify server implementation endpoints (must be empty if none exists)
@@ -217,23 +217,23 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>Unique name of server in ZooKeeper cluster (required)</td>
   </tr>
   <tr>
-    <td>transport.protocol</td>
+    <td>jaffa.rpc.protocol</td>
     <td>Could be 'zmq', 'kafka', 'http', 'rabbit' (required)</td>
   </tr>
   <tr>
     <td>bootstrap.servers</td>
-    <td>Bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)</td>
+    <td>Bootstrap servers of Kafka cluster  (optional, only when RPC protocol is Kafka)</td>
   </tr>
   <tr>
     <td>rabbit.host</td>
-    <td>RabbitMQ server host (optional, only when transport protocol is RabbitMQ)</td>
+    <td>RabbitMQ server host (optional, only when RPC protocol is RabbitMQ)</td>
   </tr>
   <tr>
     <td>rabbit.port</td>
-    <td>RabbitMQ server port (optional, only when transport protocol is RabbitMQ)</td>
+    <td>RabbitMQ server port (optional, only when RPC protocol is RabbitMQ)</td>
   </tr>
   <tr>
-    <td>transport.serializer</td>
+    <td>jaffa.rpc.serializer</td>
     <td>Serialization providers available: 'kryo' (default) and 'java'. Java serialization requires all entities to be Serializable. Same serialization provider must be used clusterwide.</td>
   </tr>
   </table>  

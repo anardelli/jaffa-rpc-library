@@ -1,0 +1,26 @@
+package com.jaffa.rpc.lib.request;
+
+import com.jaffa.rpc.lib.entities.Protocol;
+import com.jaffa.rpc.lib.exception.TransportNoRouteException;
+import com.jaffa.rpc.lib.JaffaService;
+import com.jaffa.rpc.lib.zookeeper.Utils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class RequestUtils {
+    public static String getTopicForService(String service, String moduleId, boolean sync) {
+        String serviceInterface = Utils.getServiceInterfaceNameFromClient(service);
+        String availableModuleId = moduleId;
+        if (moduleId != null) {
+            Utils.getHostForService(serviceInterface, moduleId, Protocol.KAFKA);
+        } else {
+            availableModuleId = Utils.getModuleForService(serviceInterface, Protocol.KAFKA);
+        }
+        String topicName = serviceInterface + "-" + availableModuleId + "-server" + (sync ? "-sync" : "-async");
+        if (!JaffaService.getZkClient().topicExists(topicName))
+            throw new TransportNoRouteException(serviceInterface, availableModuleId);
+        else
+            return topicName;
+    }
+}

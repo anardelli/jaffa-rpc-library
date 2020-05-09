@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.edwardhyde</groupId>
-    <artifactId>transport-lib</artifactId>
+    <artifactId>jaffa-rpc-library</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -131,7 +131,7 @@
                 </executions>
                 <configuration>
                     <argLine>-Dzookeeper.connection=localhost:2181 -Dmodule.id=main.server -Dhttp.callback.port=6455 -Dhttp.service.port=7000
-                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dzmq.callback.port=6455 -Dzmq.service.port=7000 -Dtransport.protocol=rabbit
+                        -Dbootstrap.servers=localhost:9091,localhost:9092,localhost:9093 -Dzmq.callback.port=6455 -Dzmq.service.port=7000 -Djaffa.rpc.protocol=rabbit
                         -Drabbit.host=localhost -Drabbit.port=5672
                     </argLine>
                 </configuration>
@@ -141,12 +141,12 @@
 
     <profiles>
         <profile>
-            <id>generate-transport-api</id>
+            <id>generate-client-api</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>com.edwardhyde</groupId>
-                        <artifactId>transport-maven-plugin</artifactId>
+                        <artifactId>jaffa-rpc-maven-plugin</artifactId>
                         <version>1.0-SNAPSHOT</version>
                         <configuration>
                             <root-path>${root-path}</root-path>
@@ -154,7 +154,7 @@
                         <executions>
                             <execution>
                                 <goals>
-                                    <goal>generate-transport-api</goal>
+                                    <goal>generate-client-api</goal>
                                 </goals>
                             </execution>
                         </executions>
