@@ -93,7 +93,7 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            log.info("Transport console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
+            log.info("Jaffa RPC console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
         } catch (IOException httpServerStartupException) {
             log.error("Exception during admin HTTP server startup", httpServerStartupException);
         }

@@ -31,7 +31,7 @@ Only **relative** latency could be estimated, because hardware and software vari
 **Y axis** - response time in ms  
 Dashboard URL is logged at startup like this:
 ```
-2020-05-01 20:19:00 INFO  AdminServer:112 - Transport console started at http://host.docker.internal:62842/admin
+2020-05-01 20:19:00 INFO  AdminServer:112 - Jaffa RPC console started at http://host.docker.internal:62842/admin
 ```
 #### Synchronous RPC  
 <img src="https://raw.githubusercontent.com/dredwardhyde/jaffa-rpc-library/master/http_sync.png" width="900"/>  
@@ -87,7 +87,7 @@ public class PersonServiceImpl implements PersonService{
 }
 ```
 
-Then [transport-maven-plugin](https://github.com/dredwardhyde/transport-maven-plugin) generates client transport interface.  
+Then [jaffa-rpc-maven-plugin](https://github.com/dredwardhyde/jaffa-rpc-maven-plugin) generates client interface.  
 This plugin ignores all the static and default methods, all fields:
 
 ```java
