@@ -251,7 +251,12 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </table>  
   
 ## Work in progress:  
+
 ### gRPC support  
+### HTTPS support with TLS 1.3  
+### Curve support for ZeroMQ  
+### Login&Password/TLS 1.3 support for RabbitMQ  
+### Kerberos/TLS 1.3 support for Apache Kafka  
 
 ## Example how to generate keystore for admin console:  
 ```sh
