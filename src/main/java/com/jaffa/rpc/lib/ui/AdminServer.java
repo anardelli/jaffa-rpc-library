@@ -1,10 +1,12 @@
 package com.jaffa.rpc.lib.ui;
 
 import com.google.common.io.ByteStreams;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.zookeeper.Utils;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsParameters;
+import com.sun.net.httpserver.HttpsServer;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -14,11 +16,15 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.net.ssl.*;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 
@@ -27,7 +33,7 @@ import java.util.concurrent.Executors;
 public class AdminServer {
 
     private static final Queue<ResponseMetric> responses = QueueUtils.synchronizedQueue(new CircularFifoQueue<>(1000));
-    private HttpServer server;
+    private HttpsServer server;
 
     public static void addMetric(Command command) {
         double executionDuration = (System.nanoTime() - command.getLocalRequestTime()) / 1000000.0;
@@ -64,7 +70,35 @@ public class AdminServer {
     @PostConstruct
     public void init() {
         try {
-            server = HttpServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
+            server = HttpsServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            KeyStore ks = KeyStore.getInstance("JKS");
+            char[] storepass = System.getProperty("jaffa.admin.storepass").toCharArray();
+            FileInputStream fis = new FileInputStream(System.getProperty("jaffa.admin.keystore"));
+            ks.load(fis, storepass);
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+            kmf.init(ks, storepass);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+            tmf.init(ks);
+            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+            server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+                @Override
+                public void configure(HttpsParameters params) {
+                    try {
+                        SSLContext c = SSLContext.getDefault();
+                        SSLEngine engine = c.createSSLEngine();
+                        params.setNeedClientAuth(true);
+                        params.setCipherSuites(engine.getEnabledCipherSuites());
+                        params.setProtocols(engine.getEnabledProtocols());
+                        SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();
+                        params.setSSLParameters(defaultSSLParameters);
+                    } catch (Exception ex) {
+                        log.error("Failed to create Jaffa HTTPS server", ex);
+                    }
+                }
+            });
+
             server.createContext("/", (HttpExchange exchange) -> {
                 String path = exchange.getRequestURI().getPath();
                 if ("/admin".equals(path)) {
@@ -93,8 +127,8 @@ public class AdminServer {
             });
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-            log.info("Jaffa RPC console started at {}", "http://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
-        } catch (IOException httpServerStartupException) {
+            log.info("Jaffa RPC console started at {}", "https://" + server.getAddress().getHostName() + ":" + server.getAddress().getPort() + "/admin");
+        } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException | KeyManagementException | UnrecoverableKeyException httpServerStartupException) {
             log.error("Exception during admin HTTP server startup", httpServerStartupException);
         }
     }

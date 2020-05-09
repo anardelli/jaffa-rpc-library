@@ -239,5 +239,9 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </table>  
   
 ## Work in progress:  
-### gRPC support
+### gRPC support  
 
+## Example how to generate keystore for admin console:  
+```sh
+keytool -genkeypair -keyalg RSA -alias self_signed -keypass simulator -keystore test.keystore -storepass simulator
+```
