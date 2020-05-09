@@ -40,7 +40,7 @@ public class JavaSerializer implements SerializationContext {
     public <T> T deserialize(byte[] serialized, Class<T> clazz) {
         ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
         try (ObjectInput in = new ObjectInputStream(bis)) {
-            return (T)in.readObject();
+            return (T) in.readObject();
         } catch (IOException | ClassNotFoundException | ClassCastException exception) {
             log.error("Exception while object Java deserialization", exception);
         }

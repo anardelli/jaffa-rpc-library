@@ -14,7 +14,7 @@ public class Serializer {
 
     static {
         String currentSerializer = System.getProperty("transport.serializer", "kryo");
-        switch (currentSerializer){
+        switch (currentSerializer) {
             case "kryo":
                 ctx = new KryoPoolSerializer();
                 break;
