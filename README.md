@@ -193,47 +193,47 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
 <table>
   <th>Option</th><th>Description</th>
   <tr>
-    <td>-Dzookeeper.connection</td>
-    <td>host:port for ZooKeeper cluster (required)</td> 
+    <td>zookeeper.connection</td>
+    <td>host:port for ZooKeeper cluster (required)</td>
   </tr>
   <tr>
-    <td>-Dzmq.service.port</td>
+    <td>zmq.service.port</td>
     <td>Port for receiving request connections for ZeroMQ (optional, default port is 4242)</td>
   </tr>
   <tr>
-    <td>-Dhttp.service.port</td>
+    <td>http.service.port</td>
     <td>Port for receiving request connections for HTTP (optional, default port is 4242)</td> 
   </tr>
   <tr>
-    <td>-Dzmq.callback.port</td>
+    <td>zmq.callback.port</td>
     <td>Port for receiving callback connections for ZeroMQ (optional, default port is 4342)</td>
   </tr>
   <tr>
-    <td>-Dhttp.callback.port</td>
+    <td>http.callback.port</td>
     <td>Port for receiving callback connections for HTTP (optional, default port is 4342)</td>
   </tr>
   <tr>
-    <td>-Dmodule.id</td>
+    <td>module.id</td>
     <td>Unique name of server in ZooKeeper cluster (required)</td>
   </tr>
   <tr>
-    <td>-Dtransport.protocol</td>
+    <td>transport.protocol</td>
     <td>Could be 'zmq', 'kafka', 'http', 'rabbit' (required)</td>
   </tr>
   <tr>
-    <td>-Dbootstrap.servers</td>
+    <td>bootstrap.servers</td>
     <td>Bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)</td>
   </tr>
   <tr>
-    <td>-Drabbit.host</td>
+    <td>rabbit.host</td>
     <td>RabbitMQ server host (optional, only when transport protocol is RabbitMQ)</td>
   </tr>
   <tr>
-    <td>-Drabbit.port</td>
+    <td>rabbit.port</td>
     <td>RabbitMQ server port (optional, only when transport protocol is RabbitMQ)</td>
   </tr>
   <tr>
-    <td>-Dtransport.serializer</td>
+    <td>transport.serializer</td>
     <td>'kryo' (default) and 'java' serialization providers are available. Java serialization requires all entities to be Serializable</td>
   </tr>
   </table>  
