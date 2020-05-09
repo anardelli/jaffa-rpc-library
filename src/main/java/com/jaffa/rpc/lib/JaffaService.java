@@ -5,7 +5,7 @@ import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
 import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.annotations.Api;
@@ -337,7 +337,7 @@ public class JaffaService {
                     RabbitMQRequestSender.init();
                     break;
                 default:
-                    throw new TransportSystemException("No known protocol defined");
+                    throw new JaffaRpcSystemException("No known protocol defined");
             }
             this.receiverThreads.forEach(Thread::start);
             if (expectedThreadCount != 0) started.await();
@@ -350,7 +350,7 @@ public class JaffaService {
             log.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
         } catch (Exception e) {
             log.error("Exception during Jaffa RPC library startup:", e);
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 
@@ -376,7 +376,7 @@ public class JaffaService {
                 a.close();
             } catch (IOException e) {
                 log.error("Unable to shut down ZeroMQ receivers", e);
-                throw new TransportSystemException(e);
+                throw new JaffaRpcSystemException(e);
             }
         });
         ZMQ.Context context = ZeroMqRequestSender.context;
@@ -395,6 +395,6 @@ public class JaffaService {
         log.info("All receiver threads stopped");
         FinalizationWorker.stopFinalizer();
         log.info("Finalizer was stopped");
-        log.info("Transport shutdown completed");
+        log.info("Jaffa RPC shutdown completed");
     }
 }

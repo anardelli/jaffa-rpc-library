@@ -4,7 +4,7 @@ import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.annotations.ApiClient;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.request.RequestImpl;
 import com.jaffa.rpc.lib.security.TicketProvider;
 import com.jaffa.rpc.lib.zookeeper.Utils;
@@ -69,7 +69,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
                 command.setCallBackZMQ(Utils.getHttpCallbackStringAddress());
         } catch (UnknownHostException e) {
             log.error("Error during metadata setting", e);
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
         command.setSourceModuleId(JaffaService.getRequiredOption("module.id"));
         command.setRqUid(UUID.randomUUID().toString());

@@ -1,13 +1,13 @@
 package com.jaffa.rpc.lib.exception;
 
-public class TransportSystemException extends RuntimeException {
+public class JaffaRpcSystemException extends RuntimeException {
     public static final String NO_PROTOCOL_DEFINED = "No known protocol defined";
 
-    public TransportSystemException(String cause) {
+    public JaffaRpcSystemException(String cause) {
         super(cause);
     }
 
-    public TransportSystemException(Throwable cause) {
+    public JaffaRpcSystemException(Throwable cause) {
         super("Exception occurred during RPC call", cause);
     }
 }

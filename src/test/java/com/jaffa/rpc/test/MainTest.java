@@ -1,6 +1,6 @@
 package com.jaffa.rpc.test;
 
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +58,7 @@ public class MainTest {
             personService.lol2("kek").executeSync();
             try {
                 personService.testError().onModule("test.server").executeSync();
-            } catch (TransportExecutionException e) {
+            } catch (JaffaRpcExecutionException e) {
                 log.error("Exception during sync call:", e);
             }
             personService.testError().onModule("test.server").executeAsync(UUID.randomUUID().toString(), PersonCallback.class);

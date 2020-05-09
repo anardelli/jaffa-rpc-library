@@ -5,8 +5,8 @@ import com.jaffa.rpc.lib.common.FinalizationWorker;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
 import com.rabbitmq.client.*;
@@ -49,7 +49,7 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                         if (command != null) {
                             if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                 java.lang.reflect.Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new JaffaRpcExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                             } else {
                                 Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                                 if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
@@ -64,17 +64,17 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                         }
                     } catch (IOException ioException) {
                         log.error("General RabbitMQ exception", ioException);
-                        throw new TransportSystemException(ioException);
+                        throw new JaffaRpcSystemException(ioException);
                     } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
                         log.error("RabbitMQ callback execution exception", callbackExecutionException);
-                        throw new TransportExecutionException(callbackExecutionException);
+                        throw new JaffaRpcExecutionException(callbackExecutionException);
                     }
                 }
             };
             clientChannel.basicConsume(RabbitMQRequestSender.CLIENT_ASYNC_NAME, false, consumer);
         } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
-            throw new TransportSystemException(ioException);
+            throw new JaffaRpcSystemException(ioException);
         }
     }
 

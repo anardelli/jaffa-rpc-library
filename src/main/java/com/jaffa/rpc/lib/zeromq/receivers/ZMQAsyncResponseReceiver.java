@@ -4,8 +4,8 @@ import com.jaffa.rpc.lib.common.FinalizationWorker;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
 import com.jaffa.rpc.lib.zookeeper.Utils;
@@ -34,7 +34,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
             log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
-            throw new TransportSystemException(zmqStartupException);
+            throw new JaffaRpcSystemException(zmqStartupException);
         }
         while (!Thread.currentThread().isInterrupted()) {
             try {
@@ -45,7 +45,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
                 if (command != null) {
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new JaffaRpcExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                     } else {
                         Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                         if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
@@ -60,11 +60,11 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             } catch (ZMQException | ZError.IOException recvTerminationException) {
                 if (!recvTerminationException.getMessage().contains("156384765")) {
                     log.error("General ZMQ exception", recvTerminationException);
-                    throw new TransportSystemException(recvTerminationException);
+                    throw new JaffaRpcSystemException(recvTerminationException);
                 }
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
                 log.error("ZMQ callback execution exception", callbackExecutionException);
-                throw new TransportExecutionException(callbackExecutionException);
+                throw new JaffaRpcExecutionException(callbackExecutionException);
             }
         }
         log.info("{} terminated", this.getClass().getSimpleName());

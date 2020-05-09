@@ -5,9 +5,9 @@ import com.jaffa.rpc.lib.common.FinalizationWorker;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportExecutionTimeoutException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionTimeoutException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.http.HttpRequestSender;
 import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
 import com.jaffa.rpc.lib.rabbitmq.RabbitMQRequestSender;
@@ -42,7 +42,7 @@ public class RequestImpl<T> implements Request<T> {
                 sender = new RabbitMQRequestSender();
                 break;
             default:
-                throw new TransportSystemException(TransportSystemException.NO_PROTOCOL_DEFINED);
+                throw new JaffaRpcSystemException(JaffaRpcSystemException.NO_PROTOCOL_DEFINED);
         }
     }
 
@@ -70,12 +70,12 @@ public class RequestImpl<T> implements Request<T> {
         byte[] out = Serializer.getCtx().serialize(command);
         byte[] response = sender.executeSync(out);
         if (response == null) {
-            throw new TransportExecutionTimeoutException();
+            throw new JaffaRpcExecutionTimeoutException();
         }
         Object result = Serializer.getCtx().deserializeWithClass(response);
         AdminServer.addMetric(command);
         if (result instanceof ExceptionHolder)
-            throw new TransportExecutionException(((ExceptionHolder) result).getStackTrace());
+            throw new JaffaRpcExecutionException(((ExceptionHolder) result).getStackTrace());
         return (T) result;
     }
 

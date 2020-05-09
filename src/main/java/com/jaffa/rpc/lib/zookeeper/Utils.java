@@ -1,8 +1,8 @@
 package com.jaffa.rpc.lib.zookeeper;
 
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportNoRouteException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcNoRouteException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -35,7 +35,7 @@ public class Utils {
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } catch (IOException | InterruptedException e) {
             log.error("Can not connect to ZooKeeper cluster", e);
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 
@@ -50,7 +50,7 @@ public class Utils {
             stat = isZNodeExists("/" + service);
         } catch (KeeperException | InterruptedException e) {
             log.error("Can not connect to ZooKeeper cluster", e);
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
         if (stat != null) {
             try {
@@ -60,9 +60,9 @@ public class Utils {
                 }
                 return host;
             } catch (KeeperException | ParseException | InterruptedException e) {
-                throw new TransportNoRouteException(service);
+                throw new JaffaRpcNoRouteException(service);
             }
-        } else throw new TransportNoRouteException(service);
+        } else throw new JaffaRpcNoRouteException(service);
     }
 
     private static String getHttpPrefix() {
@@ -73,7 +73,7 @@ public class Utils {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         if (jArray.isEmpty())
-            throw new TransportNoRouteException(service);
+            throw new JaffaRpcNoRouteException(service);
         else {
             ArrayList<String> hosts = new ArrayList<>();
             for (Object json : jArray) {
@@ -85,7 +85,7 @@ public class Utils {
                 }
             }
             if (hosts.isEmpty())
-                throw new TransportNoRouteException(service, moduleId);
+                throw new JaffaRpcNoRouteException(service, moduleId);
             return hosts.toArray(new String[0]);
         }
     }
@@ -95,7 +95,7 @@ public class Utils {
             byte[] zkData = zk.getData("/" + service, false, null);
             JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
             if (jArray.isEmpty())
-                throw new TransportNoRouteException(service);
+                throw new JaffaRpcNoRouteException(service);
             else {
                 ArrayList<String> hosts = new ArrayList<>();
                 for (Object json : jArray) {
@@ -103,12 +103,12 @@ public class Utils {
                     if (protocol.getShortName().equals(params[2])) hosts.add(params[1]);
                 }
                 if (hosts.isEmpty())
-                    throw new TransportNoRouteException(service, protocol);
+                    throw new JaffaRpcNoRouteException(service, protocol);
                 return hosts.get(0);
             }
         } catch (KeeperException | InterruptedException | ParseException e) {
             log.error("Error while getting avaiable module.id:", e);
-            throw new TransportNoRouteException(service, protocol.getShortName());
+            throw new JaffaRpcNoRouteException(service, protocol.getShortName());
         }
     }
 
@@ -124,7 +124,7 @@ public class Utils {
             log.info("Registered service: {}", service);
         } catch (KeeperException | InterruptedException | UnknownHostException | ParseException e) {
             log.error("Can not register services in ZooKeeper", e);
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 
@@ -216,7 +216,7 @@ public class Utils {
         try {
             return getLocalHostLANAddress().getHostAddress();
         } catch (UnknownHostException e) {
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 
@@ -271,7 +271,7 @@ class ShutdownHook extends Thread {
             Utils.conn.close();
             Utils.conn = null;
         } catch (KeeperException | InterruptedException | ParseException | IOException e) {
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 }

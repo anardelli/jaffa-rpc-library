@@ -4,8 +4,8 @@ import com.google.common.io.ByteStreams;
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -50,7 +50,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             server.start();
         } catch (IOException httpServerStartupException) {
             log.error("Error during HTTP request receiver startup:", httpServerStartupException);
-            throw new TransportSystemException(httpServerStartupException);
+            throw new JaffaRpcSystemException(httpServerStartupException);
         }
         log.info("{} started", this.getClass().getSimpleName());
     }
@@ -94,11 +94,11 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         int response = httpResponse.getStatusLine().getStatusCode();
                         httpResponse.close();
                         if (response != 200) {
-                            throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
+                            throw new JaffaRpcExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
                         }
                     } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                         log.error("Error while receiving async request");
-                        throw new TransportExecutionException(e);
+                        throw new JaffaRpcExecutionException(e);
                     }
                 };
                 service.execute(runnable);

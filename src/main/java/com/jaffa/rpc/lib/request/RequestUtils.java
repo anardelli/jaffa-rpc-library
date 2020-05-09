@@ -1,7 +1,7 @@
 package com.jaffa.rpc.lib.request;
 
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportNoRouteException;
+import com.jaffa.rpc.lib.exception.JaffaRpcNoRouteException;
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.AccessLevel;
@@ -19,7 +19,7 @@ public class RequestUtils {
         }
         String topicName = serviceInterface + "-" + availableModuleId + "-server" + (sync ? "-sync" : "-async");
         if (!JaffaService.getZkClient().topicExists(topicName))
-            throw new TransportNoRouteException(serviceInterface, availableModuleId);
+            throw new JaffaRpcNoRouteException(serviceInterface, availableModuleId);
         else
             return topicName;
     }

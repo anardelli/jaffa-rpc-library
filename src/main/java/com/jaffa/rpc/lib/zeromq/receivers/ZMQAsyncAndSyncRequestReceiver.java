@@ -3,8 +3,8 @@ package com.jaffa.rpc.lib.zeromq.receivers;
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             socket.bind("tcp://" + Utils.getZeroMQBindAddress());
         } catch (UnknownHostException zmqStartupException) {
             log.error("Error during ZeroMQ request receiver startup:", zmqStartupException);
-            throw new TransportSystemException(zmqStartupException);
+            throw new JaffaRpcSystemException(zmqStartupException);
         }
         while (!Thread.currentThread().isInterrupted()) {
             try {
@@ -56,7 +56,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                             socketAsync.close();
                         } catch (ClassNotFoundException | NoSuchMethodException e) {
                             log.error("Error while receiving async request", e);
-                            throw new TransportExecutionException(e);
+                            throw new JaffaRpcExecutionException(e);
                         }
                     };
                     service.execute(runnable);
@@ -70,7 +70,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             } catch (ZMQException | ZError.IOException recvTerminationException) {
                 if (!recvTerminationException.getMessage().contains("156384765")) {
                     log.error("General ZMQ exception", recvTerminationException);
-                    throw new TransportSystemException(recvTerminationException);
+                    throw new JaffaRpcSystemException(recvTerminationException);
                 }
             }
         }

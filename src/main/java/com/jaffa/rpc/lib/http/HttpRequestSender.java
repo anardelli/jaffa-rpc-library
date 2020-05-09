@@ -2,8 +2,8 @@ package com.jaffa.rpc.lib.http;
 
 import com.google.common.io.ByteStreams;
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportExecutionTimeoutException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionTimeoutException;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.request.Sender;
 import com.jaffa.rpc.lib.zookeeper.Utils;
@@ -37,12 +37,12 @@ public class HttpRequestSender extends Sender {
             try {
                 httpResponse = HttpAsyncAndSyncRequestReceiver.client.execute(httpPost);
             } catch (ConnectTimeoutException | SocketTimeoutException e) {
-                throw new TransportExecutionTimeoutException();
+                throw new JaffaRpcExecutionTimeoutException();
             }
             int response = httpResponse.getStatusLine().getStatusCode();
             if (response != 200) {
                 httpResponse.close();
-                throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
+                throw new JaffaRpcExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
             }
             InputStream responseBody = httpResponse.getEntity().getContent();
             byte[] byteArray = ByteStreams.toByteArray(responseBody);
@@ -50,7 +50,7 @@ public class HttpRequestSender extends Sender {
             return byteArray;
         } catch (IOException e) {
             log.error("Error while sending sync HTTP request", e);
-            throw new TransportExecutionException(e);
+            throw new JaffaRpcExecutionException(e);
         }
     }
 
@@ -64,11 +64,11 @@ public class HttpRequestSender extends Sender {
             int response = httpResponse.getStatusLine().getStatusCode();
             httpResponse.close();
             if (response != 200) {
-                throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
+                throw new JaffaRpcExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
             }
         } catch (IOException e) {
             log.error("Error while sending async HTTP request", e);
-            throw new TransportExecutionException(e);
+            throw new JaffaRpcExecutionException(e);
         }
     }
 }

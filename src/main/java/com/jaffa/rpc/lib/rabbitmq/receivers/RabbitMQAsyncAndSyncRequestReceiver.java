@@ -4,8 +4,8 @@ import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.rabbitmq.client.*;
 import com.jaffa.rpc.lib.rabbitmq.RabbitMQRequestSender;
@@ -62,7 +62,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                                 serverChannel.basicAck(envelope.getDeliveryTag(), false);
                                             } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
                                                 log.error("Error while receiving async request", e);
-                                                throw new TransportExecutionException(e);
+                                                throw new JaffaRpcExecutionException(e);
                                             }
                                         };
                                         responseService.execute(runnable);
@@ -77,7 +77,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                     }
                                 } catch (IOException ioException) {
                                     log.error("General RabbitMQ exception", ioException);
-                                    throw new TransportSystemException(ioException);
+                                    throw new JaffaRpcSystemException(ioException);
                                 }
                             }
                     );
@@ -86,7 +86,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
             serverChannel.basicConsume(RabbitMQRequestSender.SERVER, false, consumer);
         } catch (AmqpException | IOException amqpException) {
             log.error("Error during RabbitMQ request receiver startup:", amqpException);
-            throw new TransportSystemException(amqpException);
+            throw new JaffaRpcSystemException(amqpException);
         }
         log.info("{} terminated", this.getClass().getSimpleName());
     }

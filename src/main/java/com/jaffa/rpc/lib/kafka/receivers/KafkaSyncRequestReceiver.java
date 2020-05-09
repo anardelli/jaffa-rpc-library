@@ -4,7 +4,7 @@ import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.common.RebalanceListener;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                         consumer.commitSync(commitData);
                     } catch (ExecutionException | InterruptedException executionException) {
                         log.error("Target method execution exception", executionException);
-                        throw new TransportSystemException(executionException);
+                        throw new JaffaRpcSystemException(executionException);
                     }
                 }
             }

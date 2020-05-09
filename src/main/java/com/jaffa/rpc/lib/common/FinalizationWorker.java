@@ -1,8 +1,8 @@
 package com.jaffa.rpc.lib.common;
 
 import com.jaffa.rpc.lib.entities.Command;
-import com.jaffa.rpc.lib.exception.TransportExecutionTimeoutException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionTimeoutException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,7 +38,7 @@ public class FinalizationWorker {
                         log.info("Finalization request {}", command.getRqUid());
                         Class<?> callbackClass = Class.forName(command.getCallbackClass());
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), command.getCallbackKey(), new TransportExecutionTimeoutException());
+                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), command.getCallbackKey(), new JaffaRpcExecutionTimeoutException());
                         log.info("Finalization request {} took {}ns", command.getRqUid(), (System.nanoTime() - start));
                     }
                 } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
@@ -56,7 +56,7 @@ public class FinalizationWorker {
             countDownLatch.await();
         } catch (InterruptedException e) {
             log.error("Error during FinalizationWorker startup");
-            throw new TransportSystemException(e);
+            throw new JaffaRpcSystemException(e);
         }
     }
 

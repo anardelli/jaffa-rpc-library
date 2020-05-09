@@ -5,8 +5,8 @@ import com.jaffa.rpc.lib.common.FinalizationWorker;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
 import com.sun.net.httpserver.HttpExchange;
@@ -36,7 +36,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
             server.start();
         } catch (IOException httpServerStartupException) {
             log.error("Error during HTTP request receiver startup:", httpServerStartupException);
-            throw new TransportSystemException(httpServerStartupException);
+            throw new JaffaRpcSystemException(httpServerStartupException);
         }
         log.info("{} started", this.getClass().getSimpleName());
     }
@@ -58,7 +58,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 if (command != null) {
                     if (callbackContainer.getResult() instanceof ExceptionHolder) {
                         Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                        method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new JaffaRpcExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                     } else {
                         Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                         if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
@@ -78,7 +78,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 request.close();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException callbackExecutionException) {
                 log.error("ZMQ callback execution exception", callbackExecutionException);
-                throw new TransportExecutionException(callbackExecutionException);
+                throw new JaffaRpcExecutionException(callbackExecutionException);
             }
         }
     }

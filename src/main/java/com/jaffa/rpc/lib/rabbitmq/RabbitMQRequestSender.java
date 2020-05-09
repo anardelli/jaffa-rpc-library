@@ -2,8 +2,8 @@ package com.jaffa.rpc.lib.rabbitmq;
 
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.entities.Protocol;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.request.Sender;
 import com.rabbitmq.client.*;
 import com.jaffa.rpc.lib.zookeeper.Utils;
@@ -53,7 +53,7 @@ public class RabbitMQRequestSender extends Sender {
             clientChannel.basicConsume(CLIENT_SYNC_NAME, false, consumer);
         } catch (AmqpException | IOException ioException) {
             log.error("Error during RabbitMQ response receiver startup:", ioException);
-            throw new TransportSystemException(ioException);
+            throw new JaffaRpcSystemException(ioException);
         }
     }
 
@@ -82,7 +82,7 @@ public class RabbitMQRequestSender extends Sender {
             requests.remove(command.getRqUid());
         } catch (IOException ioException) {
             log.error("Error while sending sync RabbitMQ request", ioException);
-            throw new TransportExecutionException(ioException);
+            throw new JaffaRpcExecutionException(ioException);
         }
         return null;
     }
@@ -103,7 +103,7 @@ public class RabbitMQRequestSender extends Sender {
             sendSync(message);
         } catch (IOException e) {
             log.error("Error while sending async RabbitMQ request", e);
-            throw new TransportExecutionException(e);
+            throw new JaffaRpcExecutionException(e);
         }
     }
 

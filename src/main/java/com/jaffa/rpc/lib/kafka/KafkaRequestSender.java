@@ -1,6 +1,6 @@
 package com.jaffa.rpc.lib.kafka;
 
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.request.RequestUtils;
 import com.jaffa.rpc.lib.request.Sender;
@@ -102,7 +102,7 @@ public class KafkaRequestSender extends Sender {
             producer.send(resultPackage).get();
         } catch (InterruptedException | ExecutionException e) {
             log.error("Error in sending sync request", e);
-            throw new TransportExecutionException(e);
+            throw new JaffaRpcExecutionException(e);
         }
         byte[] result = waitForSyncAnswer(requestTopic, System.currentTimeMillis());
         log.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
@@ -118,7 +118,7 @@ public class KafkaRequestSender extends Sender {
             log.info(">>>>>> Executed async request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         } catch (InterruptedException | ExecutionException e) {
             log.error("Error while sending async Kafka request", e);
-            throw new TransportExecutionException(e);
+            throw new JaffaRpcExecutionException(e);
         }
     }
 }

@@ -4,8 +4,8 @@ import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.common.RebalanceListener;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
-import com.jaffa.rpc.lib.exception.TransportSystemException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -62,10 +62,10 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                         consumer.commitSync(commitData);
                     } catch (ClassNotFoundException | NoSuchMethodException executionException) {
                         log.error("Target method execution exception", executionException);
-                        throw new TransportExecutionException(executionException);
+                        throw new JaffaRpcExecutionException(executionException);
                     } catch (InterruptedException | ExecutionException systemException) {
                         log.error("General Kafka exception", systemException);
-                        throw new TransportSystemException(systemException);
+                        throw new JaffaRpcSystemException(systemException);
                     }
                 }
             }

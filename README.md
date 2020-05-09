@@ -159,17 +159,17 @@ public class PersonCallback implements Callback<Person> {
 
 ## Exceptions  
 
-```TransportExecutionException```   - if any exception occurred **during sending request or receiving response**  
-```TransportSystemException```      - if any **system resource not available (ZooKeeper/Kafka/RabbitMQ/OS)**  
-```TransportNoRouteException```     - if request could not be send (**required module.id is not available now**)  
-```TransportExecutionTimeoutException```   - if response was not received until timeout (**specified by client or 1 hour as default**)  
+```JaffaRpcExecutionException```   - if any exception occurred **during sending request or receiving response**  
+```JaffaRpcSystemException```      - if any **system resource not available (ZooKeeper/Kafka/RabbitMQ/OS)**  
+```JaffaRpcNoRouteException```     - if request could not be send (**required module.id is not available now**)  
+```JaffaRpcExecutionTimeoutException```   - if response was not received until timeout (**specified by client or 1 hour as default**)  
 
 ## Configuration
 
 ```java
 @Configuration
 @ComponentScan
-@Import(TransportConfig.class) // Import Jaffa library configuration
+@Import(JaffaRpcConfig.class) // Import Jaffa RPC library configuration
 public class MainConfig {
 
     // Specify server implementation endpoints (must be empty if none exists)

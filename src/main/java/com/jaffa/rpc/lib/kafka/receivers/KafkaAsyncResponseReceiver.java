@@ -6,7 +6,7 @@ import com.jaffa.rpc.lib.common.RebalanceListener;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
-import com.jaffa.rpc.lib.exception.TransportExecutionException;
+import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +55,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                         if (command != null) {
                             if (callbackContainer.getResult() instanceof ExceptionHolder) {
                                 Method method = callbackClass.getMethod("onError", String.class, Throwable.class);
-                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new TransportExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
+                                method.invoke(callbackClass.getDeclaredConstructor().newInstance(), callbackContainer.getKey(), new JaffaRpcExecutionException(((ExceptionHolder) callbackContainer.getResult()).getStackTrace()));
                             } else {
                                 Method method = callbackClass.getMethod("onSuccess", String.class, Class.forName(callbackContainer.getResultClass()));
                                 if (Class.forName(callbackContainer.getResultClass()).equals(Void.class)) {
@@ -72,7 +72,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                         consumer.commitSync(commitData);
                     } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | InvocationTargetException | IllegalAccessException executionException) {
                         log.error("Error during receiving callback", executionException);
-                        throw new TransportExecutionException(executionException);
+                        throw new JaffaRpcExecutionException(executionException);
                     }
                 }
             }
