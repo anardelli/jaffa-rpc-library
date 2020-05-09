@@ -347,7 +347,20 @@ public class JaffaService {
                 log.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
             }
             FinalizationWorker.startFinalizer();
-            log.info("STARTED IN: {} ms", System.currentTimeMillis() - startedTime);
+            log.info("\n    .---.                                             \n" +
+                    "    |   |                                               \n" +
+                    "    '---'                                               \n" +
+                    "    .---.                 _.._       _.._               \n" +
+                    "    |   |               .' .._|    .' .._|              \n" +
+                    "    |   |     __        | '        | '         __       \n" +
+                    "    |   |  .:--.'.    __| |__    __| |__    .:--.'.     \n" +
+                    "    |   | / |   \\ |  |__   __|  |__   __|  / |   \\ |  \n" +
+                    "    |   | `\" __ | |     | |        | |     `\" __ | |  \n" +
+                    "    |   |  .'.''| |     | |        | |      .'.''| |    \n" +
+                    " __.'   ' / /   | |_    | |        | |     / /   | |_   \n" +
+                    "|      '  \\ \\._,\\ '/    | |        | |     \\ \\._,\\ '/ \n" +
+                    "|____.'    `--'  `\"     |_|        |_|      `--'  `\"  \n" +
+                    "                                       STARTED IN {} MS \n", System.currentTimeMillis() - startedTime);
         } catch (Exception e) {
             log.error("Exception during Jaffa RPC library startup:", e);
             throw new JaffaRpcSystemException(e);
