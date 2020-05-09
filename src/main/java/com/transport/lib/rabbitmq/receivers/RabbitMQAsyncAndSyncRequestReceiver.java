@@ -1,21 +1,18 @@
 package com.transport.lib.rabbitmq.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.rabbitmq.client.*;
 import com.transport.lib.TransportService;
+import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.rabbitmq.RabbitMQRequestSender;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -50,21 +47,16 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                         AMQP.BasicProperties properties,
                         final byte[] body) {
                     requestService.execute(() -> {
-                                Kryo kryo = new Kryo();
                                 try {
-                                    Input input = new Input(new ByteArrayInputStream(body));
-                                    final Command command = kryo.readObject(input, Command.class);
+                                    final Command command = KryoPoolSerializer.serializer.deserialize(body, Command.class);
                                     if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                                         Runnable runnable = () -> {
                                             try {
                                                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                                                 RequestContext.setSecurityTicket(command.getTicket());
                                                 Object result = invoke(command);
-                                                ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                                                Output output = new Output(bOutput);
-                                                kryo.writeObject(output, constructCallbackContainer(command, result));
-                                                output.close();
-                                                byte[] response = bOutput.toByteArray();
+                                                CallbackContainer callbackContainer = constructCallbackContainer(command, result);
+                                                byte[] response = KryoPoolSerializer.serializer.serialize(callbackContainer);
                                                 Map<String, Object> headers = new HashMap<>();
                                                 headers.put("communication-type", "async");
                                                 AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
@@ -80,11 +72,7 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                                         RequestContext.setSecurityTicket(command.getTicket());
                                         Object result = invoke(command);
-                                        ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                                        Output output = new Output(bOutput);
-                                        kryo.writeClassAndObject(output, getResult(result));
-                                        output.close();
-                                        byte[] response = bOutput.toByteArray();
+                                        byte[] response = KryoPoolSerializer.serializer.serializeWithClass(getResult(result));
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
                                         clientChannel.basicPublish(command.getSourceModuleId(), command.getSourceModuleId() + "-client-sync", props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);

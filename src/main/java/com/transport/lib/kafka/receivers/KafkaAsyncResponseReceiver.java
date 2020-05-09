@@ -1,7 +1,5 @@
 package com.transport.lib.kafka.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.transport.lib.TransportService;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.common.RebalanceListener;
@@ -9,6 +7,7 @@ import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.ui.AdminServer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -18,7 +17,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InterruptException;
 
-import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -41,7 +39,6 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
         TransportService.getConsumerProps().put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(TransportService.getConsumerProps());
-            Kryo kryo = new Kryo();
             consumer.subscribe(TransportService.getClientAsyncTopics(), new RebalanceListener());
             countDownLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
@@ -52,8 +49,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
                 }
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        Input input = new Input(new ByteArrayInputStream(record.value()));
-                        CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                        CallbackContainer callbackContainer = KryoPoolSerializer.serializer.deserialize(record.value(), CallbackContainer.class);
                         Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                         Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                         if (command != null) {

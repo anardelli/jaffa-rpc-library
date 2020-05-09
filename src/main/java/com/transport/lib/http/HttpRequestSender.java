@@ -1,5 +1,6 @@
 package com.transport.lib.http;
 
+import com.google.common.io.ByteStreams;
 import com.transport.lib.entities.Protocol;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportExecutionTimeoutException;
@@ -14,7 +15,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.entity.ByteArrayEntity;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
@@ -45,14 +45,7 @@ public class HttpRequestSender extends Sender {
                 throw new TransportExecutionException("Response for RPC request " + command.getRqUid() + " returned status " + response);
             }
             InputStream responseBody = httpResponse.getEntity().getContent();
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int nRead;
-            byte[] data = new byte[1024];
-            while ((nRead = responseBody.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
-            }
-            buffer.flush();
-            byte[] byteArray = buffer.toByteArray();
+            byte[] byteArray = ByteStreams.toByteArray(responseBody);
             httpResponse.close();
             return byteArray;
         } catch (IOException e) {

@@ -1,7 +1,5 @@
 package com.transport.lib.rabbitmq.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.rabbitmq.client.*;
 import com.transport.lib.TransportService;
 import com.transport.lib.common.FinalizationWorker;
@@ -11,12 +9,12 @@ import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.rabbitmq.RabbitMQRequestSender;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.ui.AdminServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -44,10 +42,8 @@ public class RabbitMQAsyncResponseReceiver implements Runnable, Closeable {
                     if (properties.getHeaders() == null) return;
                     Object type = properties.getHeaders().get("communication-type");
                     if (type == null || !"async".equals(String.valueOf(type))) return;
-                    Kryo kryo = new Kryo();
                     try {
-                        Input input = new Input(new ByteArrayInputStream(body));
-                        CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                        CallbackContainer callbackContainer = KryoPoolSerializer.serializer.deserialize(body, CallbackContainer.class);
                         Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                         Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                         if (command != null) {

@@ -1,13 +1,12 @@
 package com.transport.lib.zeromq.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.entities.CallbackContainer;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.ExceptionHolder;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +15,6 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQException;
 import zmq.ZError;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,12 +36,10 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
             log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
             throw new TransportSystemException(zmqStartupException);
         }
-        Kryo kryo = new Kryo();
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] bytes = socket.recv();
-                Input input = new Input(new ByteArrayInputStream(bytes));
-                CallbackContainer callbackContainer = kryo.readObject(input, CallbackContainer.class);
+                CallbackContainer callbackContainer = KryoPoolSerializer.serializer.deserialize(bytes, CallbackContainer.class);
                 Class<?> callbackClass = Class.forName(callbackContainer.getListener());
                 Command command = FinalizationWorker.getEventsToConsume().remove(callbackContainer.getKey());
                 if (command != null) {

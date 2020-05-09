@@ -1,8 +1,5 @@
 package com.transport.lib.request;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.callbacks.Callback;
 import com.transport.lib.common.FinalizationWorker;
 import com.transport.lib.entities.Command;
@@ -14,19 +11,16 @@ import com.transport.lib.exception.TransportSystemException;
 import com.transport.lib.http.HttpRequestSender;
 import com.transport.lib.kafka.KafkaRequestSender;
 import com.transport.lib.rabbitmq.RabbitMQRequestSender;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.ui.AdminServer;
 import com.transport.lib.zeromq.ZeroMqRequestSender;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-
 @Slf4j
 public class RequestImpl<T> implements Request<T> {
 
     private final Command command;
-    private final Kryo kryo = new Kryo();
     private final Sender sender;
     private long timeout = -1;
     private String moduleId;
@@ -78,9 +72,7 @@ public class RequestImpl<T> implements Request<T> {
         if (response == null) {
             throw new TransportExecutionTimeoutException();
         }
-        Input input = new Input(new ByteArrayInputStream(response));
-        Object result = kryo.readClassAndObject(input);
-        input.close();
+        Object result = KryoPoolSerializer.serializer.deserializeWithClass(response);
         AdminServer.addMetric(command);
         if (result instanceof ExceptionHolder)
             throw new TransportExecutionException(((ExceptionHolder) result).getStackTrace());
@@ -88,11 +80,7 @@ public class RequestImpl<T> implements Request<T> {
     }
 
     private byte[] marshallCommand(Command command) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Output output = new Output(out);
-        kryo.writeObject(output, command);
-        output.close();
-        return out.toByteArray();
+        return KryoPoolSerializer.serializer.serialize(command);
     }
 
     public void executeAsync(String key, Class<? extends Callback<T>> listener) {

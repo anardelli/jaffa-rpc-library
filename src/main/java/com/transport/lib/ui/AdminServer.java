@@ -1,5 +1,6 @@
 package com.transport.lib.ui;
 
+import com.google.common.io.ByteStreams;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.transport.lib.entities.Command;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -39,13 +39,7 @@ public class AdminServer {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         InputStream is = classloader.getResourceAsStream(fileName);
         if (is == null) throw new IOException("No such file in resources: " + fileName);
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[16384];
-        while ((nRead = is.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-        byte[] page = buffer.toByteArray();
+        byte[] page = ByteStreams.toByteArray(is);
         exchange.sendResponseHeaders(200, page.length);
         OutputStream os = exchange.getResponseBody();
         os.write(page);

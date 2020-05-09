@@ -44,7 +44,7 @@ public class ApiClientAdvisor extends AbstractPointcutAdvisor {
             command.setServiceClass(invocation.getMethod().getDeclaringClass().getInterfaces()[0].getName());
             ApiClient apiClient = invocation.getMethod().getDeclaringClass().getInterfaces()[0].getAnnotation(ApiClient.class);
             if (!apiClient.ticketProvider().equals(TicketProvider.class)) {
-                TicketProvider ticketProvider = (TicketProvider) context.getBean(apiClient.ticketProvider());
+                TicketProvider ticketProvider = context.getBean(apiClient.ticketProvider());
                 command.setTicket(ticketProvider.getTicket());
             }
             command.setMethodName(invocation.getMethod().getName());

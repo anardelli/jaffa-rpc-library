@@ -1,8 +1,6 @@
 package com.transport.lib.http.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import com.google.common.io.ByteStreams;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -10,6 +8,7 @@ import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
@@ -20,7 +19,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -74,9 +72,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
         @Override
         public void handle(HttpExchange request) throws IOException {
-            Kryo kryo = new Kryo();
-            Input input = new Input(request.getRequestBody());
-            final Command command = kryo.readObject(input, Command.class);
+            final Command command = KryoPoolSerializer.serializer.deserialize(ByteStreams.toByteArray(request.getRequestBody()), Command.class);
             if (command.getCallbackKey() != null && command.getCallbackClass() != null) {
                 String response = "OK";
                 request.sendResponseHeaders(200, response.getBytes().length);
@@ -91,12 +87,9 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
                         Object result = invoke(command);
-                        ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                        Output output = new Output(bOutput);
-                        kryo.writeObject(output, constructCallbackContainer(command, result));
-                        output.close();
+                        byte[] serializedResponse = KryoPoolSerializer.serializer.serialize(constructCallbackContainer(command, result));
                         HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
-                        HttpEntity postParams = new ByteArrayEntity(bOutput.toByteArray());
+                        HttpEntity postParams = new ByteArrayEntity(serializedResponse);
                         httpPost.setEntity(postParams);
                         CloseableHttpResponse httpResponse = client.execute(httpPost);
                         int response = httpResponse.getStatusLine().getStatusCode();
@@ -114,11 +107,7 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                 RequestContext.setSecurityTicket(command.getTicket());
                 Object result = invoke(command);
-                ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                Output output = new Output(bOutput);
-                kryo.writeClassAndObject(output, getResult(result));
-                output.close();
-                byte[] response = bOutput.toByteArray();
+                byte[] response = KryoPoolSerializer.serializer.serializeWithClass(getResult(result));
                 request.sendResponseHeaders(200, response.length);
                 OutputStream os = request.getResponseBody();
                 os.write(response);

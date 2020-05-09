@@ -1,14 +1,12 @@
 package com.transport.lib.kafka.receivers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.transport.lib.TransportService;
 import com.transport.lib.common.RebalanceListener;
 import com.transport.lib.entities.Command;
 import com.transport.lib.entities.RequestContext;
 import com.transport.lib.exception.TransportExecutionException;
 import com.transport.lib.exception.TransportSystemException;
+import com.transport.lib.serialization.KryoPoolSerializer;
 import com.transport.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,8 +18,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InterruptException;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +40,6 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
         Runnable consumerThread = () -> {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(TransportService.getConsumerProps());
             KafkaProducer<String, byte[]> producer = new KafkaProducer<>(TransportService.getProducerProps());
-            Kryo kryo = new Kryo();
             consumer.subscribe(TransportService.getServerAsyncTopics(), new RebalanceListener());
             countDownLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
@@ -55,16 +50,12 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                 }
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        Input input = new Input(new ByteArrayInputStream(record.value()));
-                        Command command = kryo.readObject(input, Command.class);
+                        Command command = KryoPoolSerializer.serializer.deserialize(record.value(), Command.class);
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
                         Object result = TransportService.invoke(command);
-                        ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
-                        Output output = new Output(bOutput);
-                        kryo.writeObject(output, TransportService.constructCallbackContainer(command, result));
-                        output.close();
-                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), bOutput.toByteArray());
+                        byte[] serializedResponse = KryoPoolSerializer.serializer.serialize(TransportService.constructCallbackContainer(command, result));
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), serializedResponse);
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));
