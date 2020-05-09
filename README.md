@@ -189,19 +189,54 @@ public class MainConfig {
 NOTE: Number of partitions for library's topics is equal to the number of Kafka brokers.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
-#### Available options
-  **-Dzookeeper.connection**  - host:port for ZooKeeper cluster **(required)**  
-  **-Dzmq.service.port**      - port for receiving request connections for ZeroMQ (optional, default port is 4242)  
-  **-Dhttp.service.port**     - port for receiving request connections for HTTP (optional, default port is 4242)  
-  **-Dzmq.callback.port**     - port for receiving callback connections for ZeroMQ (optional, default port is 4342)  
-  **-Dhttp.callback.port**    - port for receiving callback connections for HTTP (optional, default port is 4342)  
-  **-Dmodule.id**             - unique name of server in ZooKeeper cluster **(required)**  
-  **-Dtransport.protocol**    - could be 'zmq', 'kafka', 'http', 'rabbit' **(required)**  
-  **-Dbootstrap.servers**     - bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)  
-  **-Drabbit.host**           - RabbitMQ server host (optional, only when transport protocol is RabbitMQ)  
-  **-Drabbit.port**           - RabbitMQ server port (optional, only when transport protocol is RabbitMQ)  
-  **-Dtransport.serializer**  - 'kryo' and 'java' serialization providers are available.  
-                                Java serialization requires all entities to be ```Serializable```
+#### Available JVM options
+<table>
+  <th>Option</th><th>Description</th>
+  <tr>
+    <td>-Dzookeeper.connection</td>
+    <td>host:port for ZooKeeper cluster (required)</td> 
+  </tr>
+  <tr>
+    <td>-Dzmq.service.port</td>
+    <td>Port for receiving request connections for ZeroMQ (optional, default port is 4242)</td>
+  </tr>
+  <tr>
+    <td>-Dhttp.service.port</td>
+    <td>Port for receiving request connections for HTTP (optional, default port is 4242)</td> 
+  </tr>
+  <tr>
+    <td>-Dzmq.callback.port</td>
+    <td>Port for receiving callback connections for ZeroMQ (optional, default port is 4342)</td>
+  </tr>
+  <tr>
+    <td>-Dhttp.callback.port</td>
+    <td>Port for receiving callback connections for HTTP (optional, default port is 4342)</td>
+  </tr>
+  <tr>
+    <td>-Dmodule.id</td>
+    <td>Unique name of server in ZooKeeper cluster (required)</td>
+  </tr>
+  <tr>
+    <td>-Dtransport.protocol</td>
+    <td>Could be 'zmq', 'kafka', 'http', 'rabbit' (required)</td>
+  </tr>
+  <tr>
+    <td>-Dbootstrap.servers</td>
+    <td>Bootstrap servers of Kafka cluster  (optional, only when transport protocol is Kafka)</td>
+  </tr>
+  <tr>
+    <td>-Drabbit.host</td>
+    <td>RabbitMQ server host (optional, only when transport protocol is RabbitMQ)</td>
+  </tr>
+  <tr>
+    <td>-Drabbit.port</td>
+    <td>RabbitMQ server port (optional, only when transport protocol is RabbitMQ)</td>
+  </tr>
+  <tr>
+    <td>-Dtransport.serializer</td>
+    <td>'kryo' (default) and 'java' serialization providers are available. Java serialization requires all entities to be Serializable</td>
+  </tr>
+  </table>  
   
 ## Work in progress:  
 ### gRPC support
