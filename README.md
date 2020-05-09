@@ -194,7 +194,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   <th>Option</th><th>Description</th>
   <tr>
     <td>zookeeper.connection</td>
-    <td>host:port for ZooKeeper cluster (required)</td>
+    <td>ZooKeeper cluster connection string (required): 'host:port' </td>
   </tr>
   <tr>
     <td>zmq.service.port</td>
@@ -234,7 +234,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </tr>
   <tr>
     <td>transport.serializer</td>
-    <td>'kryo' (default) and 'java' serialization providers are available. Java serialization requires all entities to be Serializable</td>
+    <td>Serialization providers available: 'kryo' (default) and 'java'. Java serialization requires all entities to be Serializable. Same serialization provider must be used clusterwide.</td>
   </tr>
   </table>  
   
