@@ -7,22 +7,33 @@ import com.jaffa.rpc.lib.entities.RequestContext;
 import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
+import com.jaffa.rpc.lib.zookeeper.Utils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContexts;
 
+import javax.net.ssl.SSLContext;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,19 +41,35 @@ import java.util.concurrent.Executors;
 public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     public static final CloseableHttpClient client;
+
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
     static {
-        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-        connManager.setMaxTotal(200);
-        client = HttpClients.custom().setConnectionManager(connManager).build();
+        if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
+            TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
+            SSLContext sslContext;
+            try {
+                sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+            } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
+                log.error("Error occurred while creating HttpClient", e);
+                throw new JaffaRpcSystemException(e);
+            }
+            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslConnectionSocketFactory).build();
+            PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+            connectionManager.setMaxTotal(200);
+            client = HttpClients.custom().setSSLSocketFactory(sslConnectionSocketFactory).setConnectionManager(connectionManager).build();
+        } else {
+            PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+            connManager.setMaxTotal(200);
+            client = HttpClients.custom().setConnectionManager(connManager).build();
+        }
     }
 
     private HttpServer server;
 
     @Override
     public void run() {
-
         try {
             server = HttpServer.create(Utils.getHttpBindAddress(), 0);
             server.createContext("/request", new HttpRequestHandler());

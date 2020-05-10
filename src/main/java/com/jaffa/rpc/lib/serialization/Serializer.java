@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 public class Serializer {
 
     @Getter
-    private static SerializationContext ctx;
+    private static final SerializationContext ctx;
 
     static {
         String currentSerializer = System.getProperty("jaffa.rpc.serializer", "kryo");
@@ -23,6 +23,7 @@ public class Serializer {
                 break;
             default:
                 log.error("No known serializer defined");
+                ctx = null;
                 break;
         }
     }
