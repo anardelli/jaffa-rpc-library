@@ -3,23 +3,23 @@
 Library provides communication between applications running on different JVMs using interface method calls.  
 
 Key features:  
-- Apache ZooKeeper **(with TLSv1.2)** is used for service discovery
+- **Apache ZooKeeper (with TLSv1.2)** is used for service discovery
 - Sync & async method calls - type of communication is determined by client, not server
 - One interface could have multiple server implementations - 
   client choose required by specifying target module.id
 - Request-scoped timeout for both sync/async calls
 - 4 protocols:
-  - ZeroMQ
+  - **ZeroMQ**
     - Unlimited message size
     - Low latency
     - Pure TCP connection
-  - Apache Kafka **(with TLSv1.2)**
+  - **Apache Kafka (with TLSv1.2)**
     - Persistence (messages could be replayed)
     - High throughput
-  - HTTP1.1/HTTPS **(with TLSv1.2)**
+  - **HTTP1.1/HTTPS (with TLSv1.2)**
     - Low latency
     - High throughput
-  - RabbitMQ
+  - **RabbitMQ**
     - Low latency
     - High throughput
     - Persistence
@@ -52,6 +52,8 @@ Dashboard URL is logged at startup like this:
 <img src="https://raw.githubusercontent.com/dredwardhyde/jaffa-rpc-library/master/rabbit_async.png" width="900"/>  
 
 ## How to use
+
+[FULL EXAMPLE HERE](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/src/test/java/com/jaffa/rpc/test/ServerTest.java)
 
 You create an interface with ```@Api```annotation, for example:
 
@@ -315,14 +317,14 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
 
 ### gRPC support   
 ### Curve support for ZeroMQ  
-### Login&Password/TLS 1.3 support for RabbitMQ  
+### Login&Password/TLS 1.2 support for RabbitMQ  
 
 ## Example how to generate keystore for admin console:  
 ```sh
 keytool -genkeypair -keyalg RSA -alias self_signed -keypass simulator -keystore test.keystore -storepass simulator
 ```
 
-## Example how to generate test truststore and keystore for Apache ZooKeeper:  
+## Example how to generate test JKS truststore and keystore:  
 Please note that Common Name must be equal to $hostname  
 ```sh
 keytool -genkey -alias bmc -keyalg RSA -keystore keystore.jks -keysize 2048
