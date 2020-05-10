@@ -34,11 +34,18 @@ public class ServerTest {
         System.setProperty("module.id", "test.server");
         System.setProperty("rabbit.host", "localhost");
         System.setProperty("rabbit.port", "5672");
+
         System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
         System.setProperty("jaffa.admin.storepass", "simulator1");
         System.setProperty("jaffa.admin.use.https", "true");
+
         System.setProperty("jaffa.rpc.serializer", "kryo");
         System.setProperty("jaffa.rpc.protocol", "http");
+
+        System.setProperty("jaffa.rpc.protocol.use.https", "true");
+        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
+        System.setProperty("jaffa.rpc.protocol.https.keystore", "C:\\Users\\edwardhyde\\test.keystore");
+
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }
 

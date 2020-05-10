@@ -9,17 +9,18 @@ import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.*;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.net.ssl.*;
 import java.io.Closeable;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.security.KeyStore;
 import java.util.concurrent.Executors;
 
 @Slf4j
@@ -30,11 +31,43 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
     @Override
     public void run() {
         try {
-            server = HttpServer.create(Utils.getHttpCallbackBindAddress(), 0);
+            if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
+                HttpsServer httpsServer = HttpsServer.create(Utils.getHttpCallbackBindAddress(), 0);
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                KeyStore ks = KeyStore.getInstance("PKCS12");
+                char[] storepass = System.getProperty("jaffa.rpc.protocol.https.storepass").toCharArray();
+                FileInputStream fis = new FileInputStream(System.getProperty("jaffa.rpc.protocol.https.keystore"));
+                ks.load(fis, storepass);
+                KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+                kmf.init(ks, storepass);
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+                tmf.init(ks);
+                sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+                httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+                    @Override
+                    public void configure(HttpsParameters params) {
+                        try {
+                            SSLContext c = SSLContext.getDefault();
+                            SSLEngine engine = c.createSSLEngine();
+                            params.setNeedClientAuth(true);
+                            params.setCipherSuites(engine.getEnabledCipherSuites());
+                            params.setProtocols(engine.getEnabledProtocols());
+                            SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();
+                            params.setSSLParameters(defaultSSLParameters);
+                        } catch (Exception ex) {
+                            log.error("Failed to create Jaffa HTTPS server", ex);
+                            throw new JaffaRpcSystemException(ex);
+                        }
+                    }
+                });
+                server = httpsServer;
+            } else {
+                server = HttpServer.create(Utils.getHttpCallbackBindAddress(), 0);
+            }
             server.createContext("/response", new HttpRequestHandler());
             server.setExecutor(Executors.newFixedThreadPool(3));
             server.start();
-        } catch (IOException httpServerStartupException) {
+        } catch (Exception httpServerStartupException) {
             log.error("Error during HTTP request receiver startup:", httpServerStartupException);
             throw new JaffaRpcSystemException(httpServerStartupException);
         }
