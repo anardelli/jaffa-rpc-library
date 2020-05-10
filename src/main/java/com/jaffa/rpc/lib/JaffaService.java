@@ -103,6 +103,18 @@ public class JaffaService {
             producerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
             producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+
+            if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.kafka.use.ssl", "false"))){
+                Map<String, String> sslProps = new HashMap<>();
+                sslProps.put("security.protocol", "SSL");
+                sslProps.put("ssl.truststore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location"));
+                sslProps.put("ssl.truststore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password"));
+                sslProps.put("ssl.keystore.location",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
+                sslProps.put("ssl.keystore.password",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
+                sslProps.put("ssl.key.password",        System.getProperty("jaffa.rpc.protocol.kafka.ssl.key.password"));
+                consumerProps.putAll(sslProps);
+                producerProps.putAll(sslProps);
+            }
         }
         primitiveToWrappers.put(boolean.class, Boolean.class);
         primitiveToWrappers.put(byte.class, Byte.class);
@@ -213,7 +225,7 @@ public class JaffaService {
             JaffaService.setClientSyncTopics(createKafkaTopics("client-sync"));
         }
         if (protocol.equals(Protocol.RABBIT)) {
-            JaffaService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("rabbit.host"), Integer.parseInt(getRequiredOption("rabbit.port"))));
+            JaffaService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("jaffa.rpc.rabbit.host"), Integer.parseInt(getRequiredOption("jaffa.rpc.rabbit.port"))));
             JaffaService.setAdminRabbitMQ(new RabbitAdmin(JaffaService.connectionFactory));
             JaffaService.adminRabbitMQ.declareExchange(new DirectExchange(RabbitMQRequestSender.EXCHANGE_NAME, true, false));
             if (JaffaService.adminRabbitMQ.getQueueInfo(RabbitMQRequestSender.SERVER) == null) {

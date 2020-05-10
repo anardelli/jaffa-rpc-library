@@ -32,15 +32,15 @@ public class ServerTest {
         System.setProperty("zmq.service.port", "4843");
         System.setProperty("zmq.callback.port", "4943");
         System.setProperty("module.id", "test.server");
-        System.setProperty("rabbit.host", "localhost");
-        System.setProperty("rabbit.port", "5672");
+        System.setProperty("jaffa.rpc.rabbit.host", "localhost");
+        System.setProperty("jaffa.rpc.rabbit.port", "5672");
 
         System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
         System.setProperty("jaffa.admin.storepass", "simulator1");
         System.setProperty("jaffa.admin.use.https", "true");
 
         System.setProperty("jaffa.rpc.serializer", "kryo");
-        System.setProperty("jaffa.rpc.protocol", "http");
+        System.setProperty("jaffa.rpc.protocol", "kafka");
 
         System.setProperty("jaffa.rpc.protocol.use.https", "true");
         System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
@@ -54,11 +54,17 @@ public class ServerTest {
         System.setProperty("zookeeper.ssl.trustStore.location", "C:\\Users\\edwardhyde\\truststore.jks");
         System.setProperty("zookeeper.ssl.trustStore.password", "simulator");
 
+        System.setProperty("jaffa.rpc.protocol.kafka.use.ssl", "true");
+        System.setProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location", "C:\\Users\\edwardhyde\\truststore.jks");
+        System.setProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password", "simulator");
+        System.setProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location", "C:\\Users\\edwardhyde\\keystore.jks");
+        System.setProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password", "simulator");
+        System.setProperty("jaffa.rpc.protocol.kafka.ssl.key.password", "simulator");
+
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }
 
     @Test
-    @Ignore
     public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
@@ -85,6 +91,7 @@ public class ServerTest {
     }
 
     @Test
+    @Ignore
     public void stage2() {
         // 1 hour load test
         final boolean sync = true;

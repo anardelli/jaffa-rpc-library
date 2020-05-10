@@ -33,6 +33,17 @@ public class KafkaRequestSender extends Sender {
         consumerProps.put("enable.auto.commit", "false");
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.kafka.use.ssl", "false"))){
+            Map<String, String> sslProps = new HashMap<>();
+            sslProps.put("security.protocol", "SSL");
+            sslProps.put("ssl.truststore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location"));
+            sslProps.put("ssl.truststore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password"));
+            sslProps.put("ssl.keystore.location",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
+            sslProps.put("ssl.keystore.password",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
+            sslProps.put("ssl.key.password",        System.getProperty("jaffa.rpc.protocol.kafka.ssl.key.password"));
+            consumerProps.putAll(sslProps);
+        }
+
         for (int i = 0; i < brokersCount; i++) {
             consumerProps.put("group.id", UUID.randomUUID().toString());
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);

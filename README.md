@@ -226,11 +226,11 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>Bootstrap servers of Kafka cluster  (optional, only when RPC protocol is Kafka)</td>
   </tr>
   <tr>
-    <td>rabbit.host</td>
+    <td>jaffa.rpc.rabbit.host</td>
     <td>RabbitMQ server host (optional, only when RPC protocol is RabbitMQ)</td>
   </tr>
   <tr>
-    <td>rabbit.port</td>
+    <td>jaffa.rpc.rabbit.port</td>
     <td>RabbitMQ server port (optional, only when RPC protocol is RabbitMQ)</td>
   </tr>
   <tr>
@@ -283,8 +283,32 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </tr>
   <tr>
     <td>zookeeper.ssl.trustStore.password</td>
-    <td>Password to keystore provided by previous option</td>
+    <td>Password to truststore provided by previous option</td>
   </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.use.ssl</td>
+      <td>Value 'true' enables TLS for Apache Kafka</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.ssl.truststore.location</td>
+      <td>Path to JKS truststore that will be used to connect to Apache Kafka</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.ssl.truststore.password</td>
+      <td>Password to truststore provided by previous option</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.ssl.keystore.location</td>
+      <td>Path to JKS keystore that will be used to connect to Apache Kafka</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.ssl.keystore.password</td>
+      <td>Password to keystore provided by previous option</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.kafka.ssl.key.password</td>
+      <td>Password to key in keystore by previous options</td>
+    </tr>
   </table>  
   
 ## Work in progress:  
