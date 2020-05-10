@@ -26,7 +26,7 @@ public class ServerTest {
     @BeforeClass
     public static void before() {
         log.info("================ TEST SERVER STARTING ================");
-        System.setProperty("zookeeper.connection", "localhost:2181");
+        System.setProperty("zookeeper.connection", "localhost:2281");
         System.setProperty("http.service.port", "4543");
         System.setProperty("http.callback.port", "4343");
         System.setProperty("zmq.service.port", "4843");
@@ -35,21 +35,30 @@ public class ServerTest {
         System.setProperty("rabbit.host", "localhost");
         System.setProperty("rabbit.port", "5672");
 
-        System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
-        System.setProperty("jaffa.admin.storepass", "simulator1");
+        System.setProperty("jaffa.admin.keystore", "/Users/edwardhyde/test.keystore");
+        System.setProperty("jaffa.admin.storepass", "simulator");
         System.setProperty("jaffa.admin.use.https", "true");
 
         System.setProperty("jaffa.rpc.serializer", "kryo");
         System.setProperty("jaffa.rpc.protocol", "http");
 
         System.setProperty("jaffa.rpc.protocol.use.https", "true");
-        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
-        System.setProperty("jaffa.rpc.protocol.https.keystore", "C:\\Users\\edwardhyde\\test.keystore");
+        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator");
+        System.setProperty("jaffa.rpc.protocol.https.keystore", "/Users/edwardhyde/test.keystore");
+
+        // How to enable for ZooKeeper
+        System.setProperty("zookeeper.clientCnxnSocket", "org.apache.zookeeper.ClientCnxnSocketNetty");
+        System.setProperty("zookeeper.client.secure", "true");
+        System.setProperty("zookeeper.ssl.keyStore.location", "/Users/edwardhyde/keystore.jks");
+        System.setProperty("zookeeper.ssl.keyStore.password", "simulator");
+        System.setProperty("zookeeper.ssl.trustStore.location", "/Users/edwardhyde/truststore.jks");
+        System.setProperty("zookeeper.ssl.trustStore.password", "simulator");
 
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
     }
 
     @Test
+    @Ignore
     public void stage1() {
         Integer id = personService.add("Test name", "test@mail.com", null).withTimeout(TimeUnit.MILLISECONDS.toMillis(15000)).onModule("test.server").executeSync();
         log.info("Resulting id is {}", id);
@@ -76,10 +85,9 @@ public class ServerTest {
     }
 
     @Test
-    @Ignore
     public void stage2() {
         // 1 hour load test
-        final boolean sync = false;
+        final boolean sync = true;
         final boolean heavy = false;
         Runnable runnable = () -> {
             long startTime = System.currentTimeMillis();

@@ -273,3 +273,15 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
 ```sh
 keytool -genkeypair -keyalg RSA -alias self_signed -keypass simulator -keystore test.keystore -storepass simulator
 ```
+
+## Example how to generate test truststore and keystore for Apache ZooKeeper:  
+Please note that Common Name must be equal to $hostname  
+```sh
+keytool -genkey -alias bmc -keyalg RSA -keystore keystore.jks -keysize 2048
+openssl req -new -x509 -keyout ca-key -out ca-cert
+keytool -keystore keystore.jks -alias bmc -certreq -file cert-file
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:simulator
+keytool -keystore keystore.jks -alias CARoot -import -file ca-cert
+keytool -keystore keystore.jks -alias bmc -import -file cert-signed
+keytool -keystore truststore.jks -alias bmc -import -file ca-cert
+```
