@@ -261,6 +261,30 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>jaffa.rpc.protocol.https.storepass</td>
     <td>Password to keystore provided by previous option</td>
   </tr>
+    <tr>
+    <td>zookeeper.client.secure</td>
+    <td>Value 'true' enables TLS for Apache ZooKeeper client</td>
+  </tr>
+  <tr>
+    <td>zookeeper.clientCnxnSocket</td>
+    <td>Must be 'org.apache.zookeeper.ClientCnxnSocketNetty' if TLS is enabled</td>
+  </tr>
+  <tr>
+    <td>zookeeper.ssl.keyStore.location</td>
+    <td>Path to JKS keystore that will be used to connect to Apache ZooKeeper</td>
+  </tr>
+  <tr>
+    <td>zookeeper.ssl.keyStore.password</td>
+    <td>Password to keystore provided by previous option</td>
+  </tr>
+  <tr>
+    <td>zookeeper.ssl.trustStore.location</td>
+    <td>Path to JKS truststore that will be used to connect to Apache ZooKeeper</td>
+  </tr>
+  <tr>
+    <td>zookeeper.ssl.trustStore.password</td>
+    <td>Password to keystore provided by previous option</td>
+  </tr>
   </table>  
   
 ## Work in progress:  
