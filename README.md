@@ -1,6 +1,6 @@
 ## Jaffa RPC library
 
-Library provides communication between applications running on different JVMs using interface method calls.  
+Library provides communication between multiple Java applications.  
 
 Key features:  
 - **Apache ZooKeeper (with TLSv1.2)** is used for service discovery
@@ -23,7 +23,7 @@ Key features:
     - Low latency
     - High throughput
     - Persistence
-- User could specify custom security provider (see example below)
+- User could specify custom OTT provider (see example below)
 
 ## Latency
 
