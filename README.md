@@ -3,7 +3,7 @@
 Library provides communication between applications running on different JVMs using interface method calls.  
 
 Key features:  
-- Apache ZooKeeper (with TLSv1.2) is used for service discovery
+- Apache ZooKeeper **(with TLSv1.2)** is used for service discovery
 - Sync & async method calls - type of communication is determined by client, not server
 - One interface could have multiple server implementations - 
   client choose required by specifying target module.id
@@ -13,10 +13,10 @@ Key features:
     - Unlimited message size
     - Low latency
     - Pure TCP connection
-  - Apache Kafka with TLSv1.2
+  - Apache Kafka **(with TLSv1.2)**
     - Persistence (messages could be replayed)
     - High throughput
-  - HTTP1.1/HTTPS with TLSv1.2
+  - HTTP1.1/HTTPS **(with TLSv1.2)**
     - Low latency
     - High throughput
   - RabbitMQ
