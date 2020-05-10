@@ -15,7 +15,7 @@ Key features:
   - Kafka
     - Persistence (messages could be replayed)
     - High throughput
-  - HTTP
+  - HTTP1.1/HTTPS with TLSv1.2
     - Low latency
     - High throughput
   - RabbitMQ
@@ -248,12 +248,23 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>jaffa.admin.use.https</td>
     <td>Use HTTPS or HTTP for admin console, HTTP is default</td>
   </tr>
+  <tr>
+    <td>jaffa.rpc.protocol.use.https</td>
+    <td>Enables HTTPS when 'http' protocol is used. 'false' by default</td>
+  </tr>
+  <tr>
+    <td>jaffa.rpc.protocol.https.keystore</td>
+    <td>Path to PKCS12 keystore that will be used to configure HTTPS server for RPC communication</td>
+  </tr>
+  <tr>
+    <td>jaffa.rpc.protocol.https.storepass</td>
+    <td>Password to keystore provided by previous option</td>
+  </tr>
   </table>  
   
 ## Work in progress:  
 
-### gRPC support  
-### HTTPS support with TLS 1.3  
+### gRPC support   
 ### Curve support for ZeroMQ  
 ### Login&Password/TLS 1.3 support for RabbitMQ  
 ### Kerberos/TLS 1.3 support for Apache Kafka  
