@@ -3,6 +3,7 @@
 Library provides communication between applications running on different JVMs using interface method calls.  
 
 Key features:  
+- Apache ZooKeeper (with TLSv1.2) is used for service discovery
 - Sync & async method calls - type of communication is determined by client, not server
 - One interface could have multiple server implementations - 
   client choose required by specifying target module.id
