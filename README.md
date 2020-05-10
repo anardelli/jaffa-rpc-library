@@ -13,7 +13,7 @@ Key features:
     - Unlimited message size
     - Low latency
     - Pure TCP connection
-  - Kafka
+  - Apache Kafka with TLSv1.2
     - Persistence (messages could be replayed)
     - High throughput
   - HTTP1.1/HTTPS with TLSv1.2
@@ -263,11 +263,11 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </tr>
     <tr>
     <td>zookeeper.client.secure</td>
-    <td>Value 'true' enables TLS for Apache ZooKeeper client</td>
+    <td>Value 'true' enables TLSv1.2 for Apache ZooKeeper client</td>
   </tr>
   <tr>
     <td>zookeeper.clientCnxnSocket</td>
-    <td>Must be 'org.apache.zookeeper.ClientCnxnSocketNetty' if TLS is enabled</td>
+    <td>Must be 'org.apache.zookeeper.ClientCnxnSocketNetty' if TLSv1.2 is enabled</td>
   </tr>
   <tr>
     <td>zookeeper.ssl.keyStore.location</td>
@@ -287,7 +287,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
   </tr>
     <tr>
       <td>jaffa.rpc.protocol.kafka.use.ssl</td>
-      <td>Value 'true' enables TLS for Apache Kafka</td>
+      <td>Value 'true' enables TLSv1.2 for Apache Kafka</td>
     </tr>
     <tr>
       <td>jaffa.rpc.protocol.kafka.ssl.truststore.location</td>
@@ -316,7 +316,6 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
 ### gRPC support   
 ### Curve support for ZeroMQ  
 ### Login&Password/TLS 1.3 support for RabbitMQ  
-### Kerberos/TLS 1.3 support for Apache Kafka  
 
 ## Example how to generate keystore for admin console:  
 ```sh
