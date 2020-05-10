@@ -35,23 +35,23 @@ public class ServerTest {
         System.setProperty("rabbit.host", "localhost");
         System.setProperty("rabbit.port", "5672");
 
-        System.setProperty("jaffa.admin.keystore", "/Users/edwardhyde/test.keystore");
-        System.setProperty("jaffa.admin.storepass", "simulator");
+        System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
+        System.setProperty("jaffa.admin.storepass", "simulator1");
         System.setProperty("jaffa.admin.use.https", "true");
 
         System.setProperty("jaffa.rpc.serializer", "kryo");
         System.setProperty("jaffa.rpc.protocol", "http");
 
         System.setProperty("jaffa.rpc.protocol.use.https", "true");
-        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator");
-        System.setProperty("jaffa.rpc.protocol.https.keystore", "/Users/edwardhyde/test.keystore");
+        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
+        System.setProperty("jaffa.rpc.protocol.https.keystore", "C:\\Users\\edwardhyde\\test.keystore");
 
         // How to enable for ZooKeeper
         System.setProperty("zookeeper.clientCnxnSocket", "org.apache.zookeeper.ClientCnxnSocketNetty");
         System.setProperty("zookeeper.client.secure", "true");
-        System.setProperty("zookeeper.ssl.keyStore.location", "/Users/edwardhyde/keystore.jks");
+        System.setProperty("zookeeper.ssl.keyStore.location", "C:\\Users\\edwardhyde\\keystore.jks");
         System.setProperty("zookeeper.ssl.keyStore.password", "simulator");
-        System.setProperty("zookeeper.ssl.trustStore.location", "/Users/edwardhyde/truststore.jks");
+        System.setProperty("zookeeper.ssl.trustStore.location", "C:\\Users\\edwardhyde\\truststore.jks");
         System.setProperty("zookeeper.ssl.trustStore.password", "simulator");
 
         System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
