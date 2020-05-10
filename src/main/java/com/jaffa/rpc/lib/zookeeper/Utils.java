@@ -66,7 +66,7 @@ public class Utils {
     }
 
     private static String getHttpPrefix() {
-        return (Boolean.parseBoolean(System.getProperty("http.ssl.enabled", "false")) ? "https" : "http") + "://";
+        return (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false")) ? "https" : "http") + "://";
     }
 
     private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
