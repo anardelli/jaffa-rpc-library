@@ -1,6 +1,6 @@
 ## Jaffa RPC library
 
-Library provides communication between multiple Java applications.  
+This library provides communication between Java applications.  
 
 Key features:  
 - **Apache ZooKeeper (with TLSv1.2)** is used for service discovery
@@ -324,7 +324,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
 keytool -genkeypair -keyalg RSA -alias self_signed -keypass simulator -keystore test.keystore -storepass simulator
 ```
 
-## Example how to generate test JKS truststore and keystore:  
+## Example how to generate self-signed truststore and keystore for development purposes:  
 Please note that Common Name must be equal to $hostname  
 ```sh
 keytool -genkey -alias bmc -keyalg RSA -keystore keystore.jks -keysize 2048
