@@ -2,7 +2,7 @@ package com.jaffa.rpc.lib.kafka.receivers;
 
 import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.common.FinalizationWorker;
-import com.jaffa.rpc.lib.common.RebalanceListener;
+import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
@@ -39,7 +39,7 @@ public class KafkaAsyncResponseReceiver extends KafkaReceiver implements Runnabl
         JaffaService.getConsumerProps().put("group.id", UUID.randomUUID().toString());
         Runnable consumerThread = () -> {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(JaffaService.getConsumerProps());
-            consumer.subscribe(JaffaService.getClientAsyncTopics(), new RebalanceListener());
+            consumer.subscribe(JaffaService.getClientAsyncTopics(), new RebalancedListener());
             countDownLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
                 ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());

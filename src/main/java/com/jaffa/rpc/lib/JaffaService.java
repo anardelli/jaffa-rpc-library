@@ -11,7 +11,7 @@ import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.annotations.Api;
 import com.jaffa.rpc.lib.annotations.ApiServer;
 import com.jaffa.rpc.lib.common.FinalizationWorker;
-import com.jaffa.rpc.lib.common.RebalanceListener;
+import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncResponseReceiver;
 import com.jaffa.rpc.lib.kafka.receivers.KafkaAsyncRequestReceiver;
@@ -355,8 +355,8 @@ public class JaffaService {
             if (expectedThreadCount != 0) started.await();
             registerServices();
             if (protocol.equals(Protocol.KAFKA)) {
-                RebalanceListener.waitForRebalance();
-                log.info("Initial balancing took: {}", RebalanceListener.lastRebalance - RebalanceListener.firstRebalance);
+                RebalancedListener.waitForRebalanced();
+                log.info("Initial balancing took: {}", RebalancedListener.lastEvent - RebalancedListener.firstEvent);
             }
             FinalizationWorker.startFinalizer();
             log.info("\n    .---.                                             \n" +

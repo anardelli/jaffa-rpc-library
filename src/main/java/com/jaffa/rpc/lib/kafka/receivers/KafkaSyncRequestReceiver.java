@@ -1,7 +1,7 @@
 package com.jaffa.rpc.lib.kafka.receivers;
 
 import com.jaffa.rpc.lib.JaffaService;
-import com.jaffa.rpc.lib.common.RebalanceListener;
+import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
@@ -39,7 +39,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
         Runnable consumerThread = () -> {
             KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(JaffaService.getConsumerProps());
             KafkaProducer<String, byte[]> producer = new KafkaProducer<>(JaffaService.getProducerProps());
-            consumer.subscribe(JaffaService.getServerSyncTopics(), new RebalanceListener());
+            consumer.subscribe(JaffaService.getServerSyncTopics(), new RebalancedListener());
             countDownLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
                 ConsumerRecords<String, byte[]> records = new ConsumerRecords<>(new HashMap<>());
