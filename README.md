@@ -8,7 +8,7 @@ Key features:
 - One interface could have multiple server implementations - 
   client choose required by specifying target module.id
 - Request-scoped timeout for both sync/async calls
-- 4 protocols:
+- **4 protocols**:
   - **ZeroMQ (with authentication/encryption using Curve)**
     - Unlimited message size
     - Low latency
@@ -324,15 +324,14 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
       <td>Path to the Curve keys for current server</td>
     </tr>
     <tr>
-      <td>jaffa.rpc.protocol.zmq.client.key.*</td>
-      <td>Path to the Curve keys for client with module.id * </td>
+      <td>jaffa.rpc.protocol.zmq.client.key.--module.id--</td>
+      <td>Path to the Curve keys for client with --module.id--</td>
     </tr>
   </table>  
   
 ## Work in progress:  
 
 ### gRPC support   
-### Curve support for ZeroMQ  
 ### Login&Password/TLS 1.2 support for RabbitMQ  
 
 ## Example how to generate keystore for admin console:  
