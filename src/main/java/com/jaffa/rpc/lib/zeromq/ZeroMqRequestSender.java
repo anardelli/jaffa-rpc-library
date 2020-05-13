@@ -7,18 +7,19 @@ import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.zeromq.SocketType;
+import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
 @Slf4j
 public class ZeroMqRequestSender extends Sender {
 
-    public static final ZMQ.Context context = ZMQ.context(10);
+    public static final ZContext context = new ZContext(10);
 
     @Override
     public byte[] executeSync(byte[] message) {
         long start = System.currentTimeMillis();
         byte[] response;
-        try (ZMQ.Socket socket = context.socket(SocketType.REQ)) {
+        try (ZMQ.Socket socket = context.createSocket(SocketType.REQ)) {
             Pair<String, String> hostAndModuleId = Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ);
             addCurveKeysToSocket(socket, hostAndModuleId.getRight());
             socket.connect("tcp://" + hostAndModuleId.getLeft());
@@ -36,7 +37,7 @@ public class ZeroMqRequestSender extends Sender {
         if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
             socket.setCurvePublicKey(CurveUtils.getServerPublicKey().getBytes());
             socket.setCurveSecretKey(CurveUtils.getServerSecretKey().getBytes());
-            String clientPublicKey = CurveUtils.getModuleIdWithClientKeys().get(moduleId);
+            String clientPublicKey = CurveUtils.getClientPublicKey(moduleId);
             if (clientPublicKey == null)
                 throw new JaffaRpcExecutionException("No Curve client key was provided for module.id " + moduleId);
             socket.setCurveServerKey(clientPublicKey.getBytes());
@@ -46,7 +47,7 @@ public class ZeroMqRequestSender extends Sender {
     @Override
     public void executeAsync(byte[] message) {
         long start = System.currentTimeMillis();
-        try (ZMQ.Socket socket = context.socket(SocketType.REQ)) {
+        try (ZMQ.Socket socket = context.createSocket(SocketType.REQ)) {
             Pair<String, String> hostAndModuleId = Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.ZMQ);
             addCurveKeysToSocket(socket, hostAndModuleId.getRight());
             socket.connect("tcp://" + hostAndModuleId.getLeft());

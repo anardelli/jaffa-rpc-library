@@ -14,6 +14,7 @@ import org.zeromq.*;
 import zmq.ZError;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,14 +25,16 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
     private ZContext context;
-    private ZMQ.Socket socket;
+    private ZAuth auth;
 
     @Override
     public void run() {
+        ZMQ.Socket socket;
         try {
             context = new ZContext(10);
+            context.setLinger(0);
             if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
-                ZAuth auth = new ZAuth(context);
+                auth = new ZAuth(context);
                 auth.setVerbose(true);
                 auth.configureCurve(System.getProperty("jaffa.rpc.protocol.zmq.client.dir"));
             }
@@ -80,7 +83,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     socket.send(serializedResponse);
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {
-                if (!recvTerminationException.getMessage().contains("156384765")) {
+                if (!recvTerminationException.getMessage().contains("Errno 4") && !recvTerminationException.getMessage().contains("156384765")) {
                     log.error("General ZMQ exception", recvTerminationException);
                     throw new JaffaRpcSystemException(recvTerminationException);
                 }
@@ -91,7 +94,15 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
     @Override
     public void close() {
-        Utils.closeSocketAndContext(socket, context.getContext());
+        if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
+            try {
+                auth.close();
+            }catch (IOException ioException){
+                log.error("Error while closing ZeroMQ context", ioException);
+            }
+        } else {
+            context.close();
+        }
         service.shutdownNow();
     }
 }

@@ -252,15 +252,6 @@ public class Utils {
             throw unknownHostException;
         }
     }
-
-    public static void closeSocketAndContext(ZMQ.Socket socket, ZMQ.Context context) {
-        socket.close();
-        if (!context.isClosed()) {
-            context.close();
-            if (!context.isTerminated())
-                context.term();
-        }
-    }
 }
 
 class ShutdownHook extends Thread {

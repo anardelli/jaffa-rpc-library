@@ -18,6 +18,8 @@ public class ZMQCertTest {
 
     public static void main(String[] args) throws IOException {
 
+        boolean secure = true;
+
         ZCert client_cert = new ZCert();
         client_cert.setMeta("name", "Client test certificate");
         client_cert.saveSecret(CERTIFICATE_FOLDER_PRIVATE + "/testcert.pub");
@@ -34,22 +36,30 @@ public class ZMQCertTest {
         log.info("FOREIGN SERVER PUBLIC-KEY = {}", foreignServerPublicKey);
 
         ZContext ctx = new ZContext();
-        ZAuth auth = new ZAuth(ctx);
-        auth.setVerbose(true);
-        auth.allow("127.0.0.1");
-        auth.configureCurve(CERTIFICATE_FOLDER_PUBLIC);
+        ctx.setLinger(0);
+        ZAuth auth = null;
+        if(secure) {
+            auth = new ZAuth(ctx);
+            auth.setVerbose(true);
+            auth.allow("127.0.0.1");
+            auth.configureCurve(CERTIFICATE_FOLDER_PUBLIC);
+        }
 
         ZMQ.Socket server = ctx.createSocket(SocketType.PUSH);
-        server.setZAPDomain("global".getBytes());
-        server.setCurveServer(true);
-        server.setCurvePublicKey(serverPublicKey.getBytes());
-        server.setCurveSecretKey(serverSecretKey.getBytes());
+        if(secure) {
+            server.setZAPDomain("global".getBytes());
+            server.setCurveServer(true);
+            server.setCurvePublicKey(serverPublicKey.getBytes());
+            server.setCurveSecretKey(serverSecretKey.getBytes());
+        }
         server.bind("tcp://*:9000");
 
         ZMQ.Socket client = ctx.createSocket(SocketType.PULL);
-        client.setCurvePublicKey(serverPublicKey.getBytes());
-        client.setCurveSecretKey(serverSecretKey.getBytes());
-        client.setCurveServerKey(foreignServerPublicKey.getBytes());
+        if(secure) {
+            client.setCurvePublicKey(serverPublicKey.getBytes());
+            client.setCurveSecretKey(serverSecretKey.getBytes());
+            client.setCurveServerKey(foreignServerPublicKey.getBytes());
+        }
         client.connect("tcp://127.0.0.1:9000");
 
         server.send("Hello");
@@ -58,7 +68,10 @@ public class ZMQCertTest {
         if (message.equals("Hello")) {
             log.info("Security test OK");
         }
-        server.close();
-        client.close();
+        if(secure){
+            auth.destroy();
+        } else {
+            ctx.destroy();
+        }
     }
 }

@@ -44,7 +44,7 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.zeromq.ZMQ;
+import org.zeromq.ZContext;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -409,12 +409,8 @@ public class JaffaService {
                 throw new JaffaRpcSystemException(e);
             }
         });
-        ZMQ.Context context = ZeroMqRequestSender.context;
-        if (!context.isClosed()) {
-            context.close();
-            if (!context.isTerminated())
-                context.term();
-        }
+        ZContext context = ZeroMqRequestSender.context;
+        if (!context.isClosed()) context.close();
         RabbitMQRequestSender.close();
         log.info("All ZMQ sockets were closed");
         for (Thread thread : this.receiverThreads) {

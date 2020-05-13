@@ -13,7 +13,6 @@ import java.util.Map;
 @Slf4j
 public class CurveUtils {
 
-    @Getter
     private static final Map<String, String> moduleIdWithClientKeys = new HashMap<>();
     private static final String CLIENT_KEY_PREFIX = "jaffa.rpc.protocol.zmq.client.key.";
     private static final String SERVER_PROPERTY_NAME = "jaffa.rpc.protocol.zmq.server.keys";
@@ -30,6 +29,12 @@ public class CurveUtils {
             log.error("Error while getting public Curve key from location " + path, ioException);
         }
         return null;
+    }
+
+    public static String getClientPublicKey(String moduleId){
+        String clientPublicKey = moduleIdWithClientKeys.get(moduleId);
+        log.info("Reading public client key {} for {}", clientPublicKey, moduleId);
+        return clientPublicKey;
     }
 
     private static String getSecretKeyFromPath(String path) {

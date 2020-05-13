@@ -5,8 +5,8 @@ import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.request.Sender;
-import com.rabbitmq.client.*;
 import com.jaffa.rpc.lib.zookeeper.Utils;
+import com.rabbitmq.client.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -59,10 +59,10 @@ public class RabbitMQRequestSender extends Sender {
 
     public static void close() {
         try {
-            clientChannel.close();
+            if (clientChannel != null) clientChannel.close();
         } catch (IOException | TimeoutException ignore) {
         }
-        connection.close();
+        if (connection != null) connection.close();
     }
 
     @Override

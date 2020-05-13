@@ -40,12 +40,17 @@ public class ServerTest {
         System.setProperty("jaffa.admin.use.https", "true");
 
         System.setProperty("jaffa.rpc.serializer", "kryo");
-        System.setProperty("jaffa.rpc.protocol", "kafka");
+        System.setProperty("jaffa.rpc.protocol", "zmq");
 
         System.setProperty("jaffa.rpc.protocol.use.https", "true");
         System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
         System.setProperty("jaffa.rpc.protocol.https.keystore", "C:\\Users\\edwardhyde\\test.keystore");
 
+
+        System.setProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false");
+        System.setProperty("jaffa.rpc.protocol.zmq.server.keys", "/Users/edwardhyde/Documents/github/transport-library/curve_secret/testcert.pub");
+        System.setProperty("jaffa.rpc.protocol.zmq.client.key.test.server", "/Users/edwardhyde/Documents/github/transport-library/curve_public/testcert.pub");
+        System.setProperty("jaffa.rpc.protocol.zmq.client.dir", "/Users/edwardhyde/Documents/github/transport-library/curve_public");
         // How to enable for ZooKeeper
         System.setProperty("zookeeper.clientCnxnSocket", "org.apache.zookeeper.ClientCnxnSocketNetty");
         System.setProperty("zookeeper.client.secure", "true");
