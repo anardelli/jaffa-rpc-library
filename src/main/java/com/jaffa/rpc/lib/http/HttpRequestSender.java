@@ -29,7 +29,7 @@ public class HttpRequestSender extends Sender {
                     .setConnectTimeout((int) this.timeout)
                     .setConnectionRequestTimeout((int) this.timeout)
                     .setSocketTimeout((int) this.timeout).build();
-            HttpPost httpPost = new HttpPost(Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.HTTP) + "/request");
+            HttpPost httpPost = new HttpPost(Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.HTTP).getLeft() + "/request");
             httpPost.setConfig(config);
             HttpEntity postParams = new ByteArrayEntity(message);
             httpPost.setEntity(postParams);
@@ -57,7 +57,7 @@ public class HttpRequestSender extends Sender {
     @Override
     public void executeAsync(byte[] message) {
         try {
-            HttpPost httpPost = new HttpPost(Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.HTTP) + "/request");
+            HttpPost httpPost = new HttpPost(Utils.getHostForService(command.getServiceClass(), moduleId, Protocol.HTTP).getLeft() + "/request");
             HttpEntity postParams = new ByteArrayEntity(message);
             httpPost.setEntity(postParams);
             CloseableHttpResponse httpResponse = HttpAsyncAndSyncRequestReceiver.client.execute(httpPost);

@@ -8,11 +8,10 @@ import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
+import com.jaffa.rpc.lib.zeromq.CurveUtils;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
-import org.zeromq.SocketType;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQException;
+import org.zeromq.*;
 import zmq.ZError;
 
 import java.io.Closeable;
@@ -23,14 +22,25 @@ import java.net.UnknownHostException;
 @Slf4j
 public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
-    private ZMQ.Context context;
+    private ZContext context;
     private ZMQ.Socket socket;
 
     @Override
     public void run() {
         try {
-            context = ZMQ.context(10);
-            socket = context.socket(SocketType.REP);
+            context = new ZContext(10);
+            if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
+                ZAuth auth = new ZAuth(context);
+                auth.setVerbose(true);
+                auth.configureCurve(System.getProperty("jaffa.rpc.protocol.zmq.client.dir"));
+            }
+            socket = context.createSocket(SocketType.REP);
+            if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
+                socket.setZAPDomain("global".getBytes());
+                socket.setCurveServer(true);
+                socket.setCurvePublicKey(CurveUtils.getServerPublicKey().getBytes());
+                socket.setCurveSecretKey(CurveUtils.getServerSecretKey().getBytes());
+            }
             socket.bind("tcp://" + Utils.getZeroMQCallbackBindAddress());
         } catch (UnknownHostException zmqStartupException) {
             log.error("Error during ZeroMQ response receiver startup:", zmqStartupException);
@@ -72,6 +82,6 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
 
     @Override
     public void close() {
-        Utils.closeSocketAndContext(socket, context);
+        Utils.closeSocketAndContext(socket, context.getContext());
     }
 }

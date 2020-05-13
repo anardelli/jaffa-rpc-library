@@ -311,6 +311,22 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
       <td>jaffa.rpc.protocol.kafka.ssl.key.password</td>
       <td>Password to key in keystore by previous options</td>
     </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.zmq.curve.enabled</td>
+      <td>Enables Curve security for ZeroMQ protocol</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.zmq.client.dir</td>
+      <td>Directory with Curve certificates for client requests</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.zmq.server.keys</td>
+      <td>Path to the Curve keys for current server</td>
+    </tr>
+    <tr>
+      <td>jaffa.rpc.protocol.zmq.client.key.*</td>
+      <td>Path to the Curve keys for client with module.id * </td>
+    </tr>
   </table>  
   
 ## Work in progress:  

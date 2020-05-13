@@ -7,6 +7,7 @@ import com.jaffa.rpc.lib.entities.ExceptionHolder;
 import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
+import com.jaffa.rpc.lib.zeromq.CurveUtils;
 import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.annotations.Api;
 import com.jaffa.rpc.lib.annotations.ApiServer;
@@ -321,6 +322,10 @@ public class JaffaService {
                         ZMQAsyncResponseReceiver zmqAsyncResponseReceiver = new ZMQAsyncResponseReceiver();
                         this.zmqReceivers.add(zmqAsyncResponseReceiver);
                         this.receiverThreads.add(new Thread(zmqAsyncResponseReceiver));
+                    }
+                    if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
+                        CurveUtils.readClientKeys();
+                        CurveUtils.readServerKeys();
                     }
                     break;
                 case HTTP:

@@ -4,6 +4,8 @@ import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcNoRouteException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -43,7 +45,7 @@ public class Utils {
         return clientName.replaceAll("Client$", "");
     }
 
-    public static String getHostForService(String service, String moduleId, Protocol protocol) {
+    public static Pair<String,String> getHostForService(String service, String moduleId, Protocol protocol) {
         service = Utils.getServiceInterfaceNameFromClient(service);
         Stat stat = null;
         try {
@@ -54,9 +56,9 @@ public class Utils {
         }
         if (stat != null) {
             try {
-                String host = getHostsForService("/" + service, moduleId, protocol)[0];
+                MutablePair<String, String> host = getHostsForService("/" + service, moduleId, protocol).get(0);
                 if (protocol.equals(Protocol.HTTP)) {
-                    host = getHttpPrefix() + host;
+                    host.left = getHttpPrefix() + host.left;
                 }
                 return host;
             } catch (KeeperException | ParseException | InterruptedException e) {
@@ -69,24 +71,24 @@ public class Utils {
         return (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false")) ? "https" : "http") + "://";
     }
 
-    private static String[] getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
+    private static ArrayList<MutablePair<String,String>> getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         if (jArray.isEmpty())
             throw new JaffaRpcNoRouteException(service);
         else {
-            ArrayList<String> hosts = new ArrayList<>();
+            ArrayList<MutablePair<String, String>> hosts = new ArrayList<>();
             for (Object json : jArray) {
                 String[] params = ((String) json).split("#");
                 if (moduleId != null) {
-                    if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2])) hosts.add(params[0]);
+                    if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2])) hosts.add(new MutablePair<>(params[0], params[1]));
                 } else {
-                    if (protocol.getShortName().equals(params[2])) hosts.add(params[0]);
+                    if (protocol.getShortName().equals(params[2])) hosts.add(new MutablePair<>(params[0], params[1]));
                 }
             }
             if (hosts.isEmpty())
                 throw new JaffaRpcNoRouteException(service, moduleId);
-            return hosts.toArray(new String[0]);
+            return hosts;
         }
     }
 
