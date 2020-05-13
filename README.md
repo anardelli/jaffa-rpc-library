@@ -9,7 +9,7 @@ Key features:
   client choose required by specifying target module.id
 - Request-scoped timeout for both sync/async calls
 - 4 protocols:
-  - **ZeroMQ**
+  - **ZeroMQ (with authentication/encryption using Curve)**
     - Unlimited message size
     - Low latency
     - Pure TCP connection
