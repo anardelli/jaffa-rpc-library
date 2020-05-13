@@ -2,28 +2,28 @@ package com.jaffa.rpc.test;
 
 import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.support.AnnotationConfigContextLoader;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.util.UUID;
 
 @Slf4j
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {MainConfig.class}, loader = AnnotationConfigContextLoader.class)
+@SuppressWarnings("squid:S2187")
 public class MainTest {
 
-    @Autowired
-    private PersonServiceClient personService;
+    public static void main(String... args) {
+        log.info("================ MAIN SERVER STARTING ================");
 
-    @Autowired
-    private ClientServiceClient clientService;
+        System.setProperty("jaffa-rpc-config", "./jaffa-rpc-config-main-server.properties");
 
-    @Test
-    public void testMethods() {
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+        ctx.register(MainConfig.class);
+        ctx.refresh();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(ctx::close));
+
+        PersonServiceClient personService = ctx.getBean(PersonServiceClient.class);
+        ClientServiceClient clientService = ctx.getBean(ClientServiceClient.class);
+
         Runnable runnable = () -> {
             Integer id = personService.add("Test name 2", "test2@mail.com", null).withTimeout(15_000).onModule("main.server").executeSync();
             log.info("Resulting id is " + id);
