@@ -93,7 +93,7 @@ public class JaffaService {
     @Getter(AccessLevel.PUBLIC)
     private static ConnectionFactory connectionFactory;
 
-    static {
+    private static void initInternalProps() {
         if (Utils.getRpcProtocol().equals(Protocol.KAFKA)) {
             consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
             consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -288,6 +288,7 @@ public class JaffaService {
     private void init() {
         try {
             Utils.loadProperties();
+            initInternalProps();
             long startedTime = System.currentTimeMillis();
             prepareServiceRegistration();
             CountDownLatch started = null;

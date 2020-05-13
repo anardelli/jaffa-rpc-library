@@ -35,6 +35,7 @@ public class Utils {
         try {
             String path = System.getProperty("jaffa-rpc-config");
             if (path != null) {
+                log.info("Loading Jaffa RPC properies from file {}", path);
                 Properties p = new Properties();
                 InputStream is = new FileInputStream(path);
                 p.load(is);
