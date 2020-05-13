@@ -287,6 +287,7 @@ public class JaffaService {
     @SuppressWarnings("unused")
     private void init() {
         try {
+            Utils.loadProperties();
             long startedTime = System.currentTimeMillis();
             prepareServiceRegistration();
             CountDownLatch started = null;

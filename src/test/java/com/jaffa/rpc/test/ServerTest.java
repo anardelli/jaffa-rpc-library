@@ -26,47 +26,7 @@ public class ServerTest {
     @BeforeClass
     public static void before() {
         log.info("================ TEST SERVER STARTING ================");
-        System.setProperty("zookeeper.connection", "localhost:2281");
-        System.setProperty("http.service.port", "4543");
-        System.setProperty("http.callback.port", "4343");
-        System.setProperty("zmq.service.port", "4843");
-        System.setProperty("zmq.callback.port", "4943");
-        System.setProperty("module.id", "test.server");
-        System.setProperty("jaffa.rpc.rabbit.host", "localhost");
-        System.setProperty("jaffa.rpc.rabbit.port", "5672");
-
-        System.setProperty("jaffa.admin.keystore", "C:\\Users\\edwardhyde\\test.keystore");
-        System.setProperty("jaffa.admin.storepass", "simulator1");
-        System.setProperty("jaffa.admin.use.https", "true");
-
-        System.setProperty("jaffa.rpc.serializer", "kryo");
-        System.setProperty("jaffa.rpc.protocol", "zmq");
-
-        System.setProperty("jaffa.rpc.protocol.use.https", "true");
-        System.setProperty("jaffa.rpc.protocol.https.storepass", "simulator1");
-        System.setProperty("jaffa.rpc.protocol.https.keystore", "C:\\Users\\edwardhyde\\test.keystore");
-
-
-        System.setProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false");
-        System.setProperty("jaffa.rpc.protocol.zmq.server.keys", "/Users/edwardhyde/Documents/github/transport-library/curve_secret/testcert.pub");
-        System.setProperty("jaffa.rpc.protocol.zmq.client.key.test.server", "/Users/edwardhyde/Documents/github/transport-library/curve_public/testcert.pub");
-        System.setProperty("jaffa.rpc.protocol.zmq.client.dir", "/Users/edwardhyde/Documents/github/transport-library/curve_public");
-        // How to enable for ZooKeeper
-        System.setProperty("zookeeper.clientCnxnSocket", "org.apache.zookeeper.ClientCnxnSocketNetty");
-        System.setProperty("zookeeper.client.secure", "true");
-        System.setProperty("zookeeper.ssl.keyStore.location", "C:\\Users\\edwardhyde\\keystore.jks");
-        System.setProperty("zookeeper.ssl.keyStore.password", "simulator");
-        System.setProperty("zookeeper.ssl.trustStore.location", "C:\\Users\\edwardhyde\\truststore.jks");
-        System.setProperty("zookeeper.ssl.trustStore.password", "simulator");
-
-        System.setProperty("jaffa.rpc.protocol.kafka.use.ssl", "true");
-        System.setProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location", "C:\\Users\\edwardhyde\\truststore.jks");
-        System.setProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password", "simulator");
-        System.setProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location", "C:\\Users\\edwardhyde\\keystore.jks");
-        System.setProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password", "simulator");
-        System.setProperty("jaffa.rpc.protocol.kafka.ssl.key.password", "simulator");
-
-        System.setProperty("bootstrap.servers", "localhost:9091,localhost:9092,localhost:9093");
+        System.setProperty("jaffa-rpc-config", "./jaffa-rpc-config-test-server.properties");
     }
 
     @Test

@@ -14,13 +14,15 @@ import org.apache.zookeeper.data.Stat;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.zeromq.ZMQ;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
 
 @Slf4j
 public class Utils {
@@ -28,6 +30,23 @@ public class Utils {
     public static final List<String> services = new ArrayList<>();
     public static volatile ZooKeeperConnection conn;
     private static ZooKeeper zk;
+
+    public static void loadProperties(){
+        try {
+            String path = System.getProperty("jaffa-rpc-config");
+            if (path != null) {
+                Properties p = new Properties();
+                InputStream is = new FileInputStream(path);
+                p.load(is);
+                for (String name : p.stringPropertyNames()) {
+                    String value = p.getProperty(name);
+                    System.setProperty(name, value);
+                }
+            }
+        }catch (IOException ioException){
+            log.error("Unable to read properties from jaffa-rpc-config file", ioException);
+        }
+    }
 
     public static void connect(String url) {
         try {
