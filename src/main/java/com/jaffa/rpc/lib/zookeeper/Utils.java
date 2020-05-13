@@ -157,7 +157,7 @@ public class Utils {
     private static int getServicePort() {
         int defaultPort = 4242;
         try {
-            return Integer.parseInt(System.getProperty(getRpcProtocol().getShortName() + ".service.port", String.valueOf(defaultPort)));
+            return Integer.parseInt(System.getProperty("jaffa.rpc.protocol." + getRpcProtocol().getShortName() + ".service.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
             return defaultPort;
         }
@@ -166,7 +166,7 @@ public class Utils {
     private static int getCallbackPort() {
         int defaultPort = 4342;
         try {
-            return Integer.parseInt(System.getProperty(getRpcProtocol().getShortName() + ".callback.port", String.valueOf(defaultPort)));
+            return Integer.parseInt(System.getProperty("jaffa.rpc.protocol." + getRpcProtocol().getShortName() + ".callback.port", String.valueOf(defaultPort)));
         } catch (NumberFormatException e) {
             return defaultPort;
         }

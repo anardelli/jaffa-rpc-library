@@ -200,19 +200,19 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>ZooKeeper cluster connection string (required): 'host:port' </td>
   </tr>
   <tr>
-    <td>zmq.service.port</td>
+    <td>jaffa.rpc.protocol.zmq.service.port</td>
     <td>Port for receiving request connections for ZeroMQ (optional, default port is 4242)</td>
   </tr>
   <tr>
-    <td>http.service.port</td>
+    <td>jaffa.rpc.protocol.http.service.port</td>
     <td>Port for receiving request connections for HTTP (optional, default port is 4242)</td> 
   </tr>
   <tr>
-    <td>zmq.callback.port</td>
+    <td>jaffa.rpc.protocol.zmq.callback.port</td>
     <td>Port for receiving callback connections for ZeroMQ (optional, default port is 4342)</td>
   </tr>
   <tr>
-    <td>http.callback.port</td>
+    <td>jaffa.rpc.protocol.http.callback.port</td>
     <td>Port for receiving callback connections for HTTP (optional, default port is 4342)</td>
   </tr>
   <tr>
@@ -224,7 +224,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>Could be 'zmq', 'kafka', 'http', 'rabbit' (required)</td>
   </tr>
   <tr>
-    <td>bootstrap.servers</td>
+    <td>jaffa.rpc.protocol.kafka.bootstrap.servers</td>
     <td>Bootstrap servers of Kafka cluster  (optional, only when RPC protocol is Kafka)</td>
   </tr>
   <tr>

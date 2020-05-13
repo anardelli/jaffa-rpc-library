@@ -95,13 +95,13 @@ public class JaffaService {
 
     private static void initInternalProps() {
         if (Utils.getRpcProtocol().equals(Protocol.KAFKA)) {
-            consumerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+            consumerProps.put("bootstrap.servers", getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
             consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             consumerProps.put("enable.auto.commit", "false");
             consumerProps.put("group.id", UUID.randomUUID().toString());
 
-            producerProps.put("bootstrap.servers", getRequiredOption("bootstrap.servers"));
+            producerProps.put("bootstrap.servers", getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
             producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
 
