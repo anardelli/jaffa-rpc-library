@@ -40,11 +40,11 @@ import java.util.concurrent.Executors;
 @Slf4j
 public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
-    public static final CloseableHttpClient client;
+    public static CloseableHttpClient client;
 
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
 
-    static {
+    public static void initClient() {
         if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
             TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
             SSLContext sslContext;

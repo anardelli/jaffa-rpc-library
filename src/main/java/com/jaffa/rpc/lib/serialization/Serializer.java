@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 public class Serializer {
 
     @Getter
-    private static final SerializationContext ctx;
+    private static SerializationContext ctx;
 
-    static {
+    public static void init() {
         String currentSerializer = System.getProperty("jaffa.rpc.serializer", "kryo");
         switch (currentSerializer) {
             case "kryo":

@@ -7,6 +7,7 @@ import com.jaffa.rpc.lib.entities.ExceptionHolder;
 import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
+import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.zeromq.CurveUtils;
 import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.annotations.Api;
@@ -293,6 +294,7 @@ public class JaffaService {
             prepareServiceRegistration();
             CountDownLatch started = null;
             int expectedThreadCount = 0;
+            Serializer.init();
             Protocol protocol = Utils.getRpcProtocol();
             switch (protocol) {
                 case KAFKA:
@@ -331,6 +333,7 @@ public class JaffaService {
                     }
                     break;
                 case HTTP:
+                    HttpAsyncAndSyncRequestReceiver.initClient();
                     if (serverEndpoints.getEndpoints().length != 0) {
                         HttpAsyncAndSyncRequestReceiver httpAsyncAndSyncRequestReceiver = new HttpAsyncAndSyncRequestReceiver();
                         this.zmqReceivers.add(httpAsyncAndSyncRequestReceiver);

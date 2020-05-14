@@ -13,7 +13,6 @@ public class ZooKeeperConnection {
     private ZooKeeper zoo;
 
     ZooKeeper connect(String host) throws IOException, InterruptedException {
-
         ZKClientConfig zkClientConfig = new ZKClientConfig();
         zkClientConfig.setProperty("zookeeper.clientCnxnSocket", System.getProperty("jaffa.rpc.zookeeper.clientCnxnSocket", "org.apache.zookeeper.ClientCnxnSocketNetty"));
         zkClientConfig.setProperty("zookeeper.client.secure", System.getProperty("jaffa.rpc.zookeeper.client.secure", "false"));
