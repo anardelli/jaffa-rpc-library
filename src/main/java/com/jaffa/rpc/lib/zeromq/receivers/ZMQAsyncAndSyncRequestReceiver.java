@@ -1,6 +1,6 @@
 package com.jaffa.rpc.lib.zeromq.receivers;
 
-import com.jaffa.rpc.lib.JaffaService;
+import com.jaffa.rpc.lib.common.RequestInvoker;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
 import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
@@ -36,7 +36,7 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
                 auth = new ZAuth(context);
                 auth.setVerbose(true);
-                auth.configureCurve(System.getProperty("jaffa.rpc.protocol.zmq.client.dir"));
+                auth.configureCurve(Utils.getRequiredOption("jaffa.rpc.protocol.zmq.client.dir"));
             }
             socket = context.createSocket(SocketType.REP);
             if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
@@ -62,8 +62,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                         try {
                             RequestContext.setSourceModuleId(command.getSourceModuleId());
                             RequestContext.setSecurityTicket(command.getTicket());
-                            Object result = JaffaService.invoke(command);
-                            byte[] serializedResponse = Serializer.getCtx().serialize(JaffaService.constructCallbackContainer(command, result));
+                            Object result = RequestInvoker.invoke(command);
+                            byte[] serializedResponse = Serializer.getCtx().serialize(RequestInvoker.constructCallbackContainer(command, result));
                             ZMQ.Socket socketAsync = context.createSocket(SocketType.REQ);
                             ZeroMqRequestSender.addCurveKeysToSocket(socketAsync, command.getSourceModuleId());
                             socketAsync.connect("tcp://" + command.getCallBackZMQ());
@@ -78,8 +78,8 @@ public class ZMQAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 } else {
                     RequestContext.setSourceModuleId(command.getSourceModuleId());
                     RequestContext.setSecurityTicket(command.getTicket());
-                    Object result = JaffaService.invoke(command);
-                    byte[] serializedResponse = Serializer.getCtx().serializeWithClass(JaffaService.getResult(result));
+                    Object result = RequestInvoker.invoke(command);
+                    byte[] serializedResponse = Serializer.getCtx().serializeWithClass(RequestInvoker.getResult(result));
                     socket.send(serializedResponse);
                 }
             } catch (ZMQException | ZError.IOException recvTerminationException) {

@@ -73,7 +73,7 @@ public class AdminServer {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");
                 char[] storepass = System.getProperty("jaffa.admin.storepass").toCharArray();
-                FileInputStream fis = new FileInputStream(System.getProperty("jaffa.admin.keystore"));
+                FileInputStream fis = new FileInputStream(Utils.getRequiredOption("jaffa.admin.keystore"));
                 ks.load(fis, storepass);
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
                 kmf.init(ks, storepass);

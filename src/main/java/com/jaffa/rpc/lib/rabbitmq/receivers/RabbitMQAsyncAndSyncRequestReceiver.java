@@ -1,6 +1,7 @@
 package com.jaffa.rpc.lib.rabbitmq.receivers;
 
 import com.jaffa.rpc.lib.JaffaService;
+import com.jaffa.rpc.lib.common.RequestInvoker;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
@@ -52,8 +53,8 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                             try {
                                                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                                                 RequestContext.setSecurityTicket(command.getTicket());
-                                                Object result = JaffaService.invoke(command);
-                                                CallbackContainer callbackContainer = JaffaService.constructCallbackContainer(command, result);
+                                                Object result = RequestInvoker.invoke(command);
+                                                CallbackContainer callbackContainer = RequestInvoker.constructCallbackContainer(command, result);
                                                 byte[] response = Serializer.getCtx().serialize(callbackContainer);
                                                 Map<String, Object> headers = new HashMap<>();
                                                 headers.put("communication-type", "async");
@@ -69,8 +70,8 @@ public class RabbitMQAsyncAndSyncRequestReceiver implements Runnable, Closeable 
                                     } else {
                                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                                         RequestContext.setSecurityTicket(command.getTicket());
-                                        Object result = JaffaService.invoke(command);
-                                        byte[] response = Serializer.getCtx().serializeWithClass(JaffaService.getResult(result));
+                                        Object result = RequestInvoker.invoke(command);
+                                        byte[] response = Serializer.getCtx().serializeWithClass(RequestInvoker.getResult(result));
                                         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(command.getRqUid()).build();
                                         clientChannel.basicPublish(command.getSourceModuleId(), command.getSourceModuleId() + "-client-sync", props, response);
                                         serverChannel.basicAck(envelope.getDeliveryTag(), false);

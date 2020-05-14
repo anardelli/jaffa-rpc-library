@@ -2,6 +2,7 @@ package com.jaffa.rpc.test;
 
 import com.jaffa.rpc.lib.annotations.ApiServer;
 import com.jaffa.rpc.lib.entities.RequestContext;
+import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public int add(String name, String email, Address address) {
-        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("jaffa.rpc.module.id"));
+        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + Utils.getRequiredOption("jaffa.rpc.module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
         Person p = new Person();
         p.setEmail(email);
@@ -31,7 +32,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Person get(final Integer id) {
-        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("jaffa.rpc.module.id"));
+        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + Utils.getRequiredOption("jaffa.rpc.module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
         for (Person p : this.people) {
             if (p.getId().equals(id)) {
@@ -43,7 +44,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public void lol() {
-        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + System.getProperty("jaffa.rpc.module.id"));
+        log.info("SOURCE MODULE ID: " + RequestContext.getSourceModuleId() + " MY MODULE ID: " + Utils.getRequiredOption("jaffa.rpc.module.id"));
         log.info("TICKET: " + RequestContext.getTicket());
         log.info("Lol");
     }
@@ -65,6 +66,6 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Person testError() {
-        throw new RuntimeException("very bad in " + System.getProperty("jaffa.rpc.module.id"));
+        throw new RuntimeException("very bad in " + Utils.getRequiredOption("jaffa.rpc.module.id"));
     }
 }

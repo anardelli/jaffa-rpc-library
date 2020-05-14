@@ -1,6 +1,7 @@
 package com.jaffa.rpc.lib.kafka.receivers;
 
 import com.jaffa.rpc.lib.JaffaService;
+import com.jaffa.rpc.lib.common.RequestInvoker;
 import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
@@ -53,8 +54,8 @@ public class KafkaAsyncRequestReceiver extends KafkaReceiver implements Runnable
                         Command command = Serializer.getCtx().deserialize(record.value(), Command.class);
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
-                        Object result = JaffaService.invoke(command);
-                        byte[] serializedResponse = Serializer.getCtx().serialize(JaffaService.constructCallbackContainer(command, result));
+                        Object result = RequestInvoker.invoke(command);
+                        byte[] serializedResponse = Serializer.getCtx().serialize(RequestInvoker.constructCallbackContainer(command, result));
                         ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + command.getSourceModuleId() + "-client-async", UUID.randomUUID().toString(), serializedResponse);
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();

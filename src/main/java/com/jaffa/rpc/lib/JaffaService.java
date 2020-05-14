@@ -5,9 +5,7 @@ import com.jaffa.rpc.lib.annotations.ApiClient;
 import com.jaffa.rpc.lib.annotations.ApiServer;
 import com.jaffa.rpc.lib.common.FinalizationWorker;
 import com.jaffa.rpc.lib.common.RebalancedListener;
-import com.jaffa.rpc.lib.entities.CallbackContainer;
-import com.jaffa.rpc.lib.entities.Command;
-import com.jaffa.rpc.lib.entities.ExceptionHolder;
+import com.jaffa.rpc.lib.common.RequestInvoker;
 import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
@@ -50,10 +48,7 @@ import org.zeromq.ZContext;
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -66,8 +61,6 @@ public class JaffaService {
     private static final Properties producerProps = new Properties();
     @Getter
     private static final Properties consumerProps = new Properties();
-    private static final Map<Class<?>, Class<?>> primitiveToWrappers = new HashMap<>();
-    private static final Map<Class<?>, Object> wrappedServices = new HashMap<>();
     @Getter
     @Setter(AccessLevel.PRIVATE)
     private static KafkaZkClient zkClient;
@@ -103,99 +96,28 @@ public class JaffaService {
 
     private static void initInternalProps() {
         if (Utils.getRpcProtocol().equals(Protocol.KAFKA)) {
-            consumerProps.put("bootstrap.servers", getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
+            consumerProps.put("bootstrap.servers", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
             consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             consumerProps.put("enable.auto.commit", "false");
             consumerProps.put("group.id", UUID.randomUUID().toString());
 
-            producerProps.put("bootstrap.servers", getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
+            producerProps.put("bootstrap.servers", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
             producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
 
             if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.kafka.use.ssl", "false"))) {
                 Map<String, String> sslProps = new HashMap<>();
                 sslProps.put("security.protocol", "SSL");
-                sslProps.put("ssl.truststore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location"));
-                sslProps.put("ssl.truststore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password"));
-                sslProps.put("ssl.keystore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
-                sslProps.put("ssl.keystore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
-                sslProps.put("ssl.key.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.key.password"));
+                sslProps.put("ssl.truststore.location", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.ssl.truststore.location"));
+                sslProps.put("ssl.truststore.password", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.ssl.truststore.password"));
+                sslProps.put("ssl.keystore.location", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
+                sslProps.put("ssl.keystore.password", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
+                sslProps.put("ssl.key.password", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.ssl.key.password"));
                 consumerProps.putAll(sslProps);
                 producerProps.putAll(sslProps);
             }
         }
-        primitiveToWrappers.put(boolean.class, Boolean.class);
-        primitiveToWrappers.put(byte.class, Byte.class);
-        primitiveToWrappers.put(short.class, Short.class);
-        primitiveToWrappers.put(char.class, Character.class);
-        primitiveToWrappers.put(int.class, Integer.class);
-        primitiveToWrappers.put(long.class, Long.class);
-        primitiveToWrappers.put(float.class, Float.class);
-        primitiveToWrappers.put(double.class, Double.class);
-        primitiveToWrappers.put(void.class, Void.class);
-    }
-
-    public static String getRequiredOption(String option) {
-        String optionValue = System.getProperty(option);
-        if (optionValue == null || optionValue.trim().isEmpty())
-            throw new IllegalArgumentException("Property " + option + "  was not set");
-        else return optionValue;
-    }
-
-    private static Object getTargetService(Command command) throws ClassNotFoundException {
-        return wrappedServices.get(Class.forName(Utils.getServiceInterfaceNameFromClient(command.getServiceClass())));
-    }
-
-    private static Method getTargetMethod(Command command) throws ClassNotFoundException, NoSuchMethodException {
-        Object wrappedService = getTargetService(command);
-        if (command.getMethodArgs() != null && command.getMethodArgs().length > 0) {
-            Class<?>[] methodArgClasses = new Class[command.getMethodArgs().length];
-            for (int i = 0; i < command.getMethodArgs().length; i++) {
-                methodArgClasses[i] = Class.forName(command.getMethodArgs()[i]);
-            }
-            return wrappedService.getClass().getMethod(command.getMethodName(), methodArgClasses);
-        } else {
-            return wrappedService.getClass().getMethod(command.getMethodName());
-        }
-    }
-
-    public static Object invoke(Command command) {
-        try {
-            Object targetService = getTargetService(command);
-            Method targetMethod = getTargetMethod(command);
-            Object result;
-            if (command.getMethodArgs() != null && command.getMethodArgs().length > 0)
-                result = targetMethod.invoke(targetService, command.getArgs());
-            else
-                result = targetMethod.invoke(targetService);
-            if (targetMethod.getReturnType().equals(Void.TYPE)) return Void.TYPE;
-            else return result;
-        } catch (Exception e) {
-            return e.getCause();
-        }
-    }
-
-    public static Object getResult(Object result) {
-        if (result instanceof Throwable) {
-            StringWriter sw = new StringWriter();
-            ((Throwable) result).printStackTrace(new PrintWriter(sw));
-            return new ExceptionHolder(sw.toString());
-        } else return result;
-    }
-
-    public static CallbackContainer constructCallbackContainer(Command command, Object result) throws ClassNotFoundException, NoSuchMethodException {
-        CallbackContainer callbackContainer = new CallbackContainer();
-        callbackContainer.setKey(command.getCallbackKey());
-        callbackContainer.setListener(command.getCallbackClass());
-        callbackContainer.setResult(getResult(result));
-        Method targetMethod = getTargetMethod(command);
-        if (primitiveToWrappers.containsKey(targetMethod.getReturnType())) {
-            callbackContainer.setResultClass(primitiveToWrappers.get(targetMethod.getReturnType()).getName());
-        } else {
-            callbackContainer.setResultClass(targetMethod.getReturnType().getName());
-        }
-        return callbackContainer;
     }
 
     private void registerServices() throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
@@ -205,17 +127,17 @@ public class JaffaService {
             apiImpls.put(server, server.getInterfaces()[0]);
         }
         for (Map.Entry<Class<?>, Class<?>> apiImpl : apiImpls.entrySet()) {
-            wrappedServices.put(apiImpl.getValue(), apiImpl.getKey().getDeclaredConstructor().newInstance());
+            RequestInvoker.getWrappedServices().put(apiImpl.getValue(), apiImpl.getKey().getDeclaredConstructor().newInstance());
             Utils.registerService(apiImpl.getValue().getName(), Utils.getRpcProtocol());
         }
     }
 
     @SuppressWarnings("squid:S2583")
     private void prepareServiceRegistration() throws ClassNotFoundException {
-        Utils.connect(getRequiredOption("jaffa.rpc.zookeeper.connection"));
+        Utils.connect(Utils.getRequiredOption("jaffa.rpc.zookeeper.connection"));
         Protocol protocol = Utils.getRpcProtocol();
         if (protocol.equals(Protocol.KAFKA)) {
-            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("jaffa.rpc.zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(Utils.getRequiredOption("jaffa.rpc.zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
             JaffaService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
             JaffaService.setAdminZkClient(new AdminZkClient(zkClient));
             JaffaService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
@@ -226,7 +148,7 @@ public class JaffaService {
             JaffaService.setClientSyncTopics(createKafkaTopics("client-sync"));
         }
         if (protocol.equals(Protocol.RABBIT)) {
-            JaffaService.setConnectionFactory(new CachingConnectionFactory(getRequiredOption("jaffa.rpc.rabbit.host"), Integer.parseInt(getRequiredOption("jaffa.rpc.rabbit.port"))));
+            JaffaService.setConnectionFactory(new CachingConnectionFactory(Utils.getRequiredOption("jaffa.rpc.rabbit.host"), Integer.parseInt(Utils.getRequiredOption("jaffa.rpc.rabbit.port"))));
             JaffaService.setAdminRabbitMQ(new RabbitAdmin(JaffaService.connectionFactory));
             JaffaService.adminRabbitMQ.declareExchange(new DirectExchange(RabbitMQRequestSender.EXCHANGE_NAME, true, false));
             if (JaffaService.adminRabbitMQ.getQueueInfo(RabbitMQRequestSender.SERVER) == null) {
@@ -268,7 +190,7 @@ public class JaffaService {
                 apiImpls.add(Class.forName(Utils.getServiceInterfaceNameFromClient(client.getName())));
             }
         }
-        apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("jaffa.rpc.module.id") + "-" + type));
+        apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + Utils.getRequiredOption("jaffa.rpc.module.id") + "-" + type));
         return topicsCreated;
     }
 

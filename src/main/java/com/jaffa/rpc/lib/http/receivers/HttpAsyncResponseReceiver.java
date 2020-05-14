@@ -35,8 +35,8 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
                 HttpsServer httpsServer = HttpsServer.create(Utils.getHttpCallbackBindAddress(), 0);
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");
-                char[] storepass = System.getProperty("jaffa.rpc.protocol.https.storepass").toCharArray();
-                FileInputStream fis = new FileInputStream(System.getProperty("jaffa.rpc.protocol.https.keystore"));
+                char[] storepass = Utils.getRequiredOption("jaffa.rpc.protocol.https.storepass").toCharArray();
+                FileInputStream fis = new FileInputStream(Utils.getRequiredOption("jaffa.rpc.protocol.https.keystore"));
                 ks.load(fis, storepass);
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
                 kmf.init(ks, storepass);

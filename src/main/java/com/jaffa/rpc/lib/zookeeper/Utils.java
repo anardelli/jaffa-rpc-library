@@ -61,6 +61,13 @@ public class Utils {
         }
     }
 
+    public static String getRequiredOption(String option) {
+        String optionValue = System.getProperty(option);
+        if (optionValue == null || optionValue.trim().isEmpty())
+            throw new IllegalArgumentException("Property " + option + "  was not set");
+        else return optionValue;
+    }
+
     public static String getServiceInterfaceNameFromClient(String clientName) {
         return clientName.replaceAll("Client$", "");
     }
@@ -152,7 +159,7 @@ public class Utils {
     }
 
     public static Protocol getRpcProtocol() {
-        return Protocol.getByName(System.getProperty("jaffa.rpc.protocol"));
+        return Protocol.getByName(Utils.getRequiredOption("jaffa.rpc.protocol"));
     }
 
     private static int getServicePort() {
@@ -212,7 +219,7 @@ public class Utils {
     }
 
     private static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
-        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("jaffa.rpc.module.id") + "#" + protocol.getShortName();
+        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + Utils.getRequiredOption("jaffa.rpc.module.id") + "#" + protocol.getShortName();
     }
 
     public static String getZeroMQBindAddress() throws UnknownHostException {

@@ -1,7 +1,7 @@
 package com.jaffa.rpc.lib.http.receivers;
 
 import com.google.common.io.ByteStreams;
-import com.jaffa.rpc.lib.JaffaService;
+import com.jaffa.rpc.lib.common.RequestInvoker;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.RequestContext;
 import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
@@ -73,8 +73,8 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                 HttpsServer httpsServer = HttpsServer.create(Utils.getHttpBindAddress(), 0);
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");
-                char[] storepass = System.getProperty("jaffa.rpc.protocol.https.storepass").toCharArray();
-                FileInputStream fis = new FileInputStream(System.getProperty("jaffa.rpc.protocol.https.keystore"));
+                char[] storepass = Utils.getRequiredOption("jaffa.rpc.protocol.https.storepass").toCharArray();
+                FileInputStream fis = new FileInputStream(Utils.getRequiredOption("jaffa.rpc.protocol.https.keystore"));
                 ks.load(fis, storepass);
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
                 kmf.init(ks, storepass);
@@ -142,8 +142,8 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
                     try {
                         RequestContext.setSourceModuleId(command.getSourceModuleId());
                         RequestContext.setSecurityTicket(command.getTicket());
-                        Object result = JaffaService.invoke(command);
-                        byte[] serializedResponse = Serializer.getCtx().serialize(JaffaService.constructCallbackContainer(command, result));
+                        Object result = RequestInvoker.invoke(command);
+                        byte[] serializedResponse = Serializer.getCtx().serialize(RequestInvoker.constructCallbackContainer(command, result));
                         HttpPost httpPost = new HttpPost(command.getCallBackZMQ() + "/response");
                         HttpEntity postParams = new ByteArrayEntity(serializedResponse);
                         httpPost.setEntity(postParams);
@@ -162,8 +162,8 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
             } else {
                 RequestContext.setSourceModuleId(command.getSourceModuleId());
                 RequestContext.setSecurityTicket(command.getTicket());
-                Object result = JaffaService.invoke(command);
-                byte[] response = Serializer.getCtx().serializeWithClass(JaffaService.getResult(result));
+                Object result = RequestInvoker.invoke(command);
+                byte[] response = Serializer.getCtx().serializeWithClass(RequestInvoker.getResult(result));
                 request.sendResponseHeaders(200, response.length);
                 OutputStream os = request.getResponseBody();
                 os.write(response);
