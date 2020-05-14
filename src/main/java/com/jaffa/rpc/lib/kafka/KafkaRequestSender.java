@@ -28,7 +28,7 @@ public class KafkaRequestSender extends Sender {
 
     public static void initSyncKafkaConsumers(int brokersCount, CountDownLatch started) {
         Properties consumerProps = new Properties();
-        consumerProps.put("bootstrap.servers", Utils.getRequiredOption("bootstrap.servers"));
+        consumerProps.put("bootstrap.servers", Utils.getRequiredOption("jaffa.rpc.protocol.kafka.bootstrap.servers"));
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerProps.put("enable.auto.commit", "false");

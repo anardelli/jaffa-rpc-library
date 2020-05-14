@@ -14,7 +14,7 @@ public class RebalancedListener implements ConsumerRebalanceListener {
 
     public static void waitForRebalanced() {
         while (true) {
-            if (System.nanoTime() - lastEvent > 50000) break;
+            if (System.nanoTime() - lastEvent > 3000000000L) break;
         }
     }
 

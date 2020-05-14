@@ -26,6 +26,7 @@ import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.zeromq.receivers.ZMQAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.zeromq.receivers.ZMQAsyncResponseReceiver;
 import com.jaffa.rpc.lib.zookeeper.Utils;
+import com.jaffa.rpc.lib.zookeeper.ZooKeeperConnection;
 import kafka.admin.RackAwareMode;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
@@ -44,6 +45,7 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.zeromq.ZContext;
+import scala.Option;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -137,7 +139,14 @@ public class JaffaService {
         Utils.connect(Utils.getRequiredOption("jaffa.rpc.zookeeper.connection"));
         Protocol protocol = Utils.getRpcProtocol();
         if (protocol.equals(Protocol.KAFKA)) {
-            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(Utils.getRequiredOption("jaffa.rpc.zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(Utils.getRequiredOption("jaffa.rpc.zookeeper.connection"),
+                    200000,
+                    15000,
+                    10,
+                    Time.SYSTEM,
+                    UUID.randomUUID().toString(),
+                    UUID.randomUUID().toString(),
+                    null, Option.apply(ZooKeeperConnection.getZkConfig()));
             JaffaService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
             JaffaService.setAdminZkClient(new AdminZkClient(zkClient));
             JaffaService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
@@ -321,7 +330,7 @@ public class JaffaService {
                 for (String service : Utils.services) {
                     Utils.deleteAllRegistrations(service);
                 }
-                Utils.conn.close();
+                if(Utils.conn != null) Utils.conn.close();
             } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
                 log.error("Unable to unregister services from ZooKeeper cluster, probably it was done earlier");
             }
