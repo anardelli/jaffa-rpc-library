@@ -161,11 +161,24 @@ public class PersonCallback implements Callback<Person> {
 ```
 
 ## Exceptions  
-
-```JaffaRpcExecutionException```   - if any exception occurred **during sending request or receiving response**  
-```JaffaRpcSystemException```      - if any **system resource not available (ZooKeeper/Kafka/RabbitMQ/OS)**  
-```JaffaRpcNoRouteException```     - if request could not be send (**required jaffa.rpc.module.id is not available now**)  
-```JaffaRpcExecutionTimeoutException```   - if response was not received until timeout (**specified by client or 1 hour as default**)  
+<table>
+  <tr>
+    <td>JaffaRpcExecutionException</td>
+    <td>If any exception occurred during sending request or receiving response</td>
+  </tr>
+  <tr>
+    <td>JaffaRpcSystemException</td>
+    <td>If any system resource not available (ZooKeeper/Kafka/RabbitMQ/OS)</td>
+  </tr>
+  <tr>
+    <td>JaffaRpcNoRouteException</td>
+    <td>If request could not be send (required jaffa.rpc.module.id is not available now)</td>
+  </tr>
+  <tr>
+    <td>JaffaRpcExecutionTimeoutException</td>
+    <td>If response was not received until timeout (specified by client or 1 hour as default)</td>
+  </tr>
+</table>  
 
 ## Configuration
 
