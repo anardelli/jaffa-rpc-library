@@ -1,12 +1,11 @@
 ## Jaffa RPC library
 
-This library provides communication between Java applications.  
+**This library provides communication between Java applications.**  
 
-Key features:  
+**Key features:**  
 - **Apache ZooKeeper (with TLSv1.2) is used for service discovery**
 - **Sync & async RPC calls - type of communication is determined by client, not server**
-- **One interface could have multiple server implementations - 
-  **client choose required one by specifying target's jaffa.rpc.module.id in request**
+- **One interface could have multiple server implementations - client choose required one by specifying target's jaffa.rpc.module.id in request**
 - **Request-scoped timeout for both sync/async calls**
 - **4 protocols are supported**:
   - **ZeroMQ (with authentication/encryption using Curve)**
