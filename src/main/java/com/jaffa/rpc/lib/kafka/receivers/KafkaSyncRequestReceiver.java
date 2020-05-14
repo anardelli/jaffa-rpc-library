@@ -54,7 +54,7 @@ public class KafkaSyncRequestReceiver extends KafkaReceiver implements Runnable 
                         RequestContext.setSecurityTicket(command.getTicket());
                         Object result = JaffaService.invoke(command);
                         byte[] serializedResponse = Serializer.getCtx().serializeWithClass(JaffaService.getResult(result));
-                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + JaffaService.getRequiredOption("module.id") + "-client-sync", command.getRqUid(), serializedResponse);
+                        ProducerRecord<String, byte[]> resultPackage = new ProducerRecord<>(Utils.getServiceInterfaceNameFromClient(command.getServiceClass()) + "-" + JaffaService.getRequiredOption("jaffa.rpc.module.id") + "-client-sync", command.getRqUid(), serializedResponse);
                         producer.send(resultPackage).get();
                         Map<TopicPartition, OffsetAndMetadata> commitData = new HashMap<>();
                         commitData.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset()));

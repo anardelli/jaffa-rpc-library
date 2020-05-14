@@ -6,7 +6,7 @@ Key features:
 - **Apache ZooKeeper (with TLSv1.2)** is used for service discovery
 - Sync & async method calls - type of communication is determined by client, not server
 - One interface could have multiple server implementations - 
-  client choose required by specifying target module.id
+  client choose required by specifying target 'jaffa.rpc.module.id' in request
 - Request-scoped timeout for both sync/async calls
 - **4 protocols**:
   - **ZeroMQ (with authentication/encryption using Curve)**
@@ -81,11 +81,11 @@ public class PersonServiceImpl implements PersonService{
     // Methods
     // ...
     public void lol(){ // Normal invocation
-        RequestContext.getSourceModuleId(); // client module.id available on server side
+        RequestContext.getSourceModuleId(); // client jaffa.rpc.module.id available on server side
         RequestContext.getTicket(); // and security ticket too (if it was provided by client)
     }
     public Person testError() { // Invocation thrown exception
-        throw new RuntimeException("Exception in " + System.getProperty("module.id"));
+        throw new RuntimeException("Exception in " + System.getProperty("jaffa.rpc.module.id"));
     }
 }
 ```
@@ -164,7 +164,7 @@ public class PersonCallback implements Callback<Person> {
 
 ```JaffaRpcExecutionException```   - if any exception occurred **during sending request or receiving response**  
 ```JaffaRpcSystemException```      - if any **system resource not available (ZooKeeper/Kafka/RabbitMQ/OS)**  
-```JaffaRpcNoRouteException```     - if request could not be send (**required module.id is not available now**)  
+```JaffaRpcNoRouteException```     - if request could not be send (**required jaffa.rpc.module.id is not available now**)  
 ```JaffaRpcExecutionTimeoutException```   - if response was not received until timeout (**specified by client or 1 hour as default**)  
 
 ## Configuration
@@ -192,11 +192,11 @@ public class MainConfig {
 NOTE: Number of partitions for library's topics is equal to the number of Kafka brokers.
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
-#### Available JVM options
+#### Available options (could be configured as JVM or by specifying 'jaffa-rpc-config' JVM option with the path to [config.properties](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/jaffa-rpc-config-main-server.properties) file)
 <table>
   <th>Option</th><th>Description</th>
   <tr>
-    <td>zookeeper.connection</td>
+    <td>jaffa.rpc.zookeeper.connection</td>
     <td>ZooKeeper cluster connection string (required): 'host:port' </td>
   </tr>
   <tr>
@@ -216,7 +216,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>Port for receiving callback connections for HTTP (optional, default port is 4342)</td>
   </tr>
   <tr>
-    <td>module.id</td>
+    <td>jaffa.rpc.module.id</td>
     <td>Unique name of server in ZooKeeper cluster (required)</td>
   </tr>
   <tr>
@@ -264,27 +264,27 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
     <td>Password to keystore provided by previous option</td>
   </tr>
     <tr>
-    <td>zookeeper.client.secure</td>
+    <td>jaffa.rpc.zookeeper.client.secure</td>
     <td>Value 'true' enables TLSv1.2 for Apache ZooKeeper client</td>
   </tr>
   <tr>
-    <td>zookeeper.clientCnxnSocket</td>
+    <td>jaffa.rpc.zookeeper.clientCnxnSocket</td>
     <td>Must be 'org.apache.zookeeper.ClientCnxnSocketNetty' if TLSv1.2 is enabled</td>
   </tr>
   <tr>
-    <td>zookeeper.ssl.keyStore.location</td>
+    <td>jaffa.rpc.zookeeper.ssl.keyStore.location</td>
     <td>Path to JKS keystore that will be used to connect to Apache ZooKeeper</td>
   </tr>
   <tr>
-    <td>zookeeper.ssl.keyStore.password</td>
+    <td>jaffa.rpc.zookeeper.ssl.keyStore.password</td>
     <td>Password to keystore provided by previous option</td>
   </tr>
   <tr>
-    <td>zookeeper.ssl.trustStore.location</td>
+    <td>jaffa.rpc.zookeeper.ssl.trustStore.location</td>
     <td>Path to JKS truststore that will be used to connect to Apache ZooKeeper</td>
   </tr>
   <tr>
-    <td>zookeeper.ssl.trustStore.password</td>
+    <td>jaffa.rpc.zookeeper.ssl.trustStore.password</td>
     <td>Password to truststore provided by previous option</td>
   </tr>
     <tr>
@@ -324,8 +324,8 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
       <td>Path to the Curve keys for current server</td>
     </tr>
     <tr>
-      <td>jaffa.rpc.protocol.zmq.client.key.--module.id--</td>
-      <td>Path to the Curve keys for client with --module.id--</td>
+      <td>jaffa.rpc.protocol.zmq.client.key.--jaffa.rpc.module.id--</td>
+      <td>Path to the Curve keys for client with --jaffa.rpc.module.id--</td>
     </tr>
   </table>  
   

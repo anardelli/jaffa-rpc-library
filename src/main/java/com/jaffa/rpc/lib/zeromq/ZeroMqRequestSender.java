@@ -39,7 +39,7 @@ public class ZeroMqRequestSender extends Sender {
             socket.setCurveSecretKey(CurveUtils.getServerSecretKey().getBytes());
             String clientPublicKey = CurveUtils.getClientPublicKey(moduleId);
             if (clientPublicKey == null)
-                throw new JaffaRpcExecutionException("No Curve client key was provided for module.id " + moduleId);
+                throw new JaffaRpcExecutionException("No Curve client key was provided for jaffa.rpc.module.id " + moduleId);
             socket.setCurveServerKey(clientPublicKey.getBytes());
         }
     }

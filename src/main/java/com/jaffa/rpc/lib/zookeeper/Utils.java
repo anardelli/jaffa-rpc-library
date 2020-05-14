@@ -129,7 +129,7 @@ public class Utils {
                 return hosts.get(0);
             }
         } catch (KeeperException | InterruptedException | ParseException e) {
-            log.error("Error while getting avaiable module.id:", e);
+            log.error("Error while getting avaiable jaffa.rpc.module.id:", e);
             throw new JaffaRpcNoRouteException(service, protocol.getShortName());
         }
     }
@@ -211,7 +211,7 @@ public class Utils {
     }
 
     private static String getServiceBindAddress(Protocol protocol) throws UnknownHostException {
-        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("module.id") + "#" + protocol.getShortName();
+        return getLocalHostLANAddress().getHostAddress() + ":" + getServicePort() + "#" + System.getProperty("jaffa.rpc.module.id") + "#" + protocol.getShortName();
     }
 
     public static String getZeroMQBindAddress() throws UnknownHostException {

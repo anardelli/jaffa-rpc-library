@@ -212,10 +212,10 @@ public class JaffaService {
 
     @SuppressWarnings("squid:S2583")
     private void prepareServiceRegistration() throws ClassNotFoundException {
-        Utils.connect(getRequiredOption("zookeeper.connection"));
+        Utils.connect(getRequiredOption("jaffa.rpc.zookeeper.connection"));
         Protocol protocol = Utils.getRpcProtocol();
         if (protocol.equals(Protocol.KAFKA)) {
-            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            ZooKeeperClient zooKeeperClient = new ZooKeeperClient(getRequiredOption("jaffa.rpc.zookeeper.connection"), 200000, 15000, 10, Time.SYSTEM, UUID.randomUUID().toString(), UUID.randomUUID().toString());
             JaffaService.setZkClient(new KafkaZkClient(zooKeeperClient, false, Time.SYSTEM));
             JaffaService.setAdminZkClient(new AdminZkClient(zkClient));
             JaffaService.setBrokersCount(zkClient.getAllBrokersInCluster().size());
@@ -268,7 +268,7 @@ public class JaffaService {
                 apiImpls.add(Class.forName(Utils.getServiceInterfaceNameFromClient(client.getName())));
             }
         }
-        apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("module.id") + "-" + type));
+        apiImpls.forEach(x -> topicsCreated.add(x.getName() + "-" + getRequiredOption("jaffa.rpc.module.id") + "-" + type));
         return topicsCreated;
     }
 
