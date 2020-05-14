@@ -3,12 +3,12 @@
 This library provides communication between Java applications.  
 
 Key features:  
-- **Apache ZooKeeper (with TLSv1.2)** is used for service discovery
-- Sync & async method calls - type of communication is determined by client, not server
-- One interface could have multiple server implementations - 
-  client choose required by specifying target **jaffa.rpc.module.id** in request
-- Request-scoped timeout for both sync/async calls
-- **4 protocols**:
+- **Apache ZooKeeper (with TLSv1.2) is used for service discovery**
+- **Sync & async RPC calls - type of communication is determined by client, not server**
+- **One interface could have multiple server implementations - 
+  **client choose required one by specifying target's jaffa.rpc.module.id in request**
+- **Request-scoped timeout for both sync/async calls**
+- **4 protocols are supported**:
   - **ZeroMQ (with authentication/encryption using Curve)**
     - Unlimited message size
     - Low latency
@@ -23,7 +23,7 @@ Key features:
     - Low latency
     - High throughput
     - Persistence
-- User could specify custom OTT provider (see example below)
+- **User could specify custom OTT provider (see example below)**
 
 ## Latency
 
@@ -73,7 +73,7 @@ public interface PersonService {
 }
 ```
 
-Server-side implementation:
+**Server-side implementation:**
 ```java
 
 @ApiServer
@@ -105,7 +105,7 @@ public interface PersonServiceClient {
 }
 ```
 
-Security ticket provider could be specified by user:
+**OTT provider could be specified by user:**
 
 ```java
 @Component
@@ -119,7 +119,7 @@ public class TicketProviderImpl implements TicketProvider {
 }
 ```
 
-Next, you could inject this RPC interface using @Autowire:
+Next, you could inject this RPC interface using **@Autowire**:
 
 ```java
 @Autowired
@@ -206,7 +206,7 @@ NOTE: Number of partitions for library's topics is equal to the number of Kafka 
       If any required topics already exist, but they have wrong configurations, exception will be thrown.
 
 #### Available options
-Could be configured entirely as JVM options or by specifying **jaffa-rpc-config** JVM option with the path to [config.properties](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/jaffa-rpc-config-main-server.properties) file)
+Could be configured entirely as JVM options or by specifying **jaffa-rpc-config** JVM option with the path to [config.properties](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/jaffa-rpc-config-main-server.properties)
 <table>
   <th>Option</th><th>Description</th>
   <tr>
