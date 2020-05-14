@@ -53,7 +53,7 @@ Dashboard URL is logged at startup like this:
 
 ## How to use
 
-[FULL EXAMPLE HERE](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/src/test/java/com/jaffa/rpc/test/ServerTest.java)
+[FULL EXAMPLE HERE](https://github.com/dredwardhyde/jaffa-rpc-library/blob/master/src/test/java/com/jaffa/rpc/test/TestServer.java)
 
 You create an interface with ```@Api```annotation, for example:
 
