@@ -1,8 +1,8 @@
 package com.jaffa.rpc.lib.request;
 
+import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcNoRouteException;
-import com.jaffa.rpc.lib.JaffaService;
 import com.jaffa.rpc.lib.zookeeper.Utils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

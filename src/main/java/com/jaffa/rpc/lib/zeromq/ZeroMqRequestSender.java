@@ -15,6 +15,17 @@ public class ZeroMqRequestSender extends Sender {
 
     public static final ZContext context = new ZContext(10);
 
+    public static void addCurveKeysToSocket(ZMQ.Socket socket, String moduleId) {
+        if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
+            socket.setCurvePublicKey(CurveUtils.getServerPublicKey().getBytes());
+            socket.setCurveSecretKey(CurveUtils.getServerSecretKey().getBytes());
+            String clientPublicKey = CurveUtils.getClientPublicKey(moduleId);
+            if (clientPublicKey == null)
+                throw new JaffaRpcExecutionException("No Curve client key was provided for jaffa.rpc.module.id " + moduleId);
+            socket.setCurveServerKey(clientPublicKey.getBytes());
+        }
+    }
+
     @Override
     public byte[] executeSync(byte[] message) {
         long start = System.currentTimeMillis();
@@ -31,17 +42,6 @@ public class ZeroMqRequestSender extends Sender {
         }
         log.info(">>>>>> Executed sync request {} in {} ms", command.getRqUid(), System.currentTimeMillis() - start);
         return response;
-    }
-
-    public static void addCurveKeysToSocket(ZMQ.Socket socket, String moduleId) {
-        if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
-            socket.setCurvePublicKey(CurveUtils.getServerPublicKey().getBytes());
-            socket.setCurveSecretKey(CurveUtils.getServerSecretKey().getBytes());
-            String clientPublicKey = CurveUtils.getClientPublicKey(moduleId);
-            if (clientPublicKey == null)
-                throw new JaffaRpcExecutionException("No Curve client key was provided for jaffa.rpc.module.id " + moduleId);
-            socket.setCurveServerKey(clientPublicKey.getBytes());
-        }
     }
 
     @Override

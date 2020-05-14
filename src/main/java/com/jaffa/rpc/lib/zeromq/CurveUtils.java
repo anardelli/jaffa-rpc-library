@@ -31,7 +31,7 @@ public class CurveUtils {
         return null;
     }
 
-    public static String getClientPublicKey(String moduleId){
+    public static String getClientPublicKey(String moduleId) {
         String clientPublicKey = moduleIdWithClientKeys.get(moduleId);
         log.info("Reading public client key {} for {}", clientPublicKey, moduleId);
         return clientPublicKey;

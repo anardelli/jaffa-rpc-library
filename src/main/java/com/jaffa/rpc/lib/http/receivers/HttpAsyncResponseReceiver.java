@@ -9,8 +9,8 @@ import com.jaffa.rpc.lib.exception.JaffaRpcExecutionException;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
 import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.ui.AdminServer;
-import com.sun.net.httpserver.*;
 import com.jaffa.rpc.lib.zookeeper.Utils;
+import com.sun.net.httpserver.*;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.*;
@@ -31,7 +31,7 @@ public class HttpAsyncResponseReceiver implements Runnable, Closeable {
     @Override
     public void run() {
         try {
-            if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
+            if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
                 HttpsServer httpsServer = HttpsServer.create(Utils.getHttpCallbackBindAddress(), 0);
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");

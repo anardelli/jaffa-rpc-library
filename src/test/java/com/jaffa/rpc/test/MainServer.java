@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Slf4j
 @SuppressWarnings("squid:S2187")
-public class MainTest {
+public class MainServer {
 
     public static void main(String... args) {
         log.info("================ MAIN SERVER STARTING ================");

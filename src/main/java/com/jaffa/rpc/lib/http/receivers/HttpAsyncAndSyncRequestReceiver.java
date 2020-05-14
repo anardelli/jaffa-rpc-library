@@ -40,9 +40,9 @@ import java.util.concurrent.Executors;
 @Slf4j
 public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
 
-    public static CloseableHttpClient client;
-
     private static final ExecutorService service = Executors.newFixedThreadPool(3);
+    public static CloseableHttpClient client;
+    private HttpServer server;
 
     public static void initClient() {
         if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
@@ -66,12 +66,10 @@ public class HttpAsyncAndSyncRequestReceiver implements Runnable, Closeable {
         }
     }
 
-    private HttpServer server;
-
     @Override
     public void run() {
         try {
-            if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
+            if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false"))) {
                 HttpsServer httpsServer = HttpsServer.create(Utils.getHttpBindAddress(), 0);
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");

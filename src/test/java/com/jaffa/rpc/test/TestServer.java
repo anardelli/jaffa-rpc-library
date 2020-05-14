@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @SuppressWarnings("squid:S2187")
-public class ServerTest {
+public class TestServer {
 
     private static final boolean loadTest = false;
 
@@ -82,7 +82,6 @@ public class ServerTest {
                 thread.join();
             } catch (Exception ignore) {
             }
-
         }
     }
 }

@@ -31,7 +31,7 @@ public class Utils {
     public static volatile ZooKeeperConnection conn;
     private static ZooKeeper zk;
 
-    public static void loadProperties(){
+    public static void loadProperties() {
         try {
             String path = System.getProperty("jaffa-rpc-config");
             if (path != null) {
@@ -44,7 +44,7 @@ public class Utils {
                     System.setProperty(name, value);
                 }
             }
-        }catch (IOException ioException){
+        } catch (IOException ioException) {
             log.error("Unable to read properties from jaffa-rpc-config file", ioException);
         }
     }
@@ -65,7 +65,7 @@ public class Utils {
         return clientName.replaceAll("Client$", "");
     }
 
-    public static Pair<String,String> getHostForService(String service, String moduleId, Protocol protocol) {
+    public static Pair<String, String> getHostForService(String service, String moduleId, Protocol protocol) {
         service = Utils.getServiceInterfaceNameFromClient(service);
         Stat stat = null;
         try {
@@ -91,7 +91,7 @@ public class Utils {
         return (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.use.https", "false")) ? "https" : "http") + "://";
     }
 
-    private static ArrayList<MutablePair<String,String>> getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
+    private static ArrayList<MutablePair<String, String>> getHostsForService(String service, String moduleId, Protocol protocol) throws KeeperException, ParseException, InterruptedException {
         byte[] zkData = zk.getData(service, false, null);
         JSONArray jArray = (JSONArray) new JSONParser().parse(new String(zkData));
         if (jArray.isEmpty())
@@ -101,7 +101,8 @@ public class Utils {
             for (Object json : jArray) {
                 String[] params = ((String) json).split("#");
                 if (moduleId != null) {
-                    if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2])) hosts.add(new MutablePair<>(params[0], params[1]));
+                    if (moduleId.equals(params[1]) && protocol.getShortName().equals(params[2]))
+                        hosts.add(new MutablePair<>(params[0], params[1]));
                 } else {
                     if (protocol.getShortName().equals(params[2])) hosts.add(new MutablePair<>(params[0], params[1]));
                 }

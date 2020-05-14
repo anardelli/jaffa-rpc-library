@@ -1,21 +1,18 @@
 package com.jaffa.rpc.lib;
 
+import com.jaffa.rpc.lib.annotations.Api;
 import com.jaffa.rpc.lib.annotations.ApiClient;
+import com.jaffa.rpc.lib.annotations.ApiServer;
+import com.jaffa.rpc.lib.common.FinalizationWorker;
+import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.entities.CallbackContainer;
 import com.jaffa.rpc.lib.entities.Command;
 import com.jaffa.rpc.lib.entities.ExceptionHolder;
 import com.jaffa.rpc.lib.entities.Protocol;
 import com.jaffa.rpc.lib.exception.JaffaRpcSystemException;
-import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
-import com.jaffa.rpc.lib.serialization.Serializer;
-import com.jaffa.rpc.lib.zeromq.CurveUtils;
-import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
-import com.jaffa.rpc.lib.annotations.Api;
-import com.jaffa.rpc.lib.annotations.ApiServer;
-import com.jaffa.rpc.lib.common.FinalizationWorker;
-import com.jaffa.rpc.lib.common.RebalancedListener;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.http.receivers.HttpAsyncResponseReceiver;
+import com.jaffa.rpc.lib.kafka.KafkaRequestSender;
 import com.jaffa.rpc.lib.kafka.receivers.KafkaAsyncRequestReceiver;
 import com.jaffa.rpc.lib.kafka.receivers.KafkaAsyncResponseReceiver;
 import com.jaffa.rpc.lib.kafka.receivers.KafkaReceiver;
@@ -23,8 +20,11 @@ import com.jaffa.rpc.lib.kafka.receivers.KafkaSyncRequestReceiver;
 import com.jaffa.rpc.lib.rabbitmq.RabbitMQRequestSender;
 import com.jaffa.rpc.lib.rabbitmq.receivers.RabbitMQAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.rabbitmq.receivers.RabbitMQAsyncResponseReceiver;
+import com.jaffa.rpc.lib.serialization.Serializer;
 import com.jaffa.rpc.lib.spring.ClientEndpoints;
 import com.jaffa.rpc.lib.spring.ServerEndpoints;
+import com.jaffa.rpc.lib.zeromq.CurveUtils;
+import com.jaffa.rpc.lib.zeromq.ZeroMqRequestSender;
 import com.jaffa.rpc.lib.zeromq.receivers.ZMQAsyncAndSyncRequestReceiver;
 import com.jaffa.rpc.lib.zeromq.receivers.ZMQAsyncResponseReceiver;
 import com.jaffa.rpc.lib.zookeeper.Utils;
@@ -93,6 +93,13 @@ public class JaffaService {
     @Setter(AccessLevel.PRIVATE)
     @Getter(AccessLevel.PUBLIC)
     private static ConnectionFactory connectionFactory;
+    private final List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
+    private final List<Closeable> zmqReceivers = new ArrayList<>();
+    private final List<Thread> receiverThreads = new ArrayList<>();
+    @Autowired
+    private ServerEndpoints serverEndpoints;
+    @Autowired
+    private ClientEndpoints clientEndpoints;
 
     private static void initInternalProps() {
         if (Utils.getRpcProtocol().equals(Protocol.KAFKA)) {
@@ -106,14 +113,14 @@ public class JaffaService {
             producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
 
-            if(Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.kafka.use.ssl", "false"))){
+            if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.kafka.use.ssl", "false"))) {
                 Map<String, String> sslProps = new HashMap<>();
                 sslProps.put("security.protocol", "SSL");
                 sslProps.put("ssl.truststore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.location"));
                 sslProps.put("ssl.truststore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.truststore.password"));
-                sslProps.put("ssl.keystore.location",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
-                sslProps.put("ssl.keystore.password",   System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
-                sslProps.put("ssl.key.password",        System.getProperty("jaffa.rpc.protocol.kafka.ssl.key.password"));
+                sslProps.put("ssl.keystore.location", System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.location"));
+                sslProps.put("ssl.keystore.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.keystore.password"));
+                sslProps.put("ssl.key.password", System.getProperty("jaffa.rpc.protocol.kafka.ssl.key.password"));
                 consumerProps.putAll(sslProps);
                 producerProps.putAll(sslProps);
             }
@@ -128,14 +135,6 @@ public class JaffaService {
         primitiveToWrappers.put(double.class, Double.class);
         primitiveToWrappers.put(void.class, Void.class);
     }
-
-    private final List<KafkaReceiver> kafkaReceivers = new ArrayList<>();
-    private final List<Closeable> zmqReceivers = new ArrayList<>();
-    private final List<Thread> receiverThreads = new ArrayList<>();
-    @Autowired
-    private ServerEndpoints serverEndpoints;
-    @Autowired
-    private ClientEndpoints clientEndpoints;
 
     public static String getRequiredOption(String option) {
         String optionValue = System.getProperty(option);

@@ -68,7 +68,7 @@ public class AdminServer {
     public void init() {
         try {
             boolean useHttps = Boolean.parseBoolean(System.getProperty("jaffa.admin.use.https", "false"));
-            if(useHttps){
+            if (useHttps) {
                 HttpsServer httpsServer = HttpsServer.create(new InetSocketAddress(Utils.getLocalHost(), getFreePort()), 0);
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 KeyStore ks = KeyStore.getInstance("PKCS12");

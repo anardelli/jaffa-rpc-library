@@ -88,7 +88,7 @@ public class ZMQAsyncResponseReceiver implements Runnable, Closeable {
         if (Boolean.parseBoolean(System.getProperty("jaffa.rpc.protocol.zmq.curve.enabled", "false"))) {
             try {
                 auth.close();
-            }catch (IOException ioException){
+            } catch (IOException ioException) {
                 log.error("Error while closing ZeroMQ context", ioException);
             }
         } else {
