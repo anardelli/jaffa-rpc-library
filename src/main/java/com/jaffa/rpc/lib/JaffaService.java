@@ -331,6 +331,7 @@ public class JaffaService {
                     Utils.deleteAllRegistrations(service);
                 }
                 if(Utils.conn != null) Utils.conn.close();
+                Utils.conn = null;
             } catch (KeeperException | InterruptedException | ParseException | UnknownHostException e) {
                 log.error("Unable to unregister services from ZooKeeper cluster, probably it was done earlier");
             }

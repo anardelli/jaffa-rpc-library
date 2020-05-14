@@ -286,10 +286,12 @@ class ShutdownHook extends Thread {
     @Override
     public void run() {
         try {
-            for (String service : Utils.services) {
-                Utils.deleteAllRegistrations(service);
+            if(Utils.conn != null){
+                for (String service : Utils.services) {
+                    Utils.deleteAllRegistrations(service);
+                }
+                if(Utils.conn != null) Utils.conn.close();
             }
-            Utils.conn.close();
             Utils.conn = null;
         } catch (KeeperException | InterruptedException | ParseException | IOException e) {
             throw new JaffaRpcSystemException(e);
